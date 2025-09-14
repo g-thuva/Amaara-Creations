@@ -35,7 +35,7 @@ const Navbar = () => {
           <li className="profile-menu">
             <FaUserCircle
               size={24}
-              color="#fff"
+              color="gold"
               style={{ cursor: "pointer" }}
               onClick={toggleDropdown}
             />
