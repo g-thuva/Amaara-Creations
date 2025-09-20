@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import "./Products.css";
 
 const products = [
   {
