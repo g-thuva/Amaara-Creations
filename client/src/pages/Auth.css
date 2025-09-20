@@ -1,26 +1,30 @@
-/* Shared Authentication Styles */
+/* Shared Authentication Styles - Dark Blue Glass Theme */
 .auth-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 80vh;
   padding: 2rem;
-  background-color: #f9f9f9;
+  background: var(--bg-dark);
+  font-family: var(--font-main);
 }
 
 .auth-card {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
   padding: 2.5rem;
   width: 100%;
   max-width: 450px;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
 }
 
 .auth-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .auth-header {
@@ -30,13 +34,16 @@
 
 .auth-title {
   font-size: 2rem;
-  color: #8b5a2b;
-  margin-bottom: 0.5rem;
   font-weight: 600;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(90deg, var(--primary-dark), var(--primary-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .auth-subtitle {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.95rem;
 }
 
@@ -47,7 +54,7 @@
 .form-label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #555;
+  color: var(--text-primary);
   font-weight: 500;
   font-size: 0.95rem;
 }
@@ -55,25 +62,29 @@
 .form-control {
   width: 100%;
   padding: 0.8rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   font-size: 1rem;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #8b5a2b;
-  box-shadow: 0 0 0 2px rgba(139, 90, 43, 0.2);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 }
 
 .btn-auth {
   width: 100%;
   padding: 0.9rem;
-  background: #8b5a2b;
+  background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -81,7 +92,7 @@
 }
 
 .btn-auth:hover {
-  background: #744a23;
+  background: var(--primary-dark);
   transform: translateY(-1px);
 }
 
@@ -92,12 +103,12 @@
 .auth-footer {
   text-align: center;
   margin-top: 1.5rem;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
 .auth-link {
-  color: #8b5a2b;
+  color: var(--primary-color);
   text-decoration: none;
   font-weight: 500;
   margin-left: 0.3rem;
@@ -105,13 +116,13 @@
 }
 
 .auth-link:hover {
-  color: #6a4720;
+  color: var(--primary-dark);
   text-decoration: underline;
 }
 
 /* Error message styling */
 .error-message {
-  color: #e74c3c;
+  color: var(--error);
   font-size: 0.85rem;
   margin-top: 0.5rem;
   display: block;
@@ -122,11 +133,11 @@
   .auth-card {
     padding: 1.5rem;
   }
-  
+
   .auth-title {
     font-size: 1.7rem;
   }
-  
+
   .auth-subtitle {
     font-size: 0.9rem;
   }

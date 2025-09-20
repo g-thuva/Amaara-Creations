@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import HeroSlider from "../components/HeroSlider";
+import "./Home.css";
 
 const Home = () => {
   return (
