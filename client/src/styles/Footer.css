@@ -31,63 +31,17 @@
   100% { background-position: 400px 400px; }
 }
 
-/* Collapsed state */
-.footer.collapsed {
-  padding: 0;
-  max-height: 50px;
+/* Footer always visible */
+.footer {
+  padding: 3rem 0 0;
+  max-height: none !important;
 }
 
-.footer.collapsed .footer-container,
-.footer.collapsed .footer-bottom {
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(20px);
-  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
-}
-
-/* Expanded state */
-.footer.expanded {
-  max-height: 1000px;
-  transition: max-height 0.5s ease-in-out;
-}
-
-.footer.expanded .footer-container,
-.footer.expanded .footer-bottom {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  transition: opacity 0.5s ease 0.2s, transform 0.5s ease 0.2s;
-}
-
-/* Toggle button */
-.footer-toggle {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--accent-color);
-  border: none;
-  width: 40px;
-  height: 20px;
-  border-radius: 0 0 10px 10px;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition: all 0.3s ease;
-  z-index: 10;
-}
-
-.footer-toggle:hover {
-  background: var(--accent-light);
-  height: 25px;
-}
-
-.footer-toggle i {
-  font-size: 0.8rem;
-  transition: transform 0.3s ease;
+.footer .footer-container,
+.footer .footer-bottom {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
 }
 
 .footer-container {

@@ -1,19 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/Footer.css';
 
 const Footer = () => {
-  const [isExpanded, setIsExpanded] = useState(true);
-
-  const toggleFooter = () => {
-    setIsExpanded(!isExpanded);
-  };
-
   return (
-    <footer className={`footer ${isExpanded ? 'expanded' : 'collapsed'}`}>
-      <button className="footer-toggle" onClick={toggleFooter} aria-label={isExpanded ? 'Collapse footer' : 'Expand footer'}>
-        <i className={`fas fa-chevron-${isExpanded ? 'down' : 'up'}`}></i>
-      </button>
+    <footer className="footer">
       <div className="footer-container">
         <div className="footer-section">
           <h3>About Us</h3>
