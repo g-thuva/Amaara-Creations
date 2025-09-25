@@ -14,9 +14,13 @@ This guide will help you deploy your Amaara Creations React application to GitHu
 
 The project is configured with GitHub Actions for automatic deployment:
 
-1. **Push to main branch**: The workflow will automatically trigger when you push changes to the main branch
-2. **Check Actions tab**: Go to your GitHub repository → Actions tab to see the deployment progress
-3. **Access your site**: Once deployed, your site will be available at:
+1. **Enable GitHub Pages**: 
+   - Go to your repository settings
+   - Navigate to "Pages" section
+   - Under "Source", select "GitHub Actions"
+2. **Push to main branch**: The workflow will automatically trigger when you push changes to the main branch
+3. **Check Actions tab**: Go to your GitHub repository → Actions tab to see the deployment progress
+4. **Access your site**: Once deployed, your site will be available at:
    ```
    https://yourusername.github.io/Amaara-Creations/
    ```
@@ -48,7 +52,7 @@ If you prefer manual deployment:
 
 - The base path is set to `/Amaara-Creations/` to match your repository name
 - If you change your repository name, update the base path in `vite.config.js`
-- The deployment uses the `gh-pages` branch to host your site
+- The deployment uses GitHub's new Pages deployment system (no separate branch needed)
 - All static assets will be properly referenced with the correct base path
 
 ## Troubleshooting
