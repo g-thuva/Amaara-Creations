@@ -1,5 +1,6 @@
 /* index.css - Dark Blue Theme (Updated Backgrounds) */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+@import './styles/responsive.css';
 
 /* Base Styles */
 *,
@@ -96,9 +97,6 @@ button {
 .text-left { text-align: left; }
 .text-right { text-align: right; }
 
-/* Import Responsive Styles */
-@import './styles/responsive.css';
-
 :root {
   /* Color Palette - Dark Blue */
   --primary-color: #1a365d;      /* Dark Blue */
@@ -147,8 +145,6 @@ button {
   padding: 0;
   box-sizing: border-box;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
 
 body {
   font-family: var(--font-main);
