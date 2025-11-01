@@ -9,7 +9,8 @@ const products = [
     price: 250,
     image: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
     category: "wedding",
-    description: "Beautiful gold foil sticker perfect for wedding invitations"
+    description: "Beautiful gold foil sticker perfect for wedding invitations",
+    stock: 15
   },
   {
     id: 2,
@@ -17,7 +18,8 @@ const products = [
     price: 300,
     image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
     category: "car",
-    description: "Durable and weather-resistant car decal with premium finish"
+    description: "Durable and weather-resistant car decal with premium finish",
+    stock: 0
   },
   {
     id: 3,
@@ -25,7 +27,8 @@ const products = [
     price: 199,
     image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
     category: "wedding",
-    description: "Elegant floral design with custom monogram"
+    description: "Elegant floral design with custom monogram",
+    stock: 8
   },
   {
     id: 4,
@@ -33,7 +36,8 @@ const products = [
     price: 179,
     image: "https://images.unsplash.com/photo-1601582589907-f92af5ed9db8?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
     category: "car",
-    description: "Retro-style bumper sticker with premium adhesive"
+    description: "Retro-style bumper sticker with premium adhesive",
+    stock: 12
   },
   {
     id: 5,
@@ -41,7 +45,8 @@ const products = [
     price: 229,
     image: "https://images.unsplash.com/photo-1624555135871-7bb631f0d8f7?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
     category: "wedding",
-    description: "Luxurious gold foil sticker for special occasions"
+    description: "Luxurious gold foil sticker for special occasions",
+    stock: 5
   },
   {
     id: 6,
