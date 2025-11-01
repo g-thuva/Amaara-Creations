@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import "./App.css";
@@ -24,10 +24,13 @@ import AdOrders from "./pages/admin/AdOrders";
 
 
 function App() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
   return (
     <div className="app-container">
-      <Navbar />
-      <main className="main-content">
+      {!isAdminRoute && <Navbar />}
+      <main className={isAdminRoute ? "admin-main-content" : "main-content"}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<Products />} />
@@ -50,7 +53,7 @@ function App() {
           </Route>
         </Routes>
       </main>
-      <Footer />
+      {!isAdminRoute && <Footer />}
     </div>
   );
 }
