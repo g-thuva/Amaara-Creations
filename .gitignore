@@ -1,0 +1,108 @@
+# Root .gitignore for Amaara Creations Project
+
+# Backend (.NET)
+be/bin/
+be/obj/
+be/**/bin/
+be/**/obj/
+be/*.user
+be/*.suo
+be/*.cache
+be/Properties/launchSettings.json
+be/wwwroot/uploads/
+be/Migrations/*.Designer.cs
+be/*.db
+be/*.db-shm
+be/*.db-wal
+be/node_modules/
+be/package-lock.json
+be/package.json
+be/**/*.pdb
+be/**/*.dll
+be/**/*.exe
+
+# Frontend (Node/React)
+client/node_modules/
+client/dist/
+client/.vite/
+client/build/
+client/dist-ssr/
+client/*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Visual Studio
+.vs/
+**/.vs/
+**/ProjectEvaluation/
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Package manager lock files (optional - uncomment if you want to ignore)
+# package-lock.json
+# yarn.lock
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Upload directories
+uploads/
+wwwroot/uploads/
+
+# Build outputs
+*.dll
+*.exe
+*.pdb
+*.cache
+*.deps.json
+*.runtimeconfig.json
+*.staticwebassets.endpoints.json
+runtimes/
+
+# Visual Studio folders
+.vs/
+**/.vs/
+
+# Duplicate folders
+be/be/
+
