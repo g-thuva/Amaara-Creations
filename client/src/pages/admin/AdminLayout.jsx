@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { FiMenu, FiX, FiHome, FiPackage, FiStar, FiUsers, FiShoppingBag, FiLogOut, FiChevronDown, FiChevronRight } from "react-icons/fi";
+import { FiMenu, FiX, FiHome, FiPackage, FiStar, FiUsers, FiShoppingBag, FiLogOut, FiChevronDown, FiChevronRight, FiArrowLeft } from "react-icons/fi";
 import "./AdminStyles.css";
 
 const menuItems = [
@@ -159,6 +159,13 @@ const AdminLayout = () => {
           <div className="header-left">
             <button className="toggle-sidebar" onClick={toggleSidebar}>
               {sidebarOpen ? <FiX /> : <FiMenu />}
+            </button>
+            <button 
+              className="back-button" 
+              onClick={() => navigate('/')}
+              title="Back to Home"
+            >
+              <FiArrowLeft size={20} />
             </button>
             <h3 style={{ margin: 0, color: '#2d3748' }}>
               {menuItems.find(item => item.path === location.pathname)?.title || 'Dashboard'}
