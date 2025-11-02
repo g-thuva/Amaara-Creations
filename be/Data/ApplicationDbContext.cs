@@ -18,6 +18,7 @@ namespace be.Data
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<WishlistItem> WishlistItems { get; set; }
+        public DbSet<Review> Reviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -145,6 +146,34 @@ namespace be.Data
                 
                 // Unique constraint: one wishlist item per user-product combination
                 entity.HasIndex(e => new { e.UserId, e.ProductId }).IsUnique();
+            });
+
+            // Configure Review entity
+            modelBuilder.Entity<Review>(entity =>
+            {
+                entity.ToTable("Reviews");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Rating).IsRequired();
+                entity.Property(e => e.Comment).HasMaxLength(1000);
+                
+                // Foreign key relationships
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade); // Delete reviews when product is deleted
+                
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Restrict); // Don't delete user when review exists
+                
+                // Unique constraint: one review per user per product
+                entity.HasIndex(e => new { e.UserId, e.ProductId }).IsUnique();
+                
+                // Index for faster queries
+                entity.HasIndex(e => e.ProductId);
+                entity.HasIndex(e => e.Rating);
+                entity.HasIndex(e => e.CreatedAt);
             });
         }
     }
