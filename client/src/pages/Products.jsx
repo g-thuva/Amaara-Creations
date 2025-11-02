@@ -1,75 +1,91 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { productApi } from "../services/productApi";
 import "./Products.css";
-
-const products = [
-  {
-    id: 1,
-    name: "Elegant Wedding Sticker",
-    price: 250,
-    image: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "wedding",
-    description: "Beautiful gold foil sticker perfect for wedding invitations",
-    stock: 15
-  },
-  {
-    id: 2,
-    name: "Luxury Car Decal",
-    price: 300,
-    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "car",
-    description: "Durable and weather-resistant car decal with premium finish",
-    stock: 0
-  },
-  {
-    id: 3,
-    name: "Floral Monogram",
-    price: 199,
-    image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "wedding",
-    description: "Elegant floral design with custom monogram",
-    stock: 8
-  },
-  {
-    id: 4,
-    name: "Vintage Bumper Sticker",
-    price: 179,
-    image: "https://images.unsplash.com/photo-1601582589907-f92af5ed9db8?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "car",
-    description: "Retro-style bumper sticker with premium adhesive",
-    stock: 12
-  },
-  {
-    id: 5,
-    name: "Gold Foil Accent",
-    price: 229,
-    image: "https://images.unsplash.com/photo-1624555135871-7bb631f0d8f7?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "wedding",
-    description: "Luxurious gold foil sticker for special occasions",
-    stock: 5
-  },
-  {
-    id: 6,
-    name: "Minimalist Decal Set",
-    price: 349,
-    image: "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "car",
-    description: "Set of minimalist car decals with premium finish"
-  },
-];
 
 const Products = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  
   const category = searchParams.get('category');
+  const search = searchParams.get('search');
 
-  // Filter products by category if specified
-  const filteredProducts = category
-    ? products.filter(product => product.category === category)
-    : products;
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const params = {
+          category: category || undefined,
+          search: search || undefined,
+          pageNumber: 1,
+          pageSize: 100, // Get all products for now
+        };
+        
+        const response = await productApi.getProducts(params);
+        const productList = response.products || response;
+        setProducts(productList);
+        setFilteredProducts(productList);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError("Failed to load products. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [category, search]);
 
   // Get unique categories for filter
-  const categories = [...new Set(products.map(product => product.category))];
+  const categories = [...new Set(products.map(product => product.category).filter(Boolean))];
+
+  const handleCategoryFilter = (cat) => {
+    if (cat) {
+      navigate(`/products?category=${cat}`);
+    } else {
+      navigate('/products');
+    }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchTerm)}`);
+    } else {
+      navigate('/products');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="products-page">
+        <div className="container">
+          <div style={{ textAlign: 'center', padding: '3rem' }}>
+            <p>Loading products...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="products-page">
+        <div className="container">
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'red' }}>
+            <p>{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="products-page">
@@ -80,11 +96,25 @@ const Products = () => {
         </div>
         
         <div className="products-container">
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '500px', margin: '0 auto' }}>
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
+              />
+              <button type="submit" className="btn btn-primary">Search</button>
+            </div>
+          </form>
+
           {/* Category Filter */}
           <div className="category-filters">
             <button 
               className={`filter-btn ${!category ? 'active' : ''}`}
-              onClick={() => navigate('/products')}
+              onClick={() => handleCategoryFilter(null)}
             >
               All Products
             </button>
@@ -92,7 +122,7 @@ const Products = () => {
               <button
                 key={cat}
                 className={`filter-btn ${category === cat ? 'active' : ''}`}
-                onClick={() => navigate(`/products?category=${cat}`)}
+                onClick={() => handleCategoryFilter(cat)}
               >
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
               </button>
@@ -110,10 +140,17 @@ const Products = () => {
                 >
                   <div className="product-image">
                     <img 
-                      src={product.image} 
+                      src={product.imageUrl || product.image || 'https://via.placeholder.com/400'} 
                       alt={product.name} 
                       loading="lazy"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://via.placeholder.com/400?text=No+Image';
+                      }}
                     />
+                    {product.stock === 0 && (
+                      <div className="out-of-stock-badge">Out of Stock</div>
+                    )}
                     <div className="product-overlay">
                       <button className="btn btn-primary">View Details</button>
                     </div>
@@ -122,7 +159,7 @@ const Products = () => {
                     <h3 className="product-title">{product.name}</h3>
                     <p className="product-description">{product.description}</p>
                     <div className="product-footer">
-                      <span className="product-price">Rs. {product.price}</span>
+                      <span className="product-price">Rs. {product.price?.toLocaleString()}</span>
                       <span className={`product-category ${product.category}`}>
                         {product.category}
                       </span>
@@ -133,7 +170,7 @@ const Products = () => {
             </div>
           ) : (
             <div className="no-results">
-              <p>No products found in this category.</p>
+              <p>No products found{category ? ` in ${category} category` : ""}.</p>
             </div>
           )}
         </div>

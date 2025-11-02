@@ -1,57 +1,160 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { productApi } from "../services/productApi";
+import { reviewApi } from "../services/reviewApi";
+import { cartApi } from "../services/cartApi";
+import { wishlistApi } from "../services/wishlistApi";
 import "./ProductDetails.css";
-
-const dummyProducts = [
-  {
-    id: 1,
-    name: "Wedding Sticker A",
-    price: 250,
-    image: "https://via.placeholder.com/400",
-    description: "Perfect for wedding envelopes and decorations.",
-    reviews: [
-      { user: "Thuva", comment: "Nice quality!", rating: 5 },
-      { user: "Nishan", comment: "Loved it!", rating: 4 },
-    ],
-  },
-  {
-    id: 2,
-    name: "Car Sticker B",
-    price: 300,
-    image: "https://via.placeholder.com/400",
-    description: "Custom sticker for car windows.",
-    reviews: [
-      { user: "Kavi", comment: "Looks great on my car!", rating: 4 },
-    ],
-  },
-];
 
 const ProductDetails = () => {
   const { id } = useParams();
-  const product = dummyProducts.find((p) => p.id === parseInt(id));
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
   const [qty, setQty] = useState(1);
   const [liked, setLiked] = useState(false);
-  const [newReview, setNewReview] = useState({ name: "", comment: "", rating: 5 });
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [newReview, setNewReview] = useState({ comment: "", rating: 5 });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
-  const handleReviewSubmit = (e) => {
-  e.preventDefault();
+  // Fetch product details and reviews
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const productData = await productApi.getProductById(id);
+        setProduct(productData);
+        
+        // Fetch reviews
+        const reviewsData = await reviewApi.getProductReviews(id);
+        setReviews(reviewsData.reviews || []);
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        setError("Failed to load product. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  if (!newReview.name || !newReview.comment) {
-    alert("Please fill out all fields.");
-    return;
-  }
+    if (id) {
+      fetchProduct();
+    }
+  }, [id]);
 
-  product.reviews.push({
-    user: newReview.name,
-    comment: newReview.comment,
-    rating: newReview.rating,
-  });
+  // Check if product is in wishlist
+  useEffect(() => {
+    const checkWishlist = async () => {
+      if (!isAuthenticated || !product) return;
+      
+      try {
+        const wishlistData = await wishlistApi.getWishlist();
+        const isInWishlist = wishlistData.items?.some(
+          item => item.productId === product.id
+        );
+        setLiked(isInWishlist);
+      } catch (err) {
+        console.error("Error checking wishlist:", err);
+      }
+    };
 
-    setNewReview({ name: "", comment: "", rating: 5 });
-    alert("Review submitted!");
+    checkWishlist();
+  }, [isAuthenticated, product]);
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: `/products/${id}` } });
+      return;
+    }
+
+    setIsAddingToCart(true);
+    try {
+      await cartApi.addToCart(product.id, qty);
+      alert(`${qty} ${product.name}(s) added to cart!`);
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Failed to add to cart";
+      alert(errorMessage);
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
-  if (!product) return <p>Product not found</p>;
+  const handleToggleWishlist = async () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: `/products/${id}` } });
+      return;
+    }
+
+    try {
+      if (liked) {
+        await wishlistApi.removeFromWishlist(product.id);
+        setLiked(false);
+      } else {
+        await wishlistApi.addToWishlist(product.id);
+        setLiked(true);
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Failed to update wishlist";
+      alert(errorMessage);
+    }
+  };
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: `/products/${id}` } });
+      return;
+    }
+
+    if (!newReview.comment) {
+      alert("Please enter a review comment.");
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    try {
+      await reviewApi.createReview(id, {
+        rating: newReview.rating,
+        comment: newReview.comment,
+      });
+
+      // Refresh reviews
+      const reviewsData = await reviewApi.getProductReviews(id);
+      setReviews(reviewsData.reviews || []);
+      setNewReview({ comment: "", rating: 5 });
+      alert("Review submitted successfully!");
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Failed to submit review";
+      alert(errorMessage);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="product-details-container">
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <p>Loading product details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="product-details-container">
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'red' }}>
+          <p>{error || "Product not found"}</p>
+        </div>
+      </div>
+    );
+  }
 
   // Render star rating
   const renderStars = (rating) => {
@@ -71,7 +174,7 @@ const ProductDetails = () => {
       <div className="product-content">
         <div className="product-gallery">
           <img 
-            src={product.image} 
+            src={product.imageUrl || product.image || 'https://via.placeholder.com/600x400?text=Product+Image'} 
             alt={product.name} 
             className="product-image"
             onError={(e) => {
@@ -79,6 +182,11 @@ const ProductDetails = () => {
               e.target.src = 'https://via.placeholder.com/600x400?text=Product+Image';
             }}
           />
+          {product.stock === 0 && (
+            <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'red', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px' }}>
+              Out of Stock
+            </div>
+          )}
         </div>
 
         <div className="product-info">
@@ -102,21 +210,19 @@ const ProductDetails = () => {
           <div className="action-buttons">
             <button 
               className="btn btn-primary"
-              onClick={() => {
-                // Add to cart functionality here
-                alert(`${qty} ${product.name}(s) added to cart!`);
-              }}
+              onClick={handleAddToCart}
+              disabled={isAddingToCart || product.stock === 0}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 2L3 6V20C3 20.5304 3.21071 21.0391 3.58579 21.4142C3.96086 21.7893 4.46957 22 5 22H19C19.5304 22 20.0391 21.7893 20.4142 21.4142C20.7893 21.0391 21 20.5304 21 20V6L18 2H6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M16 10C16 11.0609 15.5786 12.0783 14.8284 12.8284C14.0783 13.5786 13.0609 14 12 14C10.9391 14 9.92172 13.5786 9.17157 12.8284C8.42143 12.0783 8 11.0609 8 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              Add to Cart
+              {isAddingToCart ? "Adding..." : product.stock === 0 ? "Out of Stock" : "Add to Cart"}
             </button>
             
             <button 
               className={`btn ${liked ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setLiked(!liked)}
+              onClick={handleToggleWishlist}
             >
               {liked ? (
                 <>
@@ -142,16 +248,19 @@ const ProductDetails = () => {
         <h2 className="section-title">Customer Reviews</h2>
         
         <div className="reviews-list">
-          {product.reviews.length === 0 ? (
+          {reviews.length === 0 ? (
             <p className="no-reviews">No reviews yet. Be the first to review this product!</p>
           ) : (
-            product.reviews.map((review, index) => (
-              <div key={index} className="review-item">
+            reviews.map((review) => (
+              <div key={review.id} className="review-item">
                 <div className="review-header">
-                  <span className="reviewer-name">{review.user}</span>
+                  <span className="reviewer-name">{review.userName || review.userEmail}</span>
                   <div className="review-rating">
                     {renderStars(review.rating)}
                   </div>
+                  <span className="review-date" style={{ fontSize: '0.85rem', color: '#666', marginLeft: '1rem' }}>
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
                 <p className="review-comment">{review.comment}</p>
               </div>
@@ -159,53 +268,51 @@ const ProductDetails = () => {
           )}
         </div>
 
-        <div className="review-form-container">
-          <h3 className="section-title">Write a Review</h3>
-          <form onSubmit={handleReviewSubmit} className="review-form">
-            <div className="form-group">
-              <label htmlFor="reviewer-name" className="form-label">Your Name</label>
-              <input
-                type="text"
-                id="reviewer-name"
-                className="form-control"
-                value={newReview.name}
-                onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="review-rating" className="form-label">Rating</label>
-              <div className="rating-stars">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span 
-                    key={star} 
-                    className={`star ${star <= newReview.rating ? 'filled' : ''}`}
-                    onClick={() => setNewReview({ ...newReview, rating: star })}
-                  >
-                    {star <= newReview.rating ? '★' : '☆'}
-                  </span>
-                ))}
+        {isAuthenticated ? (
+          <div className="review-form-container">
+            <h3 className="section-title">Write a Review</h3>
+            <form onSubmit={handleReviewSubmit} className="review-form">
+              <div className="form-group">
+                <label htmlFor="review-rating" className="form-label">Rating</label>
+                <div className="rating-stars">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span 
+                      key={star} 
+                      className={`star ${star <= newReview.rating ? 'filled' : ''}`}
+                      onClick={() => setNewReview({ ...newReview, rating: star })}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {star <= newReview.rating ? '★' : '☆'}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="review-comment" className="form-label">Your Review</label>
-              <textarea
-                id="review-comment"
-                className="form-control"
-                value={newReview.comment}
-                onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                required
-                minLength="10"
-              />
-            </div>
+              <div className="form-group">
+                <label htmlFor="review-comment" className="form-label">Your Review</label>
+                <textarea
+                  id="review-comment"
+                  className="form-control"
+                  value={newReview.comment}
+                  onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                  required
+                  minLength="10"
+                  placeholder="Share your thoughts about this product..."
+                />
+              </div>
 
-            <button type="submit" className="btn btn-primary">
-              Submit Review
-            </button>
-          </form>
-        </div>
+              <button type="submit" className="btn btn-primary" disabled={isSubmittingReview}>
+                {isSubmittingReview ? "Submitting..." : "Submit Review"}
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="review-form-container">
+            <p style={{ textAlign: 'center', padding: '2rem' }}>
+              Please <button onClick={() => navigate("/login")} style={{ background: 'none', border: 'none', color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>login</button> to write a review.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

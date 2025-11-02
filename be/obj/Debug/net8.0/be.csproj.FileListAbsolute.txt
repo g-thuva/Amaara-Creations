@@ -171,3 +171,5 @@ C:\Users\G.thuva\Documents\GitHub\Amaara-Creations\be\bin\Debug\net8.0\zh-Hant\M
 C:\Users\G.thuva\Documents\GitHub\Amaara-Creations\be\bin\Debug\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
 C:\Users\G.thuva\Documents\GitHub\Amaara-Creations\be\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 C:\Users\G.thuva\Documents\GitHub\Amaara-Creations\be\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
+C:\Users\G.thuva\Documents\GitHub\Amaara-Creations\be\bin\Debug\net8.0\package-lock.json
+C:\Users\G.thuva\Documents\GitHub\Amaara-Creations\be\bin\Debug\net8.0\package.json

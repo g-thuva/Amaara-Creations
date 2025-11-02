@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import "./Auth.css";
 
 const Register = () => {
@@ -12,6 +13,7 @@ const Register = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -26,22 +28,48 @@ const Register = () => {
       setError("Passwords do not match");
       return;
     }
+
+    // Validate password length
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
     
     setIsLoading(true);
     
     try {
-      // TODO: Connect to backend
-      console.log("Register", form);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await register({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        confirmPassword: form.confirmPassword
+      });
       
-      // On successful registration
-      navigate("/login", { 
-        state: { message: "Registration successful! Please log in." } 
+      // On successful registration, redirect to profile (auto-logged in)
+      navigate("/profile", { 
+        state: { message: "Registration successful! Welcome to Amaara Creations." } 
       });
     } catch (err) {
-      setError("Registration failed. Please try again.");
       console.error("Registration error:", err);
+      console.error("Error response:", err.response?.data);
+      console.error("Error status:", err.response?.status);
+      
+      // Extract error messages from different possible formats
+      let errorMessage = "Registration failed. Please try again.";
+      
+      if (err.response?.data) {
+        // Check for ModelState errors (ASP.NET Core validation)
+        if (err.response.data.errors) {
+          const errorMessages = Object.values(err.response.data.errors).flat();
+          errorMessage = errorMessages.join(", ");
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

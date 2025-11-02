@@ -1,75 +1,42 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiPlus, FiX, FiEdit, FiTrash2 } from "react-icons/fi";
+import { productApi } from "../../services/productApi";
+import { uploadApi } from "../../services/uploadApi";
 import "./AdminStyles.css";
 
-const initialProducts = [
-  {
-    id: 1,
-    name: "Elegant Wedding Sticker",
-    price: 250,
-    image: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "wedding",
-    description: "Beautiful gold foil sticker perfect for wedding invitations",
-    stock: 15
-  },
-  {
-    id: 2,
-    name: "Luxury Car Decal",
-    price: 300,
-    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "car",
-    description: "Durable and weather-resistant car decal with premium finish",
-    stock: 0
-  },
-  {
-    id: 3,
-    name: "Floral Monogram",
-    price: 199,
-    image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "wedding",
-    description: "Elegant floral design with custom monogram",
-    stock: 8
-  },
-  {
-    id: 4,
-    name: "Vintage Bumper Sticker",
-    price: 179,
-    image: "https://images.unsplash.com/photo-1601582589907-f92af5ed9db8?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "car",
-    description: "Retro-style bumper sticker with premium adhesive",
-    stock: 12
-  },
-  {
-    id: 5,
-    name: "Gold Foil Accent",
-    price: 229,
-    image: "https://images.unsplash.com/photo-1624555135871-7bb631f0d8f7?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "wedding",
-    description: "Luxurious gold foil sticker for special occasions",
-    stock: 5
-  },
-  {
-    id: 6,
-    name: "Minimalist Decal Set",
-    price: 349,
-    image: "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    category: "car",
-    description: "Set of minimalist car decals with premium finish",
-    stock: 20
-  },
-];
-
 const AdProducts = () => {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     price: "",
     description: "",
-    image: "",
+    imageUrl: "",
     stock: "",
-    category: "wedding"
+    category: "wedding",
+    isActive: true
   });
+  const [imageFile, setImageFile] = useState(null);
+
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        const response = await productApi.getProducts({ pageNumber: 1, pageSize: 100 });
+        setProducts(response.products || response || []);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        alert("Failed to load products");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -82,67 +49,121 @@ const AdProducts = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({
           ...prev,
-          image: reader.result
+          imageUrl: reader.result
         }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.price || !formData.description || !formData.image || formData.stock === "") {
-      alert("Please fill in all fields");
+    if (!formData.name || !formData.price || !formData.description || formData.stock === "") {
+      alert("Please fill in all required fields");
       return;
     }
 
-    const newProduct = {
-      id: products.length + 1,
-      name: formData.name,
-      price: parseFloat(formData.price),
-      description: formData.description,
-      image: formData.image,
-      category: formData.category,
-      stock: parseInt(formData.stock),
-      isOutOfStock: parseInt(formData.stock) === 0
-    };
+    try {
+      let imageUrl = formData.imageUrl;
 
-    setProducts(prev => [...prev, newProduct]);
+      // Upload image if a file is selected
+      if (imageFile) {
+        const uploadResponse = await uploadApi.uploadProductImage(imageFile);
+        imageUrl = `http://localhost:5192${uploadResponse.fileUrl}`;
+      }
 
-    setFormData({
-      name: "",
-      price: "",
-      description: "",
-      image: "",
-      stock: "",
-      category: "wedding"
-    });
+      const productData = {
+        name: formData.name,
+        price: parseFloat(formData.price),
+        description: formData.description,
+        imageUrl: imageUrl,
+        category: formData.category,
+        stock: parseInt(formData.stock),
+        isActive: formData.isActive
+      };
 
-    setShowAddForm(false);
-    alert("Product added successfully!");
+      if (editingProduct) {
+        // Update existing product
+        await productApi.updateProduct(editingProduct.id, productData);
+        alert("Product updated successfully!");
+      } else {
+        // Create new product
+        await productApi.createProduct(productData);
+        alert("Product added successfully!");
+      }
+
+      // Refresh products list
+      const response = await productApi.getProducts({ pageNumber: 1, pageSize: 100 });
+      setProducts(response.products || response || []);
+
+      // Reset form
+      setFormData({
+        name: "",
+        price: "",
+        description: "",
+        imageUrl: "",
+        stock: "",
+        category: "wedding",
+        isActive: true
+      });
+      setImageFile(null);
+      setEditingProduct(null);
+      setShowAddForm(false);
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Failed to save product";
+      alert(errorMessage);
+      console.error("Error saving product:", err);
+    }
   };
 
   const handleCancel = () => {
     setShowAddForm(false);
+    setEditingProduct(null);
     setFormData({
       name: "",
       price: "",
       description: "",
-      image: "",
+      imageUrl: "",
       stock: "",
-      category: "wedding"
+      category: "wedding",
+      isActive: true
     });
+    setImageFile(null);
   };
 
-  const handleDelete = (id) => {
+  const handleEdit = (product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      price: product.price,
+      description: product.description,
+      imageUrl: product.imageUrl || "",
+      stock: product.stock,
+      category: product.category,
+      isActive: product.isActive !== false
+    });
+    setShowAddForm(true);
+  };
+
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
-      setProducts(prev => prev.filter(product => product.id !== id));
-      alert("Product deleted successfully!");
+      try {
+        await productApi.deleteProduct(id);
+        alert("Product deleted successfully!");
+        // Refresh products list
+        const response = await productApi.getProducts({ pageNumber: 1, pageSize: 100 });
+        setProducts(response.products || response || []);
+      } catch (err) {
+        const errorMessage = err.response?.data?.message || "Failed to delete product";
+        alert(errorMessage);
+        console.error("Error deleting product:", err);
+      }
     }
   };
 
@@ -163,25 +184,37 @@ const AdProducts = () => {
         </div>
       </div>
 
-      <div className="products-table-container">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Image</th>
-              <th>Product Name</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
+      {isLoading ? (
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <p>Loading products...</p>
+        </div>
+      ) : (
+        <div className="products-table-container">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>
+                    No products found. Add your first product!
+                  </td>
+                </tr>
+              ) : (
+                products.map((product) => (
               <tr key={product.id}>
                 <td>
                   <img 
-                    src={product.image} 
+                    src={product.imageUrl || product.image || 'https://via.placeholder.com/80'} 
                     alt={product.name}
                     className="product-thumbnail"
                     onError={(e) => {
@@ -199,7 +232,7 @@ const AdProducts = () => {
                 <td>
                   <span className="category-badge">{product.category}</span>
                 </td>
-                <td>Rs. {product.price}</td>
+                <td>Rs. {product.price?.toLocaleString()}</td>
                 <td>{product.stock}</td>
                 <td>
                   <span className={`status-badge ${product.stock === 0 ? 'out-of-stock' : 'in-stock'}`}>
@@ -208,7 +241,7 @@ const AdProducts = () => {
                 </td>
                 <td>
                   <div className="action-buttons">
-                    <button className="btn-edit" title="Edit">
+                    <button className="btn-edit" title="Edit" onClick={() => handleEdit(product)}>
                       <FiEdit />
                     </button>
                     <button 
@@ -221,17 +254,19 @@ const AdProducts = () => {
                   </div>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Add Product Modal */}
       {showAddForm && (
         <div className="modal-overlay" onClick={handleCancel}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add New Product</h2>
+              <h2>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
               <button className="modal-close" onClick={handleCancel}>
                 <FiX />
               </button>
@@ -310,19 +345,24 @@ const AdProducts = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="image">Product Image *</label>
+                <label htmlFor="image">Product Image {!editingProduct && '*'}</label>
                 <input
                   type="file"
                   id="image"
                   name="image"
                   accept="image/*"
                   onChange={handleImageChange}
-                  required
+                  required={!editingProduct}
                 />
-                {formData.image && (
+                {formData.imageUrl && (
                   <div className="image-preview">
-                    <img src={formData.image} alt="Preview" />
+                    <img src={formData.imageUrl} alt="Preview" />
                   </div>
+                )}
+                {!imageFile && editingProduct && (
+                  <small style={{ color: '#666', marginTop: '0.5rem' }}>
+                    Current image will be used if no new file is selected
+                  </small>
                 )}
               </div>
 
@@ -337,7 +377,7 @@ const AdProducts = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn-submit">
-                  Add Product
+                  {editingProduct ? 'Update Product' : 'Add Product'}
                 </button>
               </div>
             </form>
