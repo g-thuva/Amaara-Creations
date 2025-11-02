@@ -116,6 +116,26 @@
   display: none;
 }
 
+.back-button {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-size: 1.25rem;
+  cursor: pointer;
+  margin-right: 1rem;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background: var(--hover-color);
+  color: var(--primary-color);
+}
+
 .user-menu {
   display: flex;
   align-items: center;
