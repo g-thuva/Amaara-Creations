@@ -1,31 +1,104 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { FiDollarSign, FiShoppingBag, FiUsers, FiStar, FiTrendingUp } from "react-icons/fi";
-
-// Sample data - replace with real data from your API
-const stats = [
-  { title: "Total Revenue", value: "$12,345", change: "+12%", trend: "up", icon: <FiDollarSign size={24} /> },
-  { title: "Total Orders", value: "1,234", change: "+8%", trend: "up", icon: <FiShoppingBag size={24} /> },
-  { title: "Total Customers", value: "845", change: "+5%", trend: "up", icon: <FiUsers size={24} /> },
-  { title: "Avg. Rating", value: "4.7", change: "+0.2", trend: "up", icon: <FiStar size={24} /> },
-];
-
-const recentOrders = [
-  { id: "#ORD-001", customer: "John Doe", date: "2023-05-15", amount: "$125.99", status: "Completed" },
-  { id: "#ORD-002", customer: "Jane Smith", date: "2023-05-14", amount: "$89.50", status: "Processing" },
-  { id: "#ORD-003", customer: "Robert Johnson", date: "2023-05-14", amount: "$234.00", status: "Shipped" },
-  { id: "#ORD-004", customer: "Emily Davis", date: "2023-05-13", amount: "$56.75", status: "Completed" },
-  { id: "#ORD-005", customer: "Michael Brown", date: "2023-05-13", amount: "$178.20", status: "Pending" },
-];
-
-const topProducts = [
-  { name: "Custom Sticker Pack 1", sales: 124, revenue: "$1,240" },
-  { name: "Logo Stickers (50pcs)", sales: 98, revenue: "$980" },
-  { name: "Vinyl Decal Set", sales: 76, revenue: "$1,140" },
-  { name: "Bumper Sticker", sales: 65, revenue: "$195" },
-  { name: "Laptop Sticker", sales: 54, revenue: "$162" },
-];
+import { adminApi } from "../../services/adminApi";
 
 const Dashboard = () => {
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        // Fetch dashboard stats
+        const statsData = await adminApi.getDashboardStats();
+        setDashboardStats(statsData);
+
+        // Fetch recent orders
+        const recentData = await adminApi.getRecentOrders(5);
+        setRecentOrders(recentData || []);
+
+        // Fetch product stats for top products
+        const productStats = await adminApi.getProductStats();
+        setTopProducts(productStats.topSellingProducts || []);
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError("Failed to load dashboard data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="dashboard">
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <p>Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard">
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'red' }}>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const stats = [
+    { 
+      title: "Total Revenue", 
+      value: `Rs. ${dashboardStats?.totalRevenue?.toLocaleString() || '0'}`, 
+      change: dashboardStats?.revenueThisMonth ? `+${((dashboardStats.revenueThisMonth / (dashboardStats.totalRevenue || 1)) * 100).toFixed(1)}%` : '0%', 
+      trend: "up", 
+      icon: <FiDollarSign size={24} />
+    },
+    { 
+      title: "Total Orders", 
+      value: dashboardStats?.totalOrders?.toLocaleString() || '0', 
+      change: dashboardStats?.ordersThisMonth ? `+${((dashboardStats.ordersThisMonth / (dashboardStats.totalOrders || 1)) * 100).toFixed(1)}%` : '0%', 
+      trend: "up", 
+      icon: <FiShoppingBag size={24} />
+    },
+    { 
+      title: "Total Customers", 
+      value: dashboardStats?.totalCustomers?.toLocaleString() || '0', 
+      change: "+0%", 
+      trend: "up", 
+      icon: <FiUsers size={24} />
+    },
+    { 
+      title: "Avg. Rating", 
+      value: dashboardStats?.averageRating?.toFixed(1) || '0.0', 
+      change: "+0.0", 
+      trend: "up", 
+      icon: <FiStar size={24} />
+    },
+  ];
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'Pending': 'pending',
+      'Processing': 'processing',
+      'Shipped': 'shipped',
+      'Delivered': 'completed',
+      'Cancelled': 'pending'
+    };
+    return colors[status] || 'pending';
+  };
+
   return (
     <div className="dashboard">
       <div className="dashboard-header">
@@ -57,7 +130,7 @@ const Dashboard = () => {
         <div className="dashboard-card">
           <div className="card-header">
             <h3>Recent Orders</h3>
-            <a href="/admin/orders" className="view-all">View All</a>
+            <Link to="/admin/orders" className="view-all">View All</Link>
           </div>
           <div className="table-responsive">
             <table>
@@ -71,15 +144,31 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {recentOrders.map((order, index) => (
-                  <tr key={index}>
-                    <td><a href={`/admin/orders/${order.id}`} className="order-link">{order.id}</a></td>
-                    <td>{order.customer}</td>
-                    <td>{order.date}</td>
-                    <td>{order.amount}</td>
-                    <td><span className={`status-badge ${order.status.toLowerCase()}`}>{order.status}</span></td>
+                {recentOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>
+                      No orders yet
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  recentOrders.map((order) => (
+                    <tr key={order.id}>
+                      <td>
+                        <Link to={`/admin/orders/${order.id}`} className="order-link">
+                          {order.orderNumber || `#${order.id}`}
+                        </Link>
+                      </td>
+                      <td>{order.customerName || order.customerEmail}</td>
+                      <td>{new Date(order.orderDate).toLocaleDateString()}</td>
+                      <td>Rs. {order.total?.toLocaleString()}</td>
+                      <td>
+                        <span className={`status-badge ${getStatusColor(order.status)}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -89,27 +178,31 @@ const Dashboard = () => {
         <div className="dashboard-card">
           <div className="card-header">
             <h3>Top Selling Products</h3>
-            <a href="/admin/products" className="view-all">View All</a>
+            <Link to="/admin/products" className="view-all">View All</Link>
           </div>
           <div className="product-list">
-            {topProducts.map((product, index) => (
-              <div key={index} className="product-item">
-                <div className="product-info">
-                  <h4>{product.name}</h4>
-                  <div className="product-meta">
-                    <span>{product.sales} sales</span>
-                    <span>•</span>
-                    <span>{product.revenue}</span>
+            {topProducts.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center' }}>
+                <p>No products yet</p>
+              </div>
+            ) : (
+              topProducts.slice(0, 5).map((product, index) => (
+                <div key={index} className="product-item">
+                  <div className="product-info">
+                    <h4>{product.productName}</h4>
+                    <div className="product-meta">
+                      <span>{product.quantitySold} sales</span>
+                    </div>
+                  </div>
+                  <div className="product-chart">
+                    <div 
+                      className="chart-bar" 
+                      style={{ width: `${(product.quantitySold / (topProducts[0]?.quantitySold || 1)) * 100}%` }}
+                    ></div>
                   </div>
                 </div>
-                <div className="product-chart">
-                  <div 
-                    className="chart-bar" 
-                    style={{ width: `${(product.sales / 124) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

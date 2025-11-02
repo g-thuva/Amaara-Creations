@@ -374,6 +374,84 @@ namespace be.Controllers
                 return StatusCode(500, new { message = "An error occurred while deleting the review" });
             }
         }
+
+        // GET: api/admin/reviews/stats - Get review statistics (Admin only)
+        [HttpGet("/api/admin/reviews/stats")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<ReviewStatsResponse>> GetReviewStats()
+        {
+            try
+            {
+                var thisMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+                var thisYear = new DateTime(DateTime.UtcNow.Year, 1, 1);
+
+                // Total Reviews
+                var totalReviews = await _context.Reviews.CountAsync();
+
+                // Average Rating
+                var averageRating = await _context.Reviews
+                    .Select(r => (double?)r.Rating)
+                    .AverageAsync() ?? 0.0;
+
+                // Rating Distribution
+                var rating1Count = await _context.Reviews
+                    .Where(r => r.Rating == 1)
+                    .CountAsync();
+
+                var rating2Count = await _context.Reviews
+                    .Where(r => r.Rating == 2)
+                    .CountAsync();
+
+                var rating3Count = await _context.Reviews
+                    .Where(r => r.Rating == 3)
+                    .CountAsync();
+
+                var rating4Count = await _context.Reviews
+                    .Where(r => r.Rating == 4)
+                    .CountAsync();
+
+                var rating5Count = await _context.Reviews
+                    .Where(r => r.Rating == 5)
+                    .CountAsync();
+
+                // Reviews This Month
+                var reviewsThisMonth = await _context.Reviews
+                    .Where(r => r.CreatedAt >= thisMonth)
+                    .CountAsync();
+
+                // Reviews This Year
+                var reviewsThisYear = await _context.Reviews
+                    .Where(r => r.CreatedAt >= thisYear)
+                    .CountAsync();
+
+                // Products With Reviews
+                var productsWithReviews = await _context.Reviews
+                    .Select(r => r.ProductId)
+                    .Distinct()
+                    .CountAsync();
+
+                var response = new ReviewStatsResponse
+                {
+                    TotalReviews = totalReviews,
+                    AverageRating = Math.Round(averageRating, 2),
+                    Rating1Count = rating1Count,
+                    Rating2Count = rating2Count,
+                    Rating3Count = rating3Count,
+                    Rating4Count = rating4Count,
+                    Rating5Count = rating5Count,
+                    ReviewsThisMonth = reviewsThisMonth,
+                    ReviewsThisYear = reviewsThisYear,
+                    ProductsWithReviews = productsWithReviews
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting review statistics");
+                return StatusCode(500, new { message = "An error occurred while retrieving review statistics" });
+            }
+        }
     }
 }
 

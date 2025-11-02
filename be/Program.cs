@@ -137,7 +137,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Use camelCase for JSON property names
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -187,6 +192,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Enable static file serving for uploaded images
+app.UseStaticFiles();
+
 // Enable CORS (must be before UseAuthentication and UseAuthorization)
 app.UseCors("AllowReactApp");
 
@@ -210,13 +218,19 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Create default admin user (optional - for development)
+    // Create default admin user (only admin login seed)
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
     var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@amaara.com";
     var adminPassword = builder.Configuration["Admin:Password"] ?? "Admin@123";
 
-    if (await userManager.FindByEmailAsync(adminEmail) == null)
+    var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
+    
+    if (existingAdmin == null)
     {
+        logger.LogInformation("Creating admin user...");
+        
         var adminUser = new User
         {
             UserName = adminEmail,
@@ -229,6 +243,26 @@ using (var scope = app.Services.CreateScope())
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
+            logger.LogInformation("Admin user created successfully. Email: {Email}", adminEmail);
+        }
+        else
+        {
+            logger.LogError("Failed to create admin user. Errors: {Errors}", 
+                string.Join(", ", result.Errors.Select(e => e.Description)));
+        }
+    }
+    else
+    {
+        // Ensure existing admin has the Admin role
+        var isInAdminRole = await userManager.IsInRoleAsync(existingAdmin, "Admin");
+        if (!isInAdminRole)
+        {
+            await userManager.AddToRoleAsync(existingAdmin, "Admin");
+            logger.LogInformation("Admin role added to existing user: {Email}", adminEmail);
+        }
+        else
+        {
+            logger.LogInformation("Admin user already exists. Email: {Email}", adminEmail);
         }
     }
 }

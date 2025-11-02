@@ -7,8 +7,10 @@ import Products from "./pages/Products";
 import CustomBuilder from "./pages/CustomBuilder";
 import Wishlist from "./pages/Wishlisst";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
+import OrderDetails from "./pages/OrderDetails";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProductDetails from "./pages/ProductDetails";
@@ -37,8 +39,10 @@ function App() {
           <Route path="/custom" element={<CustomBuilder />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/orders" element={<Orders />} />
+          <Route path="/orders/:id" element={<OrderDetails />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/products/:id" element={<ProductDetails />} />

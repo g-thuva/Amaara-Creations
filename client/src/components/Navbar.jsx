@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaUserCircle, FaBars, FaTimes, FaHome, FaBox, FaTools, FaHeart, FaShoppingCart } from "react-icons/fa";
+import { useAuth } from "../contexts/AuthContext";
 import "./Navbar.css";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Simulate auth state (replace with real context/auth check later)
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const isAdmin = user?.role === "Admin";
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -42,10 +43,10 @@ const Navbar = () => {
     if (showDropdown) setShowDropdown(false);
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
     setShowDropdown(false);
-    // Add your logout logic here
+    await logout();
+    navigate("/login");
   };
 
   // Close dropdown when clicking outside
@@ -126,13 +127,17 @@ const Navbar = () => {
               
               {/* Auth Buttons */}
               <div className="mobile-auth-buttons">
-                {!isLoggedIn ? (
+                {!isAuthenticated ? (
                   <>
                     <Link to="/login" className="btn btn-outline">Login</Link>
                     <Link to="/register" className="btn btn-primary">Register</Link>
                   </>
                 ) : (
-                  <button onClick={handleLogout} className="btn btn-outline">Logout</button>
+                  <>
+                    <Link to="/profile" className="btn btn-outline">Profile</Link>
+                    {isAdmin && <Link to="/admin" className="btn btn-outline">Admin</Link>}
+                    <button onClick={handleLogout} className="btn btn-outline">Logout</button>
+                  </>
                 )}
               </div>
             </ul>
@@ -148,15 +153,17 @@ const Navbar = () => {
 
             {showDropdown && (
               <div className="dropdown">
-                {!isLoggedIn ? (
+                {!isAuthenticated ? (
                   <>
                     <Link to="/login" className="dropdown-item">Login</Link>
                     <Link to="/register" className="dropdown-item">Register</Link>
                   </>
                 ) : (
                   <>
+                    <div className="dropdown-header">{user?.name || user?.email}</div>
                     <Link to="/profile" className="dropdown-item">Profile</Link>
                     <Link to="/orders" className="dropdown-item">My Orders</Link>
+                    {isAdmin && <Link to="/admin" className="dropdown-item">Admin Dashboard</Link>}
                     <button onClick={handleLogout} className="dropdown-item">Logout</button>
                   </>
                 )}

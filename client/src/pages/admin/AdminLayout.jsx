@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 import { FiMenu, FiX, FiHome, FiPackage, FiStar, FiUsers, FiShoppingBag, FiLogOut, FiChevronDown, FiChevronRight } from "react-icons/fi";
 import "./AdminStyles.css";
 
@@ -41,7 +42,15 @@ const AdminLayout = () => {
   const [activeSubmenu, setActiveSubmenu] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout: authLogout, isLoading } = useAuth();
   const isMobile = window.innerWidth <= 992;
+
+  // Protect admin routes - check if user is admin
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || user?.role !== "Admin")) {
+      navigate("/login", { state: { message: "Admin access required" } });
+    }
+  }, [isAuthenticated, user, isLoading, navigate]);
 
   useEffect(() => {
     if (isMobile) {
@@ -57,8 +66,8 @@ const AdminLayout = () => {
     setActiveSubmenu(activeSubmenu === index ? null : index);
   };
 
-  const handleLogout = () => {
-    // TODO: Implement logout logic
+  const handleLogout = async () => {
+    await authLogout();
     navigate('/login');
   };
 
@@ -73,6 +82,14 @@ const AdminLayout = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, sidebarOpen]);
+
+  if (isLoading || !isAuthenticated || user?.role !== "Admin") {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-container">
@@ -150,11 +167,11 @@ const AdminLayout = () => {
           
           <div className="user-menu">
             <div className="user-info">
-              <div className="user-name">Admin User</div>
-              <div className="user-role">Administrator</div>
+              <div className="user-name">{user?.name || 'Admin'}</div>
+              <div className="user-role">{user?.role || 'Administrator'}</div>
             </div>
             <div className="user-avatar">
-              AU
+              {user?.name?.charAt(0).toUpperCase() || 'A'}
             </div>
           </div>
         </header>

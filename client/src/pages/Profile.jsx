@@ -1,19 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { userApi } from "../services/userApi";
 import "./Profile.css";
 import { FiEdit, FiUser, FiMail, FiPhone, FiMapPin, FiLock, FiShoppingBag, FiHeart, FiLogOut } from "react-icons/fi";
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
-  
-  // Replace with real user data from context/state later
-  const [user, setUser] = useState({
-    name: "Thuva G",
-    email: "thuva@example.com",
-    phone: "0771234567",
-    address: "123 Sticker Lane, Jaffna"
-  });
+  const { logout, updateUser } = useAuth();
+
+  // Fetch user profile from API
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const profileData = await userApi.getProfile();
+        setUser(profileData);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+        setError("Failed to load profile. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -23,18 +41,65 @@ const Profile = () => {
     }));
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    // TODO: Connect to backend to save changes
-    setIsEditing(false);
-    // Show success message
-    alert('Profile updated successfully!');
+    setIsSaving(true);
+    
+    try {
+      const updatedProfile = await userApi.updateProfile({
+        name: user.name,
+        phone: user.phone || "",
+        address: user.address || "",
+        avatarUrl: user.avatarUrl || ""
+      });
+      
+      setUser(updatedProfile);
+      updateUser(updatedProfile); // Update AuthContext
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Failed to update profile";
+      alert(errorMessage);
+      console.error("Error updating profile:", err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleLogout = () => {
-    // TODO: Implement logout logic
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
+
+  if (isLoading) {
+    return (
+      <div className="profile-container">
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="profile-container">
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'red' }}>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="profile-container">
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <p>No user data available.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-container">
@@ -45,8 +110,8 @@ const Profile = () => {
       <div className="profile-content">
         <div className="profile-sidebar">
           <div className="profile-avatar">
-            {user.avatar ? (
-              <img src={user.avatar} alt={user.name} />
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name} />
             ) : (
               <div style={{
                 width: '100%',
@@ -58,12 +123,12 @@ const Profile = () => {
                 fontSize: '3rem',
                 color: '#8b5a2b'
               }}>
-                {user.name.charAt(0).toUpperCase()}
+                {user.name?.charAt(0).toUpperCase() || 'U'}
               </div>
             )}
           </div>
-          <h2 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>{user.name}</h2>
-          <p style={{ textAlign: 'center', color: '#666', marginBottom: '1.5rem' }}>{user.email}</p>
+          <h2 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>{user.name || 'User'}</h2>
+          <p style={{ textAlign: 'center', color: '#666', marginBottom: '1.5rem' }}>{user.email || ''}</p>
           
           <div className="profile-actions">
             <button 
@@ -144,7 +209,7 @@ const Profile = () => {
                   style={{ width: '100%', padding: '0.5rem' }}
                 />
               ) : (
-                <p className="detail-value">{user.phone}</p>
+                <p className="detail-value">{user.phone || 'Not provided'}</p>
               )}
             </div>
             
@@ -162,19 +227,20 @@ const Profile = () => {
                   style={{ width: '100%', padding: '0.5rem' }}
                 />
               ) : (
-                <p className="detail-value">{user.address}</p>
+                <p className="detail-value">{user.address || 'Not provided'}</p>
               )}
             </div>
             
             {isEditing && (
               <div className="profile-actions">
-                <button type="submit" className="btn btn-primary">
-                  Save Changes
+                <button type="submit" className="btn btn-primary" disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button 
                   type="button" 
                   className="btn btn-outline"
                   onClick={() => setIsEditing(false)}
+                  disabled={isSaving}
                 >
                   Cancel
                 </button>

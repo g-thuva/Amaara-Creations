@@ -37,9 +37,28 @@ namespace be.Controllers
         {
             try
             {
+                // Log the incoming request for debugging
+                _logger.LogInformation("Register request received: Email={Email}, Name={Name}", 
+                    request?.Email ?? "null", request?.Name ?? "null");
+
+                if (request == null)
+                {
+                    return BadRequest(new { message = "Request body is required" });
+                }
+
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    var errors = ModelState
+                        .Where(x => x.Value?.Errors.Count > 0)
+                        .SelectMany(x => x.Value.Errors.Select(e => new { Field = x.Key, Message = e.ErrorMessage }))
+                        .ToList();
+                    
+                    _logger.LogWarning("Validation failed: {Errors}", string.Join(", ", errors.Select(e => $"{e.Field}: {e.Message}")));
+                    
+                    return BadRequest(new { 
+                        message = "Validation failed", 
+                        errors = errors 
+                    });
                 }
 
                 // Check if user already exists
@@ -304,6 +323,109 @@ namespace be.Controllers
             {
                 _logger.LogError(ex, "Error changing password");
                 return StatusCode(500, new { message = "An error occurred while changing password" });
+            }
+        }
+
+        [HttpPost("refresh-token")]
+        public Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return Task.FromResult<IActionResult>(BadRequest(ModelState));
+                }
+
+                // Extract user ID from the current token (if expired, extract from token directly)
+                // For simplicity, we'll require the user to send their email with refresh token
+                // In production, store refresh tokens in database with user mapping
+                
+                // Note: This is a simplified implementation. 
+                // In production, you should store refresh tokens in the database 
+                // and validate them properly.
+                
+                // For now, we'll just generate a new token if refresh token is provided
+                // You may need to send user email/ID with refresh token or store refresh tokens in DB
+                
+                return Task.FromResult<IActionResult>(BadRequest(new { message = "Refresh token implementation requires user identifier. Please use login endpoint or implement refresh token storage." }));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing token");
+                return Task.FromResult<IActionResult>(StatusCode(500, new { message = "An error occurred while refreshing token" }));
+            }
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var user = await _userManager.FindByEmailAsync(request.Email);
+                if (user == null)
+                {
+                    // Don't reveal if user exists for security
+                    return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
+                }
+
+                // Generate password reset token
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+                // In production, send email with token
+                // For now, we'll return the token (NEVER do this in production!)
+                // TODO: Send email with reset link containing token
+                
+                _logger.LogWarning("Password reset token generated for {Email}. Token: {Token}", request.Email, token);
+
+                // In production, remove the token from response and send via email
+                return Ok(new 
+                { 
+                    message = "Password reset token generated. In production, this would be sent via email.",
+                    // Remove this in production!
+                    token = token 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating forgot password token");
+                return StatusCode(500, new { message = "An error occurred while processing forgot password request" });
+            }
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var user = await _userManager.FindByEmailAsync(request.Email);
+                if (user == null)
+                {
+                    return BadRequest(new { message = "Invalid email or token" });
+                }
+
+                var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+
+                if (!result.Succeeded)
+                {
+                    return BadRequest(new { message = "Password reset failed", errors = result.Errors });
+                }
+
+                return Ok(new { message = "Password reset successfully. Please login with your new password." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting password");
+                return StatusCode(500, new { message = "An error occurred while resetting password" });
             }
         }
     }
