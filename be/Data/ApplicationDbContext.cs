@@ -17,6 +17,7 @@ namespace be.Data
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<WishlistItem> WishlistItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -123,6 +124,27 @@ namespace be.Data
                 // Index for faster queries
                 entity.HasIndex(e => e.OrderId);
                 entity.HasIndex(e => e.ProductId);
+            });
+
+            // Configure WishlistItem entity
+            modelBuilder.Entity<WishlistItem>(entity =>
+            {
+                entity.ToTable("WishlistItems");
+                entity.HasKey(e => e.Id);
+                
+                // Foreign key relationships
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                // Unique constraint: one wishlist item per user-product combination
+                entity.HasIndex(e => new { e.UserId, e.ProductId }).IsUnique();
             });
         }
     }
