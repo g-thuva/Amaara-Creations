@@ -16,6 +16,7 @@ namespace be.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ITokenService _tokenService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(
@@ -23,12 +24,14 @@ namespace be.Controllers
             SignInManager<User> signInManager,
             RoleManager<IdentityRole> roleManager,
             ITokenService tokenService,
+            IConfiguration configuration,
             ILogger<AuthController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _tokenService = tokenService;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -37,9 +40,7 @@ namespace be.Controllers
         {
             try
             {
-                // Log the incoming request for debugging
-                _logger.LogInformation("Register request received: Email={Email}, Name={Name}", 
-                    request?.Email ?? "null", request?.Name ?? "null");
+                _logger.LogInformation("Register request received for email {Email}", request?.Email ?? "null");
 
                 if (request == null)
                 {
@@ -49,8 +50,8 @@ namespace be.Controllers
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState
-                        .Where(x => x.Value?.Errors.Count > 0)
-                        .SelectMany(x => x.Value.Errors.Select(e => new { Field = x.Key, Message = e.ErrorMessage }))
+                        .Where(x => x.Value is { Errors.Count: > 0 })
+                        .SelectMany(x => x.Value!.Errors.Select(e => new { Field = x.Key, Message = e.ErrorMessage }))
                         .ToList();
                     
                     _logger.LogWarning("Validation failed: {Errors}", string.Join(", ", errors.Select(e => $"{e.Field}: {e.Message}")));
@@ -106,7 +107,7 @@ namespace be.Controllers
                         AvatarUrl = user.AvatarUrl,
                         Role = roles.FirstOrDefault() ?? "Customer"
                     },
-                    ExpiresAt = DateTime.UtcNow.AddHours(24)
+                    ExpiresAt = GetAccessTokenExpiry()
                 };
 
                 return Ok(response);
@@ -160,7 +161,7 @@ namespace be.Controllers
                         AvatarUrl = user.AvatarUrl,
                         Role = roles.FirstOrDefault() ?? "Customer"
                     },
-                    ExpiresAt = DateTime.UtcNow.AddHours(24)
+                    ExpiresAt = GetAccessTokenExpiry()
                 };
 
                 return Ok(response);
@@ -230,51 +231,6 @@ namespace be.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting current user");
-                return StatusCode(500, new { message = "An error occurred" });
-            }
-        }
-
-        [HttpGet("check-header")]
-        public IActionResult CheckHeader()
-        {
-            var authHeader = Request.Headers["Authorization"].ToString();
-            var hasAuth = !string.IsNullOrEmpty(authHeader);
-            
-            return Ok(new 
-            { 
-                message = "Header check endpoint (no auth required)",
-                hasAuthorizationHeader = hasAuth,
-                authorizationHeaderPrefix = hasAuth && authHeader.Length > 20 
-                    ? authHeader.Substring(0, 20) + "..." 
-                    : authHeader,
-                allHeaders = Request.Headers.Select(h => new { h.Key, Value = h.Value.ToString() }).ToList()
-            });
-        }
-
-        [HttpGet("test-auth")]
-        [Authorize]
-        public IActionResult TestAuth()
-        {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var email = User.FindFirstValue(ClaimTypes.Email);
-                var name = User.FindFirstValue(ClaimTypes.Name);
-                var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
-                
-                return Ok(new 
-                { 
-                    message = "Authentication successful!",
-                    userId = userId,
-                    email = email,
-                    name = name,
-                    roles = roles,
-                    isAuthenticated = User.Identity?.IsAuthenticated ?? false
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in test auth");
                 return StatusCode(500, new { message = "An error occurred" });
             }
         }
@@ -373,22 +329,13 @@ namespace be.Controllers
                     return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
                 }
 
-                // Generate password reset token
+                // Generate the token so the Identity flow remains valid, but do not expose it.
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                _ = token;
 
-                // In production, send email with token
-                // For now, we'll return the token (NEVER do this in production!)
-                // TODO: Send email with reset link containing token
-                
-                _logger.LogWarning("Password reset token generated for {Email}. Token: {Token}", request.Email, token);
+                _logger.LogInformation("Password reset token generated for {Email}. Email delivery is not configured in Phase 0.", request.Email);
 
-                // In production, remove the token from response and send via email
-                return Ok(new 
-                { 
-                    message = "Password reset token generated. In production, this would be sent via email.",
-                    // Remove this in production!
-                    token = token 
-                });
+                return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
             }
             catch (Exception ex)
             {
@@ -427,6 +374,12 @@ namespace be.Controllers
                 _logger.LogError(ex, "Error resetting password");
                 return StatusCode(500, new { message = "An error occurred while resetting password" });
             }
+        }
+
+        private DateTime GetAccessTokenExpiry()
+        {
+            var accessTokenMinutes = Convert.ToDouble(_configuration["Jwt:AccessTokenMinutes"] ?? "1440");
+            return DateTime.UtcNow.AddMinutes(accessTokenMinutes);
         }
     }
 }

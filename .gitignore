@@ -14,6 +14,7 @@ be/Migrations/*.Designer.cs
 be/*.db
 be/*.db-shm
 be/*.db-wal
+be/App_Data/
 be/node_modules/
 be/package-lock.json
 be/package.json

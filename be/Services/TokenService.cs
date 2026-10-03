@@ -36,11 +36,13 @@ namespace be.Services
 
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            var accessTokenMinutes = Convert.ToDouble(_configuration["Jwt:AccessTokenMinutes"] ?? "1440");
+
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(Convert.ToDouble(_configuration["Jwt:ExpirationHours"] ?? "24")),
+                expires: DateTime.UtcNow.AddMinutes(accessTokenMinutes),
                 signingCredentials: credentials
             );
 

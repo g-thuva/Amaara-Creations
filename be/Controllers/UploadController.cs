@@ -10,13 +10,21 @@ namespace be.Controllers
     {
         private readonly ILogger<UploadController> _logger;
         private readonly IWebHostEnvironment _environment;
-        private const long MaxFileSize = 5 * 1024 * 1024; // 5MB
+        private readonly long _maxFileSize;
         private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        private static readonly string[] AllowedImageContentTypes =
+        {
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp"
+        };
 
-        public UploadController(ILogger<UploadController> logger, IWebHostEnvironment environment)
+        public UploadController(ILogger<UploadController> logger, IWebHostEnvironment environment, IConfiguration configuration)
         {
             _logger = logger;
             _environment = environment;
+            _maxFileSize = configuration.GetValue<long?>("Uploads:MaxFileSizeBytes") ?? 5 * 1024 * 1024;
         }
 
         // POST: api/upload/product-image - Upload product image
@@ -32,16 +40,21 @@ namespace be.Controllers
                 }
 
                 // Validate file size
-                if (file.Length > MaxFileSize)
+                if (file.Length > _maxFileSize)
                 {
-                    return BadRequest(new { message = $"File size exceeds maximum allowed size of {MaxFileSize / 1024 / 1024}MB" });
+                    return BadRequest(new { message = $"File size exceeds maximum allowed size of {_maxFileSize / 1024 / 1024}MB" });
                 }
 
-                // Validate file extension
-                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var safeOriginalFileName = Path.GetFileName(file.FileName);
+                var extension = Path.GetExtension(safeOriginalFileName).ToLowerInvariant();
                 if (string.IsNullOrEmpty(extension) || !AllowedImageExtensions.Contains(extension))
                 {
                     return BadRequest(new { message = $"Invalid file type. Allowed types: {string.Join(", ", AllowedImageExtensions)}" });
+                }
+
+                if (!AllowedImageContentTypes.Contains(file.ContentType.ToLowerInvariant()))
+                {
+                    return BadRequest(new { message = "Invalid image content type" });
                 }
 
                 // Create uploads directory if it doesn't exist
@@ -56,7 +69,7 @@ namespace be.Controllers
                 var filePath = Path.Combine(uploadsDir, fileName);
 
                 // Save file
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                await using (var stream = new FileStream(filePath, FileMode.CreateNew))
                 {
                     await file.CopyToAsync(stream);
                 }
@@ -97,16 +110,21 @@ namespace be.Controllers
                 }
 
                 // Validate file size
-                if (file.Length > MaxFileSize)
+                if (file.Length > _maxFileSize)
                 {
-                    return BadRequest(new { message = $"File size exceeds maximum allowed size of {MaxFileSize / 1024 / 1024}MB" });
+                    return BadRequest(new { message = $"File size exceeds maximum allowed size of {_maxFileSize / 1024 / 1024}MB" });
                 }
 
-                // Validate file extension
-                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var safeOriginalFileName = Path.GetFileName(file.FileName);
+                var extension = Path.GetExtension(safeOriginalFileName).ToLowerInvariant();
                 if (string.IsNullOrEmpty(extension) || !AllowedImageExtensions.Contains(extension))
                 {
                     return BadRequest(new { message = $"Invalid file type. Allowed types: {string.Join(", ", AllowedImageExtensions)}" });
+                }
+
+                if (!AllowedImageContentTypes.Contains(file.ContentType.ToLowerInvariant()))
+                {
+                    return BadRequest(new { message = "Invalid image content type" });
                 }
 
                 // Create uploads directory if it doesn't exist
@@ -121,7 +139,7 @@ namespace be.Controllers
                 var filePath = Path.Combine(uploadsDir, fileName);
 
                 // Save file
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                await using (var stream = new FileStream(filePath, FileMode.CreateNew))
                 {
                     await file.CopyToAsync(stream);
                 }

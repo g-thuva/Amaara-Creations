@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -10,10 +11,17 @@ using be.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
+builder.Services.AddDataProtection()
+    .SetApplicationName("AmaaraCreations")
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
 
 // Configure SQL Server with Entity Framework Core
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = RequireConfiguration(builder, "ConnectionStrings:DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
@@ -39,9 +47,9 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 
 // Configure JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyThatShouldBeAtLeast32CharactersLongForProduction!";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AmaaraCreations";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AmaaraCreationsUsers";
+var jwtKey = RequireJwtKey(builder);
+var jwtIssuer = RequireConfiguration(builder, "Jwt:Issuer");
+var jwtAudience = RequireConfiguration(builder, "Jwt:Audience");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -51,8 +59,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.SaveToken = true;
-    options.RequireHttpsMetadata = false; // Set to true in production
+    options.SaveToken = false;
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     
     // Configure token validation
     options.TokenValidationParameters = new TokenValidationParameters
@@ -67,26 +75,12 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.FromMinutes(5) // Allow 5 minutes clock skew
     };
 
-    // Add event handlers for debugging
     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
     {
         OnAuthenticationFailed = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogError(context.Exception, "JWT Authentication failed: {Message}", context.Exception.Message);
-            
-            // Log the Authorization header (first few chars only for security)
-            var authHeader = context.HttpContext.Request.Headers["Authorization"].ToString();
-            if (!string.IsNullOrEmpty(authHeader))
-            {
-                logger.LogWarning("Authorization header present: {HeaderPrefix}...", 
-                    authHeader.Length > 20 ? authHeader.Substring(0, 20) : authHeader);
-            }
-            else
-            {
-                logger.LogWarning("Authorization header is MISSING or EMPTY");
-            }
-            
             return Task.CompletedTask;
         },
         OnTokenValidated = context =>
@@ -101,19 +95,6 @@ builder.Services.AddAuthentication(options =>
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogWarning("JWT Challenge triggered - Error: {Error}, Description: {ErrorDescription}", 
                 context.Error, context.ErrorDescription);
-            
-            // Log request details
-            logger.LogWarning("Request Path: {Path}, Method: {Method}", 
-                context.HttpContext.Request.Path, context.HttpContext.Request.Method);
-            
-            return Task.CompletedTask;
-        },
-        OnMessageReceived = context =>
-        {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            var token = context.Token;
-            logger.LogDebug("JWT Token received: {TokenPrefix}...", 
-                !string.IsNullOrEmpty(token) && token.Length > 20 ? token.Substring(0, 20) : "NULL or EMPTY");
             return Task.CompletedTask;
         }
     };
@@ -125,15 +106,16 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
 // Enable CORS for React frontend
+var allowedOrigins = GetAllowedOrigins(builder);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000", "https://g-thuva.github.io")
-              .AllowAnyHeader() // This includes Authorization header
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials()
-              .WithExposedHeaders("*"); // Expose all headers
+              .WithExposedHeaders("Location");
     });
 });
 
@@ -192,6 +174,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads"));
+
 // Enable static file serving for uploaded images
 app.UseStaticFiles();
 
@@ -202,69 +186,151 @@ app.UseCors("AllowReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "ok",
+    environment = app.Environment.EnvironmentName,
+    timestamp = DateTimeOffset.UtcNow
+}));
+
 app.MapControllers();
 
-// Seed roles on startup
-using (var scope = app.Services.CreateScope())
+// Seed roles on startup. In Development, allow the app to start so /health can
+// be used even before SQL Server is configured.
+try
 {
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var roles = new[] { "Admin", "Customer" };
-
-    foreach (var role in roles)
+    using (var scope = app.Services.CreateScope())
     {
-        if (!await roleManager.RoleExistsAsync(role))
-        {
-            await roleManager.CreateAsync(new IdentityRole(role));
-        }
-    }
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var roles = new[] { "Admin", "Customer" };
 
-    // Create default admin user (only admin login seed)
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    
-    var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@amaara.com";
-    var adminPassword = builder.Configuration["Admin:Password"] ?? "Admin@123";
+        foreach (var role in roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
 
-    var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
-    
-    if (existingAdmin == null)
-    {
-        logger.LogInformation("Creating admin user...");
-        
-        var adminUser = new User
+        var adminBootstrapEnabled = app.Configuration.GetValue<bool>("AdminBootstrap:Enabled");
+        if (adminBootstrapEnabled)
         {
-            UserName = adminEmail,
-            Email = adminEmail,
-            Name = "Admin User",
-            EmailConfirmed = true
-        };
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-        var result = await userManager.CreateAsync(adminUser, adminPassword);
-        if (result.Succeeded)
-        {
-            await userManager.AddToRoleAsync(adminUser, "Admin");
-            logger.LogInformation("Admin user created successfully. Email: {Email}", adminEmail);
-        }
-        else
-        {
-            logger.LogError("Failed to create admin user. Errors: {Errors}", 
-                string.Join(", ", result.Errors.Select(e => e.Description)));
-        }
-    }
-    else
-    {
-        // Ensure existing admin has the Admin role
-        var isInAdminRole = await userManager.IsInRoleAsync(existingAdmin, "Admin");
-        if (!isInAdminRole)
-        {
-            await userManager.AddToRoleAsync(existingAdmin, "Admin");
-            logger.LogInformation("Admin role added to existing user: {Email}", adminEmail);
-        }
-        else
-        {
-            logger.LogInformation("Admin user already exists. Email: {Email}", adminEmail);
+            var adminEmail = RequireRuntimeConfiguration(app, "AdminBootstrap:Email");
+            var adminPassword = RequireRuntimeConfiguration(app, "AdminBootstrap:Password");
+            if (adminPassword.Length < 12)
+            {
+                throw new InvalidOperationException("AdminBootstrap:Password must be at least 12 characters.");
+            }
+
+            var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
+
+            if (existingAdmin == null)
+            {
+                logger.LogInformation("Creating configured bootstrap admin user.");
+
+                var adminUser = new User
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    Name = "Admin User",
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(adminUser, adminPassword);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                    logger.LogInformation("Configured bootstrap admin user created.");
+                }
+                else
+                {
+                    logger.LogError("Failed to create configured bootstrap admin user. Errors: {Errors}",
+                        string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
+            }
+            else
+            {
+                var isInAdminRole = await userManager.IsInRoleAsync(existingAdmin, "Admin");
+                if (!isInAdminRole)
+                {
+                    await userManager.AddToRoleAsync(existingAdmin, "Admin");
+                    logger.LogInformation("Admin role added to configured bootstrap user.");
+                }
+            }
         }
     }
 }
+catch (Exception ex) when (app.Environment.IsDevelopment())
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogWarning(ex, "Database role/admin bootstrap skipped. Configure SQL Server and run migrations for API endpoints that require data.");
+}
 
 app.Run();
+
+static string RequireConfiguration(WebApplicationBuilder builder, string key)
+{
+    var value = builder.Configuration[key];
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        throw new InvalidOperationException($"{key} is required. Configure it through appsettings.Development.json, user secrets, or environment variables.");
+    }
+
+    return value;
+}
+
+static string RequireRuntimeConfiguration(WebApplication app, string key)
+{
+    var value = app.Configuration[key];
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        throw new InvalidOperationException($"{key} is required when AdminBootstrap:Enabled is true.");
+    }
+
+    return value;
+}
+
+static string RequireJwtKey(WebApplicationBuilder builder)
+{
+    var jwtKey = RequireConfiguration(builder, "Jwt:Key");
+    if (jwtKey.Length < 32)
+    {
+        throw new InvalidOperationException("Jwt:Key must be at least 32 characters.");
+    }
+
+    var knownDevelopmentKey = string.Equals(
+        jwtKey,
+        "DevelopmentOnlyJwtSigningKey-Change-With-User-Secrets",
+        StringComparison.Ordinal);
+
+    if (!builder.Environment.IsDevelopment() && knownDevelopmentKey)
+    {
+        throw new InvalidOperationException("Production cannot start with the development JWT signing key.");
+    }
+
+    return jwtKey;
+}
+
+static string[] GetAllowedOrigins(WebApplicationBuilder builder)
+{
+    var origins = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>()?
+        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+        .ToArray() ?? Array.Empty<string>();
+
+    if (origins.Length == 0)
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            return new[] { "http://localhost:5173", "http://127.0.0.1:5173" };
+        }
+
+        throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside Development.");
+    }
+
+    return origins;
+}
