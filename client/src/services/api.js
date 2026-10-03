@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-// Base API URL - adjust if your backend runs on a different port
-const API_BASE_URL = 'http://localhost:5192/api';
+import { API_BASE_URL } from './config';
 
 // Create axios instance
 const api = axios.create({
@@ -18,16 +16,7 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // Log request details for debugging
-    if (config.url?.includes('register') || config.url?.includes('login')) {
-      console.log('API Request:', {
-        url: config.url,
-        method: config.method,
-        data: config.data
-      });
-    }
-    
+
     return config;
   },
   (error) => {
@@ -39,12 +28,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Log error details for debugging
     if (error.response) {
       console.error('API Error Response:', {
         status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers
+        message: error.response.data?.message
       });
     }
     

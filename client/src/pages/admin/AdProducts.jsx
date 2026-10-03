@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FiPlus, FiX, FiEdit, FiTrash2 } from "react-icons/fi";
 import { productApi } from "../../services/productApi";
 import { uploadApi } from "../../services/uploadApi";
+import { resolveMediaUrl } from "../../services/config";
 import "./AdminStyles.css";
 
 const AdProducts = () => {
@@ -75,7 +75,7 @@ const AdProducts = () => {
       // Upload image if a file is selected
       if (imageFile) {
         const uploadResponse = await uploadApi.uploadProductImage(imageFile);
-        imageUrl = `http://localhost:5192${uploadResponse.fileUrl}`;
+        imageUrl = uploadResponse.fileUrl;
       }
 
       const productData = {
@@ -179,7 +179,7 @@ const AdProducts = () => {
             className="btn-add-product"
             onClick={() => setShowAddForm(true)}
           >
-            <FiPlus /> Add Product
+            <i className="fa-solid fa-plus" /> Add Product
           </button>
         </div>
       </div>
@@ -214,7 +214,7 @@ const AdProducts = () => {
               <tr key={product.id}>
                 <td>
                   <img 
-                    src={product.imageUrl || product.image || 'https://via.placeholder.com/80'} 
+                    src={resolveMediaUrl(product.imageUrl || product.image) || 'https://via.placeholder.com/80'} 
                     alt={product.name}
                     className="product-thumbnail"
                     onError={(e) => {
@@ -242,14 +242,14 @@ const AdProducts = () => {
                 <td>
                   <div className="action-buttons">
                     <button className="btn-edit" title="Edit" onClick={() => handleEdit(product)}>
-                      <FiEdit />
+                      <i className="fa-solid fa-pen" />
                     </button>
                     <button 
                       className="btn-delete" 
                       onClick={() => handleDelete(product.id)}
                       title="Delete"
                     >
-                      <FiTrash2 />
+                      <i className="fa-solid fa-trash" />
                     </button>
                   </div>
                 </td>
@@ -268,7 +268,7 @@ const AdProducts = () => {
             <div className="modal-header">
               <h2>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
               <button className="modal-close" onClick={handleCancel}>
-                <FiX />
+                <i className="fa-solid fa-xmark" />
               </button>
             </div>
 
@@ -356,7 +356,7 @@ const AdProducts = () => {
                 />
                 {formData.imageUrl && (
                   <div className="image-preview">
-                    <img src={formData.imageUrl} alt="Preview" />
+                    <img src={resolveMediaUrl(formData.imageUrl)} alt="Preview" />
                   </div>
                 )}
                 {!imageFile && editingProduct && (

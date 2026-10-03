@@ -5,6 +5,7 @@ import { productApi } from "../services/productApi";
 import { reviewApi } from "../services/reviewApi";
 import { cartApi } from "../services/cartApi";
 import { wishlistApi } from "../services/wishlistApi";
+import { resolveMediaUrl } from "../services/config";
 import "./ProductDetails.css";
 
 const ProductDetails = () => {
@@ -174,7 +175,7 @@ const ProductDetails = () => {
       <div className="product-content">
         <div className="product-gallery">
           <img 
-            src={product.imageUrl || product.image || 'https://via.placeholder.com/600x400?text=Product+Image'} 
+            src={resolveMediaUrl(product.imageUrl || product.image) || 'https://via.placeholder.com/600x400?text=Product+Image'} 
             alt={product.name} 
             className="product-image"
             onError={(e) => {

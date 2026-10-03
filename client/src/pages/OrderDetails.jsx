@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { orderApi } from "../services/orderApi";
+import { resolveMediaUrl } from "../services/config";
 import "./OrderDetails.css";
 
 const OrderDetails = () => {
@@ -170,7 +171,7 @@ const OrderDetails = () => {
                     <td>
                       <div className="order-item-product">
                         <img
-                          src={item.productImageUrl || 'https://via.placeholder.com/60'}
+                          src={resolveMediaUrl(item.productImageUrl) || 'https://via.placeholder.com/60'}
                           alt={item.productName || item.name}
                           className="order-item-image"
                           onError={(e) => {

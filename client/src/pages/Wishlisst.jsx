@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { wishlistApi } from "../services/wishlistApi";
 import { cartApi } from "../services/cartApi";
+import { resolveMediaUrl } from "../services/config";
 import "./Wishlist.css";
 
 const Wishlist = () => {
@@ -81,7 +82,7 @@ const Wishlist = () => {
           {wishlist.map(item => (
             <div key={item.id} className="wishlist-card" onClick={() => navigate(`/products/${item.productId}`)} style={{ cursor: 'pointer' }}>
               <img 
-                src={item.productImageUrl || item.image || 'https://via.placeholder.com/300x200'} 
+                src={resolveMediaUrl(item.productImageUrl || item.image) || 'https://via.placeholder.com/300x200'} 
                 alt={item.productName || item.name} 
                 className="wishlist-image"
                 onError={(e) => {

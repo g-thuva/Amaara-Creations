@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { cartApi } from "../services/cartApi";
+import { resolveMediaUrl } from "../services/config";
 import "./Cart.css";
 
 const Cart = () => {
@@ -121,7 +122,7 @@ const Cart = () => {
                   <td>
                     <div className="cart-item">
                       <img 
-                        src={item.productImageUrl || item.image || 'https://via.placeholder.com/100'} 
+                        src={resolveMediaUrl(item.productImageUrl || item.image) || 'https://via.placeholder.com/100'} 
                         alt={item.productName || item.name} 
                         onError={(e) => {
                           e.target.onerror = null;

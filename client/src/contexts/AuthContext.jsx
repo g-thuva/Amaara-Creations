@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../services/authApi';
 
@@ -21,7 +22,7 @@ export const AuthProvider = ({ children }) => {
             const currentUser = await authApi.getCurrentUser();
             setUser(currentUser);
             setIsAuthenticated(true);
-          } catch (error) {
+          } catch {
             // Token invalid, clear storage
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -40,41 +41,33 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
-    try {
-      const response = await authApi.login(credentials);
-      // Clear old data first
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // Set new data
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-      }
-      setUser(response.user);
-      setIsAuthenticated(true);
-      return response;
-    } catch (error) {
-      throw error;
+    const response = await authApi.login(credentials);
+    // Clear old data first
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    // Set new data
+    if (response.token) {
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
     }
+    setUser(response.user);
+    setIsAuthenticated(true);
+    return response;
   };
 
   const register = async (userData) => {
-    try {
-      const response = await authApi.register(userData);
-      // Clear old data first
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // Set new data
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-      }
-      setUser(response.user);
-      setIsAuthenticated(true);
-      return response;
-    } catch (error) {
-      throw error;
+    const response = await authApi.register(userData);
+    // Clear old data first
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    // Set new data
+    if (response.token) {
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
     }
+    setUser(response.user);
+    setIsAuthenticated(true);
+    return response;
   };
 
   const logout = async () => {

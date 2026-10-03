@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEye, FiRefreshCw, FiMail, FiPhone, FiMapPin } from "react-icons/fi";
 import { adminApi } from "../../services/adminApi";
 import "./AdminStyles.css";
 
@@ -56,7 +55,7 @@ const Customers = () => {
           style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
         />
         <button onClick={fetchCustomers} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FiRefreshCw /> Refresh
+          <i className="fa-solid fa-rotate" /> Refresh
         </button>
       </div>
 
@@ -92,14 +91,14 @@ const Customers = () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <FiMail size={14} />
+                        <i className="fa-solid fa-envelope" />
                         {customer.email || 'N/A'}
                       </div>
                     </td>
                     <td>
                       {customer.phone ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <FiPhone size={14} />
+                          <i className="fa-solid fa-phone" />
                           {customer.phone}
                         </div>
                       ) : (
@@ -109,7 +108,7 @@ const Customers = () => {
                     <td>
                       {customer.address ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <FiMapPin size={14} />
+                          <i className="fa-solid fa-location-dot" />
                           <span style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {customer.address}
                           </span>
@@ -125,7 +124,7 @@ const Customers = () => {
                         onClick={() => navigate(`/admin/customers/${customer.id}`)}
                         title="View Details"
                       >
-                        <FiEye /> View
+                        <i className="fa-solid fa-eye" /> View
                       </button>
                     </td>
                   </tr>

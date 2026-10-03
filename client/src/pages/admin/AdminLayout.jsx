@@ -1,38 +1,37 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { FiMenu, FiX, FiHome, FiPackage, FiStar, FiUsers, FiShoppingBag, FiLogOut, FiChevronDown, FiChevronRight, FiArrowLeft } from "react-icons/fi";
 import "./AdminStyles.css";
 
 const menuItems = [
   { 
     title: "Dashboard", 
     path: "/admin/dashboard", 
-    icon: <FiHome />,
+    icon: "fa-solid fa-house",
     submenu: []
   },
   { 
     title: "Products", 
     path: "/admin/products", 
-    icon: <FiPackage />,
+    icon: "fa-solid fa-box",
     submenu: []
   },
   { 
     title: "Orders", 
     path: "/admin/orders", 
-    icon: <FiShoppingBag />,
+    icon: "fa-solid fa-bag-shopping",
     submenu: []
   },
   { 
     title: "Customers", 
     path: "/admin/customers", 
-    icon: <FiUsers />,
+    icon: "fa-solid fa-users",
     submenu: []
   },
   { 
     title: "Reviews", 
     path: "/admin/reviews", 
-    icon: <FiStar />,
+    icon: "fa-solid fa-star",
     submenu: []
   },
 ];
@@ -113,11 +112,11 @@ const AdminLayout = () => {
                   }
                 }}
               >
-                <i>{item.icon}</i>
+                <i className={item.icon} />
                 <span>{item.title}</span>
                 {item.submenu.length > 0 && (
                   <span style={{ marginLeft: 'auto' }}>
-                    {activeSubmenu === index ? <FiChevronDown /> : <FiChevronRight />}
+                    <i className={`fa-solid ${activeSubmenu === index ? 'fa-chevron-down' : 'fa-chevron-right'}`} />
                   </span>
                 )}
               </Link>
@@ -146,7 +145,7 @@ const AdminLayout = () => {
           ))}
           
           <div className="menu-item" onClick={handleLogout} style={{ cursor: 'pointer' }}>
-            <i><FiLogOut /></i>
+            <i className="fa-solid fa-right-from-bracket" />
             <span>Logout</span>
           </div>
         </nav>
@@ -158,14 +157,14 @@ const AdminLayout = () => {
         <header className="admin-header">
           <div className="header-left">
             <button className="toggle-sidebar" onClick={toggleSidebar}>
-              {sidebarOpen ? <FiX /> : <FiMenu />}
+              <i className={`fa-solid ${sidebarOpen ? 'fa-xmark' : 'fa-bars'}`} />
             </button>
             <button 
               className="back-button" 
               onClick={() => navigate('/')}
               title="Back to Home"
             >
-              <FiArrowLeft size={20} />
+              <i className="fa-solid fa-arrow-left" />
             </button>
             <h3 style={{ margin: 0, color: '#2d3748' }}>
               {menuItems.find(item => item.path === location.pathname)?.title || 'Dashboard'}

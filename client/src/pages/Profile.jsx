@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { userApi } from "../services/userApi";
+import { resolveMediaUrl } from "../services/config";
 import "./Profile.css";
-import { FiEdit, FiUser, FiMail, FiPhone, FiMapPin, FiLock, FiShoppingBag, FiHeart, FiLogOut } from "react-icons/fi";
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -111,7 +111,7 @@ const Profile = () => {
         <div className="profile-sidebar">
           <div className="profile-avatar">
             {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.name} />
+              <img src={resolveMediaUrl(user.avatarUrl)} alt={user.name} />
             ) : (
               <div style={{
                 width: '100%',
@@ -136,14 +136,14 @@ const Profile = () => {
               onClick={() => setIsEditing(!isEditing)}
               style={{ flex: 1 }}
             >
-              <FiEdit /> {isEditing ? 'Cancel' : 'Edit Profile'}
+              <i className="fa-solid fa-pen" /> {isEditing ? 'Cancel' : 'Edit Profile'}
             </button>
             <button 
               className="btn btn-outline"
               onClick={handleLogout}
               style={{ flex: 1 }}
             >
-              <FiLogOut /> Logout
+              <i className="fa-solid fa-right-from-bracket" /> Logout
             </button>
           </div>
           
@@ -153,14 +153,14 @@ const Profile = () => {
               onClick={() => navigate('/orders')}
               style={{ width: '100%', marginBottom: '0.75rem' }}
             >
-              <FiShoppingBag /> My Orders
+              <i className="fa-solid fa-bag-shopping" /> My Orders
             </button>
             <button 
               className="btn btn-outline"
               onClick={() => navigate('/wishlist')}
               style={{ width: '100%' }}
             >
-              <FiHeart /> Wishlist
+              <i className="fa-solid fa-heart" /> Wishlist
             </button>
           </div>
         </div>
@@ -171,7 +171,7 @@ const Profile = () => {
           <form onSubmit={handleSave}>
             <div className="detail-group">
               <label className="detail-label">
-                <FiUser style={{ marginRight: '8px' }} /> Full Name
+                <i className="fa-solid fa-user" style={{ marginRight: '8px' }} /> Full Name
               </label>
               {isEditing ? (
                 <input
@@ -189,7 +189,7 @@ const Profile = () => {
             
             <div className="detail-group">
               <label className="detail-label">
-                <FiMail style={{ marginRight: '8px' }} /> Email Address
+                <i className="fa-solid fa-envelope" style={{ marginRight: '8px' }} /> Email Address
               </label>
               <p className="detail-value">{user.email}</p>
               <small style={{ color: '#666' }}>Contact support to change your email</small>
@@ -197,7 +197,7 @@ const Profile = () => {
             
             <div className="detail-group">
               <label className="detail-label">
-                <FiPhone style={{ marginRight: '8px' }} /> Phone Number
+                <i className="fa-solid fa-phone" style={{ marginRight: '8px' }} /> Phone Number
               </label>
               {isEditing ? (
                 <input
@@ -215,7 +215,7 @@ const Profile = () => {
             
             <div className="detail-group">
               <label className="detail-label">
-                <FiMapPin style={{ marginRight: '8px' }} /> Delivery Address
+                <i className="fa-solid fa-location-dot" style={{ marginRight: '8px' }} /> Delivery Address
               </label>
               {isEditing ? (
                 <textarea
@@ -254,7 +254,7 @@ const Profile = () => {
               className="btn btn-outline"
               onClick={() => navigate('/change-password')}
             >
-              <FiLock /> Change Password
+              <i className="fa-solid fa-lock" /> Change Password
             </button>
           </div>
         </div>

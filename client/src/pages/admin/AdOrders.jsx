@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEye, FiRefreshCw } from "react-icons/fi";
 import { orderApi } from "../../services/orderApi";
 import "./AdminStyles.css";
 
@@ -92,7 +91,7 @@ const AdOrders = () => {
           <option value="Cancelled">Cancelled</option>
         </select>
         <button onClick={fetchOrders} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FiRefreshCw /> Refresh
+          <i className="fa-solid fa-rotate" /> Refresh
         </button>
       </div>
 
@@ -160,7 +159,7 @@ const AdOrders = () => {
                         onClick={() => navigate(`/admin/orders/${order.id}`)}
                         title="View Details"
                       >
-                        <FiEye /> View
+                        <i className="fa-solid fa-eye" /> View
                       </button>
                     </td>
                   </tr>

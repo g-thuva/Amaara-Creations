@@ -4,15 +4,15 @@ import { useAuth } from "../contexts/AuthContext";
 import { cartApi } from "../services/cartApi";
 import { orderApi } from "../services/orderApi";
 import { userApi } from "../services/userApi";
+import { resolveMediaUrl } from "../services/config";
 import "./Checkout.css";
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [userProfile, setUserProfile] = useState(null);
   const [formData, setFormData] = useState({
     shippingAddress: "",
     shippingCity: "",
@@ -36,7 +36,6 @@ const Checkout = () => {
 
         // Fetch user profile for default shipping info
         const profile = await userApi.getProfile();
-        setUserProfile(profile);
         setFormData({
           shippingAddress: profile.address || "",
           shippingCity: "",
@@ -233,7 +232,7 @@ const Checkout = () => {
             {cartItems.map(item => (
               <div key={item.id} className="order-item">
                 <img
-                  src={item.productImageUrl || item.image || 'https://via.placeholder.com/60'}
+                  src={resolveMediaUrl(item.productImageUrl || item.image) || 'https://via.placeholder.com/60'}
                   alt={item.productName || item.name}
                   className="order-item-image"
                   onError={(e) => {

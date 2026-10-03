@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { FaUserCircle, FaBars, FaTimes, FaHome, FaBox, FaTools, FaHeart, FaShoppingCart } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
 import "./Navbar.css";
 
@@ -69,7 +68,7 @@ const Navbar = () => {
         onClick={toggleMobileMenu}
         aria-label="Toggle menu"
       >
-        {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
+        <i className={`fa-solid ${isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'}`} />
       </button>
 
       {/* Mobile Sidebar Overlay */}
@@ -90,19 +89,19 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <ul className="desktop-nav">
             <li className={location.pathname === '/' ? 'active' : ''}>
-              <Link to="/"><FaHome /> Home</Link>
+              <Link to="/"><i className="fa-solid fa-house" /> Home</Link>
             </li>
             <li className={location.pathname === '/products' ? 'active' : ''}>
-              <Link to="/products"><FaBox /> Products</Link>
+              <Link to="/products"><i className="fa-solid fa-box" /> Products</Link>
             </li>
             <li className={location.pathname === '/custom' ? 'active' : ''}>
-              <Link to="/custom"><FaTools /> Custom Builder</Link>
+              <Link to="/custom"><i className="fa-solid fa-screwdriver-wrench" /> Custom Builder</Link>
             </li>
             <li className={location.pathname === '/wishlist' ? 'active' : ''}>
-              <Link to="/wishlist"><FaHeart /> Wishlist</Link>
+              <Link to="/wishlist"><i className="fa-solid fa-heart" /> Wishlist</Link>
             </li>
             <li className={location.pathname === '/cart' ? 'active' : ''}>
-              <Link to="/cart"><FaShoppingCart /> Cart</Link>
+              <Link to="/cart"><i className="fa-solid fa-cart-shopping" /> Cart</Link>
             </li>
           </ul>
 
@@ -110,19 +109,19 @@ const Navbar = () => {
           <div className={`mobile-nav ${isMobileMenuOpen ? 'open' : ''}`}>
             <ul>
               <li className={location.pathname === '/' ? 'active' : ''}>
-                <Link to="/"><FaHome /> Home</Link>
+                <Link to="/"><i className="fa-solid fa-house" /> Home</Link>
               </li>
               <li className={location.pathname === '/products' ? 'active' : ''}>
-                <Link to="/products"><FaBox /> Products</Link>
+                <Link to="/products"><i className="fa-solid fa-box" /> Products</Link>
               </li>
               <li className={location.pathname === '/custom' ? 'active' : ''}>
-                <Link to="/custom"><FaTools /> Custom Builder</Link>
+                <Link to="/custom"><i className="fa-solid fa-screwdriver-wrench" /> Custom Builder</Link>
               </li>
               <li className={location.pathname === '/wishlist' ? 'active' : ''}>
-                <Link to="/wishlist"><FaHeart /> Wishlist</Link>
+                <Link to="/wishlist"><i className="fa-solid fa-heart" /> Wishlist</Link>
               </li>
               <li className={location.pathname === '/cart' ? 'active' : ''}>
-                <Link to="/cart"><FaShoppingCart /> Cart</Link>
+                <Link to="/cart"><i className="fa-solid fa-cart-shopping" /> Cart</Link>
               </li>
               
               {/* Auth Buttons */}
@@ -145,9 +144,10 @@ const Navbar = () => {
 
           {/* Profile Menu */}
           <div className="profile-menu">
-            <FaUserCircle
-              size={28}
-              className="profile-icon"
+            <i
+              aria-hidden="true"
+              style={{ fontSize: 28 }}
+              className="fa-solid fa-circle-user profile-icon"
               onClick={toggleDropdown}
             />
 

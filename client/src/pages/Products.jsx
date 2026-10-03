@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { productApi } from "../services/productApi";
+import { resolveMediaUrl } from "../services/config";
 import "./Products.css";
 
 const Products = () => {
@@ -140,7 +141,7 @@ const Products = () => {
                 >
                   <div className="product-image">
                     <img 
-                      src={product.imageUrl || product.image || 'https://via.placeholder.com/400'} 
+                      src={resolveMediaUrl(product.imageUrl || product.image) || 'https://via.placeholder.com/400'} 
                       alt={product.name} 
                       loading="lazy"
                       onError={(e) => {

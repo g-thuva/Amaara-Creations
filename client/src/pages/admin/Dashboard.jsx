@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FiDollarSign, FiShoppingBag, FiUsers, FiStar, FiTrendingUp } from "react-icons/fi";
 import { adminApi } from "../../services/adminApi";
 
 const Dashboard = () => {
@@ -63,28 +62,28 @@ const Dashboard = () => {
       value: `Rs. ${dashboardStats?.totalRevenue?.toLocaleString() || '0'}`, 
       change: dashboardStats?.revenueThisMonth ? `+${((dashboardStats.revenueThisMonth / (dashboardStats.totalRevenue || 1)) * 100).toFixed(1)}%` : '0%', 
       trend: "up", 
-      icon: <FiDollarSign size={24} />
+      icon: <i className="fa-solid fa-dollar-sign" />
     },
     { 
       title: "Total Orders", 
       value: dashboardStats?.totalOrders?.toLocaleString() || '0', 
       change: dashboardStats?.ordersThisMonth ? `+${((dashboardStats.ordersThisMonth / (dashboardStats.totalOrders || 1)) * 100).toFixed(1)}%` : '0%', 
       trend: "up", 
-      icon: <FiShoppingBag size={24} />
+      icon: <i className="fa-solid fa-bag-shopping" />
     },
     { 
       title: "Total Customers", 
       value: dashboardStats?.totalCustomers?.toLocaleString() || '0', 
       change: "+0%", 
       trend: "up", 
-      icon: <FiUsers size={24} />
+      icon: <i className="fa-solid fa-users" />
     },
     { 
       title: "Avg. Rating", 
       value: dashboardStats?.averageRating?.toFixed(1) || '0.0', 
       change: "+0.0", 
       trend: "up", 
-      icon: <FiStar size={24} />
+      icon: <i className="fa-solid fa-star" />
     },
   ];
 
@@ -118,7 +117,7 @@ const Dashboard = () => {
               <span className="stat-title">{stat.title}</span>
             </div>
             <div className={`stat-change ${stat.trend}`}>
-              <FiTrendingUp size={16} />
+              <i className="fa-solid fa-arrow-trend-up" />
               <span>{stat.change}</span>
             </div>
           </div>

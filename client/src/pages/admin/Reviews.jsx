@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { FiStar, FiTrash2, FiRefreshCw } from "react-icons/fi";
 import { reviewApi } from "../../services/reviewApi";
 import "./AdminStyles.css";
 
@@ -51,7 +50,7 @@ const Reviews = () => {
   const renderStars = (rating) => {
     return Array(5).fill(0).map((_, i) => (
       <span key={i} style={{ color: i < rating ? '#ffc107' : '#ddd' }}>
-        <FiStar fill={i < rating ? '#ffc107' : 'none'} />
+        <i className={`${i < rating ? 'fa-solid' : 'fa-regular'} fa-star`} />
       </span>
     ));
   };
@@ -89,7 +88,7 @@ const Reviews = () => {
           <option value="1">1 Star</option>
         </select>
         <button onClick={fetchReviews} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FiRefreshCw /> Refresh
+          <i className="fa-solid fa-rotate" /> Refresh
         </button>
       </div>
 
@@ -147,7 +146,7 @@ const Reviews = () => {
                         onClick={() => handleDelete(review.id)}
                         title="Delete Review"
                       >
-                        <FiTrash2 /> Delete
+                        <i className="fa-solid fa-trash" /> Delete
                       </button>
                     </td>
                   </tr>
