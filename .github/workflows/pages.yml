@@ -14,8 +14,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore backend
+        run: dotnet restore be/be.csproj
+
+      - name: Build backend
+        run: dotnet build be/be.csproj --no-restore --configuration Release
+
   build:
     runs-on: ubuntu-latest
+    needs: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,7 +41,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: client/package-lock.json
           
@@ -31,6 +49,11 @@ jobs:
         run: |
           cd client
           npm ci
+
+      - name: Lint
+        run: |
+          cd client
+          npm run lint
           
       - name: Build
         run: |
