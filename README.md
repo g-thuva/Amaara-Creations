@@ -64,3 +64,5 @@ dotnet user-secrets set "AdminBootstrap:Password" "replace-with-a-strong-local-p
 See `docs/implementation/phase-00-stabilisation.md` for the Phase 0 stabilisation record, command results, current API/route inventory, security changes, and remaining manual infrastructure steps.
 
 See `docs/implementation/phase-01-foundation.md` for the Phase 1 foundation/data-model implementation record and migration notes.
+
+See `docs/implementation/phase-02-authentication-accounts.md` for the Phase 2 authentication, account, refresh-session, and saved-address implementation record.
