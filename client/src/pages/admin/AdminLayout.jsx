@@ -41,15 +41,8 @@ const AdminLayout = () => {
   const [activeSubmenu, setActiveSubmenu] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout: authLogout, isLoading } = useAuth();
+  const { user, logout: authLogout } = useAuth();
   const isMobile = window.innerWidth <= 992;
-
-  // Protect admin routes - check if user is admin
-  useEffect(() => {
-    if (!isLoading && (!isAuthenticated || user?.role !== "Admin")) {
-      navigate("/login", { state: { message: "Admin access required" } });
-    }
-  }, [isAuthenticated, user, isLoading, navigate]);
 
   useEffect(() => {
     if (isMobile) {
@@ -81,14 +74,6 @@ const AdminLayout = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, sidebarOpen]);
-
-  if (isLoading || !isAuthenticated || user?.role !== "Admin") {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <p>Loading...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="admin-container">

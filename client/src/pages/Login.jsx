@@ -27,11 +27,10 @@ const Login = () => {
       const redirectTo = location.state?.from || "/profile";
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 
+      const errorMessage = err.response?.data?.message ||
                           err.response?.data?.errors?.join(", ") ||
                           "Invalid email or password. Please try again.";
       setError(errorMessage);
-      console.error("Login error:", err);
     } finally {
       setIsLoading(false);
     }

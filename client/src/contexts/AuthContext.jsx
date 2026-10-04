@@ -1,73 +1,47 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../services/authApi';
+import { clearAccessToken, setAccessToken, setAuthFailureHandler } from '../services/authSession';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authStatus, setAuthStatus] = useState('loading');
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('token');
+    setAuthFailureHandler(() => {
+      clearAccessToken();
+      setUser(null);
+      setAuthStatus('unauthenticated');
+    });
 
-        if (storedUser && token) {
-          try {
-            // Verify token is still valid by fetching current user
-            const currentUser = await authApi.getCurrentUser();
-            setUser(currentUser);
-            setIsAuthenticated(true);
-          } catch {
-            // Token invalid, clear storage
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setUser(null);
-            setIsAuthenticated(false);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading user:', error);
-      } finally {
-        setIsLoading(false);
+    const restoreSession = async () => {
+      try {
+        const response = await authApi.refresh();
+        setAccessToken(response.token);
+        setUser(response.user);
+        setAuthStatus('authenticated');
+      } catch {
+        clearAccessToken();
+        setUser(null);
+        setAuthStatus('unauthenticated');
       }
     };
 
-    loadUser();
+    restoreSession();
   }, []);
 
   const login = async (credentials) => {
     const response = await authApi.login(credentials);
-    // Clear old data first
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    // Set new data
-    if (response.token) {
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-    }
+    setAccessToken(response.token);
     setUser(response.user);
-    setIsAuthenticated(true);
+    setAuthStatus('authenticated');
     return response;
   };
 
   const register = async (userData) => {
-    const response = await authApi.register(userData);
-    // Clear old data first
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    // Set new data
-    if (response.token) {
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-    }
-    setUser(response.user);
-    setIsAuthenticated(true);
-    return response;
+    return authApi.register(userData);
   };
 
   const logout = async () => {
@@ -76,23 +50,21 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Always clear state and storage
+      clearAccessToken();
       setUser(null);
-      setIsAuthenticated(false);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      setAuthStatus('unauthenticated');
     }
   };
 
   const updateUser = (userData) => {
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const value = {
     user,
-    isAuthenticated,
-    isLoading,
+    isAuthenticated: authStatus === 'authenticated',
+    isLoading: authStatus === 'loading',
+    authStatus,
     login,
     register,
     logout,

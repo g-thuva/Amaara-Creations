@@ -252,9 +252,16 @@ const Profile = () => {
             <h3 style={{ marginBottom: '1rem' }}>Account Security</h3>
             <button 
               className="btn btn-outline"
-              onClick={() => navigate('/change-password')}
+              onClick={() => navigate('/account/security')}
             >
               <i className="fa-solid fa-lock" /> Change Password
+            </button>
+            <button
+              className="btn btn-outline"
+              onClick={() => navigate('/addresses')}
+              style={{ marginLeft: '0.75rem' }}
+            >
+              <i className="fa-solid fa-location-dot" /> Saved Addresses
             </button>
           </div>
         </div>

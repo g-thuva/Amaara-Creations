@@ -45,16 +45,10 @@ const Register = () => {
         confirmPassword: form.confirmPassword
       });
       
-      // On successful registration, redirect to profile (auto-logged in)
-      navigate("/profile", { 
-        state: { message: "Registration successful! Welcome to Amaara Creations." } 
+      navigate("/login", {
+        state: { message: "Registration successful. Check your email to verify your account before signing in." }
       });
     } catch (err) {
-      console.error("Registration error:", err);
-      console.error("Error response:", err.response?.data);
-      console.error("Error status:", err.response?.status);
-      
-      // Extract error messages from different possible formats
       let errorMessage = "Registration failed. Please try again.";
       
       if (err.response?.data) {
