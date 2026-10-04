@@ -20,7 +20,8 @@ npm run dev
 
 Frontend configuration:
 
-- `VITE_API_BASE_URL` defaults to `http://localhost:5192/api`
+- `VITE_API_BASE_URL` defaults to `http://localhost:5192/api/v1`
+- Legacy `/api/*` routes remain available for compatibility while new local frontend installs use `/api/v1`
 - `VITE_MEDIA_BASE_URL` defaults to `http://localhost:5192`
 
 Quality checks:
@@ -28,6 +29,8 @@ Quality checks:
 ```powershell
 cd client
 npm run lint
+npm run typecheck
+npm test
 npm run build
 npm audit --audit-level=high
 ```
@@ -38,6 +41,7 @@ npm audit --audit-level=high
 cd be
 dotnet restore
 dotnet build
+dotnet test ..\tests\be.Tests\be.Tests.csproj
 dotnet ef migrations list
 dotnet run --urls http://localhost:5192
 ```
@@ -55,6 +59,8 @@ dotnet user-secrets set "AdminBootstrap:Password" "replace-with-a-strong-local-p
 
 `AdminBootstrap` is disabled by default and never falls back to a hard-coded password.
 
-## Phase 0 Notes
+## Implementation Notes
 
 See `docs/implementation/phase-00-stabilisation.md` for the Phase 0 stabilisation record, command results, current API/route inventory, security changes, and remaining manual infrastructure steps.
+
+See `docs/implementation/phase-01-foundation.md` for the Phase 1 foundation/data-model implementation record and migration notes.
