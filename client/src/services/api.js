@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from './config';
+import { normalizeApiError } from './apiError';
 
 // Create axios instance
 const api = axios.create({
@@ -29,9 +30,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
+      const apiError = normalizeApiError(error);
       console.error('API Error Response:', {
-        status: error.response.status,
-        message: error.response.data?.message
+        status: apiError.status,
+        message: apiError.message,
+        correlationId: apiError.correlationId
       });
     }
     
