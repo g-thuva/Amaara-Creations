@@ -2,13 +2,16 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Threading.RateLimiting;
 using be.Data;
 using be.Infrastructure;
 using be.Models;
+using be.Security;
 using be.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,10 +42,11 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
     
     // User settings
     options.User.RequireUniqueEmail = true;
+    options.SignIn.RequireConfirmedEmail = builder.Configuration.GetValue<bool?>("Authentication:RequireConfirmedEmail") ?? true;
     
     // Lockout settings
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Authentication:LockoutMinutes") ?? 10);
+    options.Lockout.MaxFailedAccessAttempts = builder.Configuration.GetValue<int?>("Authentication:MaxFailedAccessAttempts") ?? 5;
     options.Lockout.AllowedForNewUsers = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -74,7 +78,7 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtIssuer,
         ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        ClockSkew = TimeSpan.FromMinutes(5) // Allow 5 minutes clock skew
+        ClockSkew = TimeSpan.FromSeconds(30)
     };
 
     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
@@ -83,13 +87,6 @@ builder.Services.AddAuthentication(options =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogError(context.Exception, "JWT Authentication failed: {Message}", context.Exception.Message);
-            return Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            var userId = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            logger.LogInformation("JWT Token validated successfully for user: {UserId}", userId);
             return Task.CompletedTask;
         },
         OnChallenge = context =>
@@ -102,10 +99,33 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AppPolicies.AdminAccess, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
+    options.AddPolicy(AppPolicies.ManageCustomers, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
+    options.AddPolicy(AppPolicies.ManageOrders, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
+    options.AddPolicy(AppPolicies.ManageCatalog, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
+    options.AddPolicy(AppPolicies.ManageContent, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
+    options.AddPolicy(AppPolicies.ManageReviews, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
+    options.AddPolicy(AppPolicies.ViewReports, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
+});
 
 // Register TokenService
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();
+builder.Services.AddScoped<IEmailService, DevelopmentEmailService>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("auth-sensitive", limiter =>
+    {
+        limiter.PermitLimit = builder.Configuration.GetValue<int?>("Authentication:RateLimitPermitLimit") ?? 10;
+        limiter.Window = TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Authentication:RateLimitWindowMinutes") ?? 1);
+        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiter.QueueLimit = 0;
+    });
+});
 
 // Enable CORS for React frontend
 var allowedOrigins = GetAllowedOrigins(builder);
@@ -221,6 +241,8 @@ app.UseStaticFiles();
 // Enable CORS (must be before UseAuthentication and UseAuthorization)
 app.UseCors("AllowReactApp");
 
+app.UseRateLimiter();
+
 // Authentication & Authorization (order matters!)
 app.UseAuthentication();
 app.UseAuthorization();
@@ -248,7 +270,7 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var roles = new[] { "Admin", "Customer" };
+        var roles = new[] { AppRoles.Admin, AppRoles.Customer, AppRoles.SuperAdmin };
 
         foreach (var role in roles)
         {
@@ -288,7 +310,7 @@ try
                 var result = await userManager.CreateAsync(adminUser, adminPassword);
                 if (result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                    await userManager.AddToRoleAsync(adminUser, AppRoles.SuperAdmin);
                     logger.LogInformation("Configured bootstrap admin user created.");
                 }
                 else
@@ -299,10 +321,11 @@ try
             }
             else
             {
-                var isInAdminRole = await userManager.IsInRoleAsync(existingAdmin, "Admin");
-                if (!isInAdminRole)
+                var isInAdminRole = await userManager.IsInRoleAsync(existingAdmin, AppRoles.Admin);
+                var isInSuperAdminRole = await userManager.IsInRoleAsync(existingAdmin, AppRoles.SuperAdmin);
+                if (!isInAdminRole && !isInSuperAdminRole)
                 {
-                    await userManager.AddToRoleAsync(existingAdmin, "Admin");
+                    await userManager.AddToRoleAsync(existingAdmin, AppRoles.SuperAdmin);
                     logger.LogInformation("Admin role added to configured bootstrap user.");
                 }
             }

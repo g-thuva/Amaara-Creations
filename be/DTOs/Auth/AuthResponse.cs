@@ -3,7 +3,6 @@ namespace be.DTOs.Auth
     public class AuthResponse
     {
         public string Token { get; set; } = string.Empty;
-        public string RefreshToken { get; set; } = string.Empty;
         public UserDto User { get; set; } = new UserDto();
         public DateTime ExpiresAt { get; set; }
     }
@@ -16,7 +15,9 @@ namespace be.DTOs.Auth
         public string? Phone { get; set; }
         public string? Address { get; set; }
         public string? AvatarUrl { get; set; }
+        public bool EmailConfirmed { get; set; }
         public string Role { get; set; } = "Customer";
+        public List<string> Roles { get; set; } = new();
     }
 }
 

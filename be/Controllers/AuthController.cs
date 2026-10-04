@@ -1,10 +1,12 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using be.DTOs.Auth;
 using be.Models;
+using be.Security;
 using be.Services;
-using System.Security.Claims;
 
 namespace be.Controllers
 {
@@ -13,375 +15,374 @@ namespace be.Controllers
     [Route("api/v1/[controller]")]
     public class AuthController : ControllerBase
     {
+        private const string GenericLoginMessage = "Invalid email or password.";
+        private const string GenericPasswordResetMessage = "If an account with that email exists, password reset instructions have been sent.";
+
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ITokenService _tokenService;
+        private readonly IRefreshSessionService _refreshSessionService;
+        private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
-        private readonly ILogger<AuthController> _logger;
 
         public AuthController(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
-            RoleManager<IdentityRole> roleManager,
             ITokenService tokenService,
-            IConfiguration configuration,
-            ILogger<AuthController> logger)
+            IRefreshSessionService refreshSessionService,
+            IEmailService emailService,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _roleManager = roleManager;
             _tokenService = tokenService;
+            _refreshSessionService = refreshSessionService;
+            _emailService = emailService;
             _configuration = configuration;
-            _logger = logger;
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        [EnableRateLimiting("auth-sensitive")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                _logger.LogInformation("Register request received for email {Email}", request?.Email ?? "null");
-
-                if (request == null)
-                {
-                    return BadRequest(new { message = "Request body is required" });
-                }
-
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState
-                        .Where(x => x.Value is { Errors.Count: > 0 })
-                        .SelectMany(x => x.Value!.Errors.Select(e => new { Field = x.Key, Message = e.ErrorMessage }))
-                        .ToList();
-                    
-                    _logger.LogWarning("Validation failed: {Errors}", string.Join(", ", errors.Select(e => $"{e.Field}: {e.Message}")));
-                    
-                    return BadRequest(new { 
-                        message = "Validation failed", 
-                        errors = errors 
-                    });
-                }
-
-                // Check if user already exists
-                var existingUser = await _userManager.FindByEmailAsync(request.Email);
-                if (existingUser != null)
-                {
-                    return BadRequest(new { message = "Email is already registered" });
-                }
-
-                // Create new user
-                var user = new User
-                {
-                    UserName = request.Email,
-                    Email = request.Email,
-                    Name = request.Name,
-                    EmailConfirmed = true // Set to true for development, use email confirmation in production
-                };
-
-                var result = await _userManager.CreateAsync(user, request.Password);
-
-                if (!result.Succeeded)
-                {
-                    return BadRequest(new { message = "Registration failed", errors = result.Errors });
-                }
-
-                // Assign default role (Customer)
-                await _userManager.AddToRoleAsync(user, "Customer");
-
-                // Generate token
-                var roles = await _userManager.GetRolesAsync(user);
-                var token = _tokenService.GenerateToken(user, roles);
-                var refreshToken = _tokenService.GenerateRefreshToken();
-
-                var response = new AuthResponse
-                {
-                    Token = token,
-                    RefreshToken = refreshToken,
-                    User = new UserDto
-                    {
-                        Id = user.Id,
-                        Name = user.Name,
-                        Email = user.Email ?? string.Empty,
-                        Phone = user.Phone,
-                        Address = user.Address,
-                        AvatarUrl = user.AvatarUrl,
-                        Role = roles.FirstOrDefault() ?? "Customer"
-                    },
-                    ExpiresAt = GetAccessTokenExpiry()
-                };
-
-                return Ok(response);
+                return ValidationProblem(ModelState);
             }
-            catch (Exception ex)
+
+            var existingUser = await _userManager.FindByEmailAsync(request.Email);
+            if (existingUser != null)
             {
-                _logger.LogError(ex, "Error during registration");
-                return StatusCode(500, new { message = "An error occurred during registration" });
+                return BadRequest(new { message = "Email is already registered. Try signing in or resetting your password." });
             }
+
+            var user = new User
+            {
+                UserName = request.Email,
+                Email = request.Email,
+                Name = request.Name.Trim(),
+                EmailConfirmed = false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { message = "Registration failed.", errors = result.Errors.Select(e => e.Description) });
+            }
+
+            await _userManager.AddToRoleAsync(user, AppRoles.Customer);
+            await SendConfirmationEmailAsync(user, cancellationToken);
+
+            return Ok(new
+            {
+                message = "Registration successful. Check your email to verify your account before signing in.",
+                requiresEmailConfirmation = true
+            });
+        }
+
+        [HttpPost("confirm-email")]
+        [EnableRateLimiting("auth-sensitive")]
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            var user = await _userManager.FindByIdAsync(request.UserId);
+            if (user == null)
+            {
+                return BadRequest(new { message = "Invalid or expired verification link." });
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(user, Uri.UnescapeDataString(request.Token));
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { message = "Invalid or expired verification link." });
+            }
+
+            return Ok(new { message = "Email verified. You can now sign in." });
+        }
+
+        [HttpPost("resend-confirmation")]
+        [EnableRateLimiting("auth-sensitive")]
+        public async Task<IActionResult> ResendConfirmation([FromBody] ResendConfirmationRequest request, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user != null && !user.EmailConfirmed)
+            {
+                await SendConfirmationEmailAsync(user, cancellationToken);
+            }
+
+            return Ok(new { message = "If an account requires verification, a confirmation email has been sent." });
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        [EnableRateLimiting("auth-sensitive")]
+        public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var user = await _userManager.FindByEmailAsync(request.Email);
-                if (user == null)
-                {
-                    return Unauthorized(new { message = "Invalid email or password" });
-                }
-
-                var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: false);
-
-                if (!result.Succeeded)
-                {
-                    return Unauthorized(new { message = "Invalid email or password" });
-                }
-
-                // Generate token
-                var roles = await _userManager.GetRolesAsync(user);
-                var token = _tokenService.GenerateToken(user, roles);
-                var refreshToken = _tokenService.GenerateRefreshToken();
-
-                var response = new AuthResponse
-                {
-                    Token = token,
-                    RefreshToken = refreshToken,
-                    User = new UserDto
-                    {
-                        Id = user.Id,
-                        Name = user.Name,
-                        Email = user.Email ?? string.Empty,
-                        Phone = user.Phone,
-                        Address = user.Address,
-                        AvatarUrl = user.AvatarUrl,
-                        Role = roles.FirstOrDefault() ?? "Customer"
-                    },
-                    ExpiresAt = GetAccessTokenExpiry()
-                };
-
-                return Ok(response);
+                return ValidationProblem(ModelState);
             }
-            catch (Exception ex)
+
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
             {
-                _logger.LogError(ex, "Error during login");
-                return StatusCode(500, new { message = "An error occurred during login" });
+                return Unauthorized(new { message = GenericLoginMessage });
             }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+            if (result.IsLockedOut || !result.Succeeded)
+            {
+                return Unauthorized(new { message = GenericLoginMessage });
+            }
+
+            if (!user.EmailConfirmed)
+            {
+                return Unauthorized(new { message = "Email verification is required before signing in.", requiresEmailConfirmation = true });
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var refreshSession = await _refreshSessionService.CreateSessionAsync(user, HttpContext, cancellationToken);
+            SetRefreshCookie(refreshSession.RawToken, refreshSession.Session.ExpiresAt);
+
+            return Ok(CreateAuthResponse(user, roles));
+        }
+
+        [HttpPost("refresh")]
+        [HttpPost("refresh-token")]
+        [EnableRateLimiting("auth-sensitive")]
+        public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
+        {
+            var rawRefreshToken = Request.Cookies[GetRefreshCookieName()];
+            if (string.IsNullOrWhiteSpace(rawRefreshToken))
+            {
+                ClearRefreshCookie();
+                return Unauthorized(new { message = "Session expired." });
+            }
+
+            var rotation = await _refreshSessionService.RotateAsync(rawRefreshToken, HttpContext, cancellationToken);
+            if (rotation == null)
+            {
+                ClearRefreshCookie();
+                return Unauthorized(new { message = "Session expired." });
+            }
+
+            SetRefreshCookie(rotation.RawToken, rotation.Session.ExpiresAt);
+            return Ok(CreateAuthResponse(rotation.User, rotation.Roles));
         }
 
         [HttpPost("logout")]
-        [Authorize]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> Logout(CancellationToken cancellationToken)
         {
-            try
+            await _refreshSessionService.RevokeAsync(Request.Cookies[GetRefreshCookieName()], cancellationToken);
+            ClearRefreshCookie();
+            await _signInManager.SignOutAsync();
+            return Ok(new { message = "Logged out successfully." });
+        }
+
+        [HttpPost("logout-all")]
+        [Authorize]
+        public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId != null)
             {
-                await _signInManager.SignOutAsync();
-                return Ok(new { message = "Logged out successfully" });
+                await _refreshSessionService.RevokeAllForUserAsync(userId, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during logout");
-                return StatusCode(500, new { message = "An error occurred during logout" });
-            }
+
+            ClearRefreshCookie();
+            return Ok(new { message = "All sessions were revoked." });
         }
 
         [HttpGet("me")]
         [Authorize]
         public async Task<IActionResult> GetCurrentUser()
         {
-            try
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
             {
-                // Check if user is authenticated
-                if (!User.Identity?.IsAuthenticated ?? true)
-                {
-                    return Unauthorized(new { message = "User is not authenticated" });
-                }
-
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User ID not found in token" });
-                }
-
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user == null)
-                {
-                    return NotFound(new { message = "User not found" });
-                }
-
-                var roles = await _userManager.GetRolesAsync(user);
-
-                var userDto = new UserDto
-                {
-                    Id = user.Id,
-                    Name = user.Name,
-                    Email = user.Email ?? string.Empty,
-                    Phone = user.Phone,
-                    Address = user.Address,
-                    AvatarUrl = user.AvatarUrl,
-                    Role = roles.FirstOrDefault() ?? "Customer"
-                };
-
-                return Ok(userDto);
+                return Unauthorized(new { message = "User is not authenticated." });
             }
-            catch (Exception ex)
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
             {
-                _logger.LogError(ex, "Error getting current user");
-                return StatusCode(500, new { message = "An error occurred" });
+                return Unauthorized(new { message = "User is not authenticated." });
             }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            return Ok(ToUserDto(user, roles));
+        }
+
+        [HttpPost("forgot-password")]
+        [EnableRateLimiting("auth-sensitive")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user != null && user.EmailConfirmed)
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var resetUrl = BuildFrontendUrl("/reset-password", new Dictionary<string, string?>
+                {
+                    ["email"] = user.Email,
+                    ["token"] = Uri.EscapeDataString(token)
+                });
+
+                await _emailService.SendPasswordResetAsync(user, resetUrl, cancellationToken);
+            }
+
+            return Ok(new { message = GenericPasswordResetMessage });
+        }
+
+        [HttpPost("reset-password")]
+        [EnableRateLimiting("auth-sensitive")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return BadRequest(new { message = "Invalid or expired password reset link." });
+            }
+
+            var result = await _userManager.ResetPasswordAsync(user, Uri.UnescapeDataString(request.Token), request.NewPassword);
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { message = "Invalid or expired password reset link.", errors = result.Errors.Select(e => e.Description) });
+            }
+
+            await _refreshSessionService.RevokeAllForUserAsync(user.Id, cancellationToken);
+            ClearRefreshCookie();
+
+            return Ok(new { message = "Password reset successfully. Please sign in again." });
         }
 
         [HttpPost("change-password")]
         [Authorize]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                // Check if user is authenticated
-                if (!User.Identity?.IsAuthenticated ?? true)
-                {
-                    _logger.LogWarning("Change password failed: User is not authenticated");
-                    return Unauthorized(new { message = "User is not authenticated" });
-                }
-
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    _logger.LogWarning("User ID not found in token claims");
-                    return Unauthorized(new { message = "User ID not found in token" });
-                }
-
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user == null)
-                {
-                    return NotFound(new { message = "User not found" });
-                }
-
-                var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
-
-                if (!result.Succeeded)
-                {
-                    return BadRequest(new { message = "Password change failed", errors = result.Errors });
-                }
-
-                return Ok(new { message = "Password changed successfully" });
+                return ValidationProblem(ModelState);
             }
-            catch (Exception ex)
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
             {
-                _logger.LogError(ex, "Error changing password");
-                return StatusCode(500, new { message = "An error occurred while changing password" });
+                return Unauthorized(new { message = "User is not authenticated." });
             }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return Unauthorized(new { message = "User is not authenticated." });
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { message = "Password change failed.", errors = result.Errors.Select(e => e.Description) });
+            }
+
+            await _refreshSessionService.RevokeAllForUserAsync(user.Id, cancellationToken);
+            ClearRefreshCookie();
+
+            return Ok(new { message = "Password changed successfully. Please sign in again." });
         }
 
-        [HttpPost("refresh-token")]
-        public Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        private AuthResponse CreateAuthResponse(User user, IList<string> roles)
         {
-            try
+            return new AuthResponse
             {
-                if (!ModelState.IsValid)
-                {
-                    return Task.FromResult<IActionResult>(BadRequest(ModelState));
-                }
-
-                // Extract user ID from the current token (if expired, extract from token directly)
-                // For simplicity, we'll require the user to send their email with refresh token
-                // In production, store refresh tokens in database with user mapping
-                
-                // Note: This is a simplified implementation. 
-                // In production, you should store refresh tokens in the database 
-                // and validate them properly.
-                
-                // For now, we'll just generate a new token if refresh token is provided
-                // You may need to send user email/ID with refresh token or store refresh tokens in DB
-                
-                return Task.FromResult<IActionResult>(BadRequest(new { message = "Refresh token implementation requires user identifier. Please use login endpoint or implement refresh token storage." }));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error refreshing token");
-                return Task.FromResult<IActionResult>(StatusCode(500, new { message = "An error occurred while refreshing token" }));
-            }
+                Token = _tokenService.GenerateToken(user, roles),
+                User = ToUserDto(user, roles),
+                ExpiresAt = _tokenService.GetAccessTokenExpiry()
+            };
         }
 
-        [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        private static UserDto ToUserDto(User user, IList<string> roles)
         {
-            try
+            return new UserDto
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var user = await _userManager.FindByEmailAsync(request.Email);
-                if (user == null)
-                {
-                    // Don't reveal if user exists for security
-                    return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
-                }
-
-                // Generate the token so the Identity flow remains valid, but do not expose it.
-                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                _ = token;
-
-                _logger.LogInformation("Password reset token generated for {Email}. Email delivery is not configured in Phase 0.", request.Email);
-
-                return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generating forgot password token");
-                return StatusCode(500, new { message = "An error occurred while processing forgot password request" });
-            }
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email ?? string.Empty,
+                Phone = user.Phone,
+                Address = user.Address,
+                AvatarUrl = user.AvatarUrl,
+                EmailConfirmed = user.EmailConfirmed,
+                Role = roles.FirstOrDefault() ?? AppRoles.Customer,
+                Roles = roles.ToList()
+            };
         }
 
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        private async Task SendConfirmationEmailAsync(User user, CancellationToken cancellationToken)
         {
-            try
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationUrl = BuildFrontendUrl("/verify-email", new Dictionary<string, string?>
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
+                ["userId"] = user.Id,
+                ["token"] = Uri.EscapeDataString(token),
+                ["email"] = user.Email
+            });
 
-                var user = await _userManager.FindByEmailAsync(request.Email);
-                if (user == null)
-                {
-                    return BadRequest(new { message = "Invalid email or token" });
-                }
-
-                var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
-
-                if (!result.Succeeded)
-                {
-                    return BadRequest(new { message = "Password reset failed", errors = result.Errors });
-                }
-
-                return Ok(new { message = "Password reset successfully. Please login with your new password." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error resetting password");
-                return StatusCode(500, new { message = "An error occurred while resetting password" });
-            }
+            await _emailService.SendEmailConfirmationAsync(user, confirmationUrl, cancellationToken);
         }
 
-        private DateTime GetAccessTokenExpiry()
+        private string BuildFrontendUrl(string path, IDictionary<string, string?> query)
         {
-            var accessTokenMinutes = Convert.ToDouble(_configuration["Jwt:AccessTokenMinutes"] ?? "1440");
-            return DateTime.UtcNow.AddMinutes(accessTokenMinutes);
+            var baseUrl = (_configuration["Authentication:FrontendBaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
+            var queryString = string.Join("&", query
+                .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value))
+                .Select(kvp => $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value!)}"));
+
+            return $"{baseUrl}/#{path}?{queryString}";
+        }
+
+        private void SetRefreshCookie(string rawToken, DateTime expiresAt)
+        {
+            Response.Cookies.Append(GetRefreshCookieName(), rawToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = !HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment(),
+                SameSite = SameSiteMode.Lax,
+                Path = "/api/v1/auth",
+                Expires = expiresAt
+            });
+        }
+
+        private void ClearRefreshCookie()
+        {
+            Response.Cookies.Delete(GetRefreshCookieName(), new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = !HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment(),
+                SameSite = SameSiteMode.Lax,
+                Path = "/api/v1/auth"
+            });
+        }
+
+        private string GetRefreshCookieName()
+        {
+            return _configuration["Authentication:RefreshCookieName"] ?? "amaara_refresh";
         }
     }
 }
-

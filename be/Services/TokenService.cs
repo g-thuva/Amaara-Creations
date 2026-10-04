@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using be.Models;
 using Microsoft.IdentityModel.Tokens;
@@ -36,25 +35,27 @@ namespace be.Services
 
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var accessTokenMinutes = Convert.ToDouble(_configuration["Jwt:AccessTokenMinutes"] ?? "1440");
+            var expiresAt = GetAccessTokenExpiry();
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(accessTokenMinutes),
+                expires: expiresAt,
                 signingCredentials: credentials
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public string GenerateRefreshToken()
+        public DateTime GetAccessTokenExpiry()
         {
-            var randomNumber = new byte[32];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(randomNumber);
-            return Convert.ToBase64String(randomNumber);
+            var accessTokenMinutes = Convert.ToDouble(
+                _configuration["Authentication:AccessTokenMinutes"] ??
+                _configuration["Jwt:AccessTokenMinutes"] ??
+                "15");
+
+            return DateTime.UtcNow.AddMinutes(accessTokenMinutes);
         }
     }
 }
