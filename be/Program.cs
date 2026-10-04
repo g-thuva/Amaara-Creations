@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using be.Data;
+using be.Infrastructure;
 using be.Models;
 using be.Services;
 
@@ -115,8 +117,19 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials()
-              .WithExposedHeaders("Location");
+              .WithExposedHeaders("Location", CorrelationIdMiddleware.HeaderName);
     });
+});
+
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        if (context.HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var correlationId))
+        {
+            context.ProblemDetails.Extensions["correlationId"] = correlationId;
+        }
+    };
 });
 
 builder.Services.AddControllers()
@@ -125,6 +138,27 @@ builder.Services.AddControllers()
         // Use camelCase for JSON property names
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var problemDetails = new ValidationProblemDetails(context.ModelState)
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Validation failed",
+            Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+            Instance = context.HttpContext.Request.Path
+        };
+
+        if (context.HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var correlationId))
+        {
+            problemDetails.Extensions["correlationId"] = correlationId;
+        }
+
+        return new BadRequestObjectResult(problemDetails);
+    };
+});
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -165,6 +199,9 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -173,6 +210,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads"));
 
@@ -187,6 +226,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new
+{
+    status = "ok",
+    environment = app.Environment.EnvironmentName,
+    timestamp = DateTimeOffset.UtcNow
+}));
+
+app.MapGet("/api/v1/health", () => Results.Ok(new
 {
     status = "ok",
     environment = app.Environment.EnvironmentName,

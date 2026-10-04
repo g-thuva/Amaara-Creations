@@ -11,8 +11,20 @@ namespace be.Models
         [Required]
         public int OrderId { get; set; }
 
+        public OrderItemType ItemType { get; set; } = OrderItemType.Product;
+
+        public int? ProductId { get; set; }
+
+        public int? ProductVariantId { get; set; }
+
+        public int? CustomDesignId { get; set; }
+
         [Required]
-        public int ProductId { get; set; }
+        [StringLength(200)]
+        public string ProductNameSnapshot { get; set; } = string.Empty;
+
+        [StringLength(64)]
+        public string? SkuSnapshot { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
@@ -24,7 +36,16 @@ namespace be.Models
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
+        public decimal UnitPrice { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal Subtotal { get; set; } // Price * Quantity
+
+        public string? ConfigurationSnapshotJson { get; set; }
+
+        [StringLength(500)]
+        public string? ImageSnapshot { get; set; }
 
         // Navigation properties
         [ForeignKey("OrderId")]
@@ -32,6 +53,12 @@ namespace be.Models
 
         [ForeignKey("ProductId")]
         public Product? Product { get; set; }
+
+        [ForeignKey("ProductVariantId")]
+        public ProductVariant? ProductVariant { get; set; }
+
+        [ForeignKey("CustomDesignId")]
+        public CustomDesign? CustomDesign { get; set; }
     }
 }
 

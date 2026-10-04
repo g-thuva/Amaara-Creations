@@ -10,6 +10,7 @@ namespace be.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [Authorize] // All wishlist endpoints require authentication
     public class WishlistController : ControllerBase
     {

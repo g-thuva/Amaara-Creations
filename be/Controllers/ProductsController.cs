@@ -5,11 +5,13 @@ using be.Data;
 using be.DTOs.Product;
 using be.Models;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace be.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     public class ProductsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -59,12 +61,18 @@ namespace be.Controllers
                     {
                         Id = p.Id,
                         Name = p.Name,
+                        Slug = p.Slug,
                         Price = p.Price,
+                        BasePrice = p.BasePrice,
                         Description = p.Description,
+                        ShortDescription = p.ShortDescription,
                         ImageUrl = p.ImageUrl,
                         Category = p.Category,
+                        CategoryId = p.CategoryId,
+                        BaseSku = p.BaseSku,
                         Stock = p.Stock,
                         IsActive = p.IsActive,
+                        IsFeatured = p.IsFeatured,
                         CreatedAt = p.CreatedAt,
                         UpdatedAt = p.UpdatedAt
                     })
@@ -100,12 +108,18 @@ namespace be.Controllers
                     {
                         Id = p.Id,
                         Name = p.Name,
+                        Slug = p.Slug,
                         Price = p.Price,
+                        BasePrice = p.BasePrice,
                         Description = p.Description,
+                        ShortDescription = p.ShortDescription,
                         ImageUrl = p.ImageUrl,
                         Category = p.Category,
+                        CategoryId = p.CategoryId,
+                        BaseSku = p.BaseSku,
                         Stock = p.Stock,
                         IsActive = p.IsActive,
+                        IsFeatured = p.IsFeatured,
                         CreatedAt = p.CreatedAt,
                         UpdatedAt = p.UpdatedAt
                     })
@@ -140,12 +154,18 @@ namespace be.Controllers
                 var product = new Product
                 {
                     Name = request.Name,
+                    Slug = await GenerateUniqueSlugAsync(request.Slug ?? request.Name),
                     Price = request.Price,
+                    BasePrice = request.BasePrice ?? request.Price,
                     Description = request.Description,
+                    ShortDescription = request.ShortDescription,
                     ImageUrl = request.ImageUrl,
                     Category = request.Category,
+                    CategoryId = request.CategoryId,
+                    BaseSku = request.BaseSku,
                     Stock = request.Stock,
                     IsActive = true,
+                    IsFeatured = request.IsFeatured,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -157,12 +177,18 @@ namespace be.Controllers
                 {
                     Id = product.Id,
                     Name = product.Name,
+                    Slug = product.Slug,
                     Price = product.Price,
+                    BasePrice = product.BasePrice,
                     Description = product.Description,
+                    ShortDescription = product.ShortDescription,
                     ImageUrl = product.ImageUrl,
                     Category = product.Category,
+                    CategoryId = product.CategoryId,
+                    BaseSku = product.BaseSku,
                     Stock = product.Stock,
                     IsActive = product.IsActive,
+                    IsFeatured = product.IsFeatured,
                     CreatedAt = product.CreatedAt,
                     UpdatedAt = product.UpdatedAt
                 };
@@ -196,14 +222,29 @@ namespace be.Controllers
 
                 // Update only provided fields
                 if (request.Name != null) product.Name = request.Name;
+                if (request.Slug != null) product.Slug = await GenerateUniqueSlugAsync(request.Slug, product.Id);
+                else if (string.IsNullOrWhiteSpace(product.Slug) && request.Name != null) product.Slug = await GenerateUniqueSlugAsync(request.Name, product.Id);
                 if (request.Price.HasValue) product.Price = request.Price.Value;
+                if (request.BasePrice.HasValue) product.BasePrice = request.BasePrice.Value;
                 if (request.Description != null) product.Description = request.Description;
+                if (request.ShortDescription != null) product.ShortDescription = request.ShortDescription;
                 if (request.ImageUrl != null) product.ImageUrl = request.ImageUrl;
                 if (request.Category != null) product.Category = request.Category;
+                if (request.CategoryId.HasValue) product.CategoryId = request.CategoryId.Value;
+                if (request.BaseSku != null) product.BaseSku = request.BaseSku;
                 if (request.Stock.HasValue) product.Stock = request.Stock.Value;
                 if (request.IsActive.HasValue) product.IsActive = request.IsActive.Value;
+                if (request.IsFeatured.HasValue) product.IsFeatured = request.IsFeatured.Value;
 
                 product.UpdatedAt = DateTime.UtcNow;
+                if (product.BasePrice <= 0)
+                {
+                    product.BasePrice = product.Price;
+                }
+                if (string.IsNullOrWhiteSpace(product.Slug))
+                {
+                    product.Slug = await GenerateUniqueSlugAsync(product.Name, product.Id);
+                }
 
                 await _context.SaveChangesAsync();
 
@@ -211,12 +252,18 @@ namespace be.Controllers
                 {
                     Id = product.Id,
                     Name = product.Name,
+                    Slug = product.Slug,
                     Price = product.Price,
+                    BasePrice = product.BasePrice,
                     Description = product.Description,
+                    ShortDescription = product.ShortDescription,
                     ImageUrl = product.ImageUrl,
                     Category = product.Category,
+                    CategoryId = product.CategoryId,
+                    BaseSku = product.BaseSku,
                     Stock = product.Stock,
                     IsActive = product.IsActive,
+                    IsFeatured = product.IsFeatured,
                     CreatedAt = product.CreatedAt,
                     UpdatedAt = product.UpdatedAt
                 };
@@ -256,6 +303,24 @@ namespace be.Controllers
                 _logger.LogError(ex, "Error deleting product {ProductId}", id);
                 return StatusCode(500, new { message = "An error occurred while deleting the product" });
             }
+        }
+
+        private async Task<string> GenerateUniqueSlugAsync(string value, int? existingProductId = null)
+        {
+            var slug = Regex.Replace(value.Trim().ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+            if (string.IsNullOrWhiteSpace(slug))
+            {
+                slug = $"product-{Guid.NewGuid():N}"[..20];
+            }
+
+            var candidate = slug;
+            var suffix = 2;
+            while (await _context.Products.AnyAsync(p => p.Slug == candidate && (!existingProductId.HasValue || p.Id != existingProductId.Value)))
+            {
+                candidate = $"{slug}-{suffix++}";
+            }
+
+            return candidate;
         }
     }
 }

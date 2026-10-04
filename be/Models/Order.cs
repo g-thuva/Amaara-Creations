@@ -58,6 +58,12 @@ namespace be.Models
         public User? User { get; set; }
 
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+
+        public ICollection<OrderStatusHistory> StatusHistory { get; set; } = new List<OrderStatusHistory>();
+
+        public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+        public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
     }
 }
 

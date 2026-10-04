@@ -4,6 +4,9 @@ namespace be.DTOs.Order
     {
         public int Id { get; set; }
         public int ProductId { get; set; }
+        public int? ProductVariantId { get; set; }
+        public int? CustomDesignId { get; set; }
+        public string ItemType { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string ProductImageUrl { get; set; } = string.Empty;
         public int Quantity { get; set; }

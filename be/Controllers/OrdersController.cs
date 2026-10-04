@@ -10,6 +10,7 @@ namespace be.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [Authorize] // All order endpoints require authentication
     public class OrdersController : ControllerBase
     {
@@ -58,9 +59,12 @@ namespace be.Controllers
                         OrderItems = o.OrderItems.Select(oi => new OrderItemResponse
                         {
                             Id = oi.Id,
-                            ProductId = oi.ProductId,
-                            ProductName = oi.Product!.Name,
-                            ProductImageUrl = oi.Product.ImageUrl,
+                            ProductId = oi.ProductId ?? 0,
+                            ProductVariantId = oi.ProductVariantId,
+                            CustomDesignId = oi.CustomDesignId,
+                            ItemType = oi.ItemType.ToString(),
+                            ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
+                            ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                             Quantity = oi.Quantity,
                             Price = oi.Price,
                             Subtotal = oi.Subtotal
@@ -125,9 +129,12 @@ namespace be.Controllers
                         OrderItems = o.OrderItems.Select(oi => new OrderItemResponse
                         {
                             Id = oi.Id,
-                            ProductId = oi.ProductId,
-                            ProductName = oi.Product!.Name,
-                            ProductImageUrl = oi.Product.ImageUrl,
+                            ProductId = oi.ProductId ?? 0,
+                            ProductVariantId = oi.ProductVariantId,
+                            CustomDesignId = oi.CustomDesignId,
+                            ItemType = oi.ItemType.ToString(),
+                            ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
+                            ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                             Quantity = oi.Quantity,
                             Price = oi.Price,
                             Subtotal = oi.Subtotal
@@ -205,8 +212,13 @@ namespace be.Controllers
                     orderItems.Add(new OrderItem
                     {
                         ProductId = product.Id,
+                        ItemType = OrderItemType.Product,
+                        ProductNameSnapshot = product.Name,
+                        SkuSnapshot = product.BaseSku,
+                        ImageSnapshot = product.ImageUrl,
                         Quantity = cartItem.Quantity,
                         Price = product.Price, // Store price at time of order
+                        UnitPrice = product.Price,
                         Subtotal = subtotal
                     });
 
@@ -277,9 +289,12 @@ namespace be.Controllers
                     OrderItems = order.OrderItems.Select(oi => new OrderItemResponse
                     {
                         Id = oi.Id,
-                        ProductId = oi.ProductId,
-                        ProductName = oi.Product!.Name,
-                        ProductImageUrl = oi.Product.ImageUrl,
+                        ProductId = oi.ProductId ?? 0,
+                        ProductVariantId = oi.ProductVariantId,
+                        CustomDesignId = oi.CustomDesignId,
+                        ItemType = oi.ItemType.ToString(),
+                        ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
+                        ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                         Quantity = oi.Quantity,
                         Price = oi.Price,
                         Subtotal = oi.Subtotal
@@ -326,12 +341,19 @@ namespace be.Controllers
                     return BadRequest(new { message = "Invalid status. Must be one of: Pending, Processing, Shipped, Delivered, Cancelled" });
                 }
 
+                var previousStatus = order.Status;
+
                 // If cancelling order, restore stock
                 if (newStatus == OrderStatus.Cancelled && order.Status != OrderStatus.Cancelled)
                 {
                     foreach (var orderItem in order.OrderItems)
                     {
-                        var product = await _context.Products.FindAsync(orderItem.ProductId);
+                        if (!orderItem.ProductId.HasValue)
+                        {
+                            continue;
+                        }
+
+                        var product = await _context.Products.FindAsync(orderItem.ProductId.Value);
                         if (product != null)
                         {
                             product.Stock += orderItem.Quantity;
@@ -344,7 +366,12 @@ namespace be.Controllers
                 {
                     foreach (var orderItem in order.OrderItems)
                     {
-                        var product = await _context.Products.FindAsync(orderItem.ProductId);
+                        if (!orderItem.ProductId.HasValue)
+                        {
+                            continue;
+                        }
+
+                        var product = await _context.Products.FindAsync(orderItem.ProductId.Value);
                         if (product != null && product.Stock < orderItem.Quantity)
                         {
                             return BadRequest(new { message = $"Cannot change status. Insufficient stock for {product.Name}" });
@@ -359,6 +386,15 @@ namespace be.Controllers
 
                 order.Status = newStatus;
                 order.UpdatedAt = DateTime.UtcNow;
+                _context.OrderStatusHistories.Add(new OrderStatusHistory
+                {
+                    OrderId = order.Id,
+                    PreviousStatus = previousStatus.ToString(),
+                    NewStatus = newStatus.ToString(),
+                    ChangedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                    Reason = request.Reason,
+                    CreatedAt = DateTime.UtcNow
+                });
 
                 await _context.SaveChangesAsync();
 
@@ -380,9 +416,12 @@ namespace be.Controllers
                     OrderItems = order.OrderItems.Select(oi => new OrderItemResponse
                     {
                         Id = oi.Id,
-                        ProductId = oi.ProductId,
-                        ProductName = oi.Product!.Name,
-                        ProductImageUrl = oi.Product.ImageUrl,
+                        ProductId = oi.ProductId ?? 0,
+                        ProductVariantId = oi.ProductVariantId,
+                        CustomDesignId = oi.CustomDesignId,
+                        ItemType = oi.ItemType.ToString(),
+                        ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
+                        ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                         Quantity = oi.Quantity,
                         Price = oi.Price,
                         Subtotal = oi.Subtotal
@@ -461,9 +500,12 @@ namespace be.Controllers
                         OrderItems = o.OrderItems.Select(oi => new OrderItemResponse
                         {
                             Id = oi.Id,
-                            ProductId = oi.ProductId,
-                            ProductName = oi.Product!.Name,
-                            ProductImageUrl = oi.Product.ImageUrl,
+                            ProductId = oi.ProductId ?? 0,
+                            ProductVariantId = oi.ProductVariantId,
+                            CustomDesignId = oi.CustomDesignId,
+                            ItemType = oi.ItemType.ToString(),
+                            ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
+                            ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                             Quantity = oi.Quantity,
                             Price = oi.Price,
                             Subtotal = oi.Subtotal
@@ -519,9 +561,12 @@ namespace be.Controllers
                         OrderItems = o.OrderItems.Select(oi => new OrderItemResponse
                         {
                             Id = oi.Id,
-                            ProductId = oi.ProductId,
-                            ProductName = oi.Product!.Name,
-                            ProductImageUrl = oi.Product.ImageUrl,
+                            ProductId = oi.ProductId ?? 0,
+                            ProductVariantId = oi.ProductVariantId,
+                            CustomDesignId = oi.CustomDesignId,
+                            ItemType = oi.ItemType.ToString(),
+                            ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
+                            ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                             Quantity = oi.Quantity,
                             Price = oi.Price,
                             Subtotal = oi.Subtotal

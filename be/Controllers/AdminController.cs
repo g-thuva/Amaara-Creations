@@ -11,6 +11,7 @@ namespace be.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [Authorize(Roles = "Admin")] // All admin endpoints require Admin role
     public class AdminController : ControllerBase
     {
@@ -309,7 +310,12 @@ namespace be.Controllers
                 var topSellingProducts = await _context.OrderItems
                     .Include(oi => oi.Product)
                     .Where(oi => oi.Order!.Status != OrderStatus.Cancelled)
-                    .GroupBy(oi => new { oi.ProductId, oi.Product!.Name, oi.Product.ImageUrl })
+                    .GroupBy(oi => new
+                    {
+                        ProductId = oi.ProductId ?? 0,
+                        Name = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
+                        ImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty)
+                    })
                     .Select(g => new TopSellingProduct
                     {
                         ProductId = g.Key.ProductId,

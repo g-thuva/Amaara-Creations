@@ -11,6 +11,7 @@ namespace be.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [Authorize] // All user endpoints require authentication
     public class UsersController : ControllerBase
     {

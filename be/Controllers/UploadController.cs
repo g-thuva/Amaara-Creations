@@ -6,6 +6,7 @@ namespace be.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     public class UploadController : ControllerBase
     {
         private readonly ILogger<UploadController> _logger;

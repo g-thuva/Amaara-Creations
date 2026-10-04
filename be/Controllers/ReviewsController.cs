@@ -10,6 +10,7 @@ namespace be.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     public class ReviewsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

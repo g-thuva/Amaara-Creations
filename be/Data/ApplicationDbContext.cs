@@ -5,7 +5,7 @@ using be.Models;
 
 namespace be.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<User>
+    public partial class ApplicationDbContext : IdentityDbContext<User>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -19,6 +19,22 @@ namespace be.Data
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<WishlistItem> WishlistItems { get; set; }
         public DbSet<Review> Reviews { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Collection> Collections { get; set; }
+        public DbSet<ProductCollection> ProductCollections { get; set; }
+        public DbSet<ProductVariant> ProductVariants { get; set; }
+        public DbSet<ProductMedia> ProductMedia { get; set; }
+        public DbSet<Address> Addresses { get; set; }
+        public DbSet<CustomDesign> CustomDesigns { get; set; }
+        public DbSet<CustomDesignAsset> CustomDesignAssets { get; set; }
+        public DbSet<RefreshSession> RefreshSessions { get; set; }
+        public DbSet<OrderStatusHistory> OrderStatusHistories { get; set; }
+        public DbSet<Payment> Payments { get; set; }
+        public DbSet<ShippingZone> ShippingZones { get; set; }
+        public DbSet<ShippingMethod> ShippingMethods { get; set; }
+        public DbSet<Shipment> Shipments { get; set; }
+        public DbSet<Promotion> Promotions { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -39,12 +55,20 @@ namespace be.Data
                 entity.ToTable("Products");
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Slug).IsRequired().HasMaxLength(220);
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.ShortDescription).HasMaxLength(300);
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
                 entity.Property(e => e.Category).HasMaxLength(50);
+                entity.Property(e => e.BaseSku).HasMaxLength(64);
                 entity.Property(e => e.Stock).HasDefaultValue(0);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.IsFeatured).HasDefaultValue(false);
+                entity.HasIndex(e => e.Slug).IsUnique().HasFilter("[Slug] <> ''");
+                entity.HasIndex(e => e.CategoryId);
+                entity.HasIndex(e => e.IsActive);
             });
 
             // Configure CartItem entity
@@ -109,7 +133,12 @@ namespace be.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Quantity).HasDefaultValue(1);
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.ItemType).HasConversion<int>();
+                entity.Property(e => e.ProductNameSnapshot).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.SkuSnapshot).HasMaxLength(64);
+                entity.Property(e => e.ImageSnapshot).HasMaxLength(500);
                 
                 // Foreign key relationships
                 entity.HasOne(e => e.Order)
@@ -125,6 +154,8 @@ namespace be.Data
                 // Index for faster queries
                 entity.HasIndex(e => e.OrderId);
                 entity.HasIndex(e => e.ProductId);
+                entity.HasIndex(e => e.ProductVariantId);
+                entity.HasIndex(e => e.CustomDesignId);
             });
 
             // Configure WishlistItem entity
@@ -175,7 +206,11 @@ namespace be.Data
                 entity.HasIndex(e => e.Rating);
                 entity.HasIndex(e => e.CreatedAt);
             });
+
+            ConfigurePhase1Foundation(modelBuilder);
         }
+
+        partial void ConfigurePhase1Foundation(ModelBuilder modelBuilder);
     }
 }
 
