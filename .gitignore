@@ -22,6 +22,10 @@ be/**/*.pdb
 be/**/*.dll
 be/**/*.exe
 
+# Tests
+tests/**/bin/
+tests/**/obj/
+
 # Frontend (Node/React)
 client/node_modules/
 client/dist/
