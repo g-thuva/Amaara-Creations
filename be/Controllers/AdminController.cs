@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using be.Data;
 using be.DTOs.Admin;
 using be.Models;
+using be.Security;
 using System.Security.Claims;
 
 namespace be.Controllers
@@ -12,7 +13,7 @@ namespace be.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Route("api/v1/[controller]")]
-    [Authorize(Roles = "Admin")] // All admin endpoints require Admin role
+    [Authorize(Policy = AppPolicies.AdminAccess)]
     public class AdminController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

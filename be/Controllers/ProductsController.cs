@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using be.Data;
 using be.DTOs.Product;
 using be.Models;
+using be.Security;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
@@ -141,7 +142,7 @@ namespace be.Controllers
 
         // POST: api/products (Admin only)
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageCatalog)]
         public async Task<ActionResult<ProductResponse>> CreateProduct([FromBody] CreateProductRequest request)
         {
             try
@@ -204,7 +205,7 @@ namespace be.Controllers
 
         // PUT: api/products/{id} (Admin only)
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageCatalog)]
         public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductRequest request)
         {
             try
@@ -279,7 +280,7 @@ namespace be.Controllers
 
         // DELETE: api/products/{id} (Admin only)
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageCatalog)]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             try

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using be.Data;
 using be.DTOs.Review;
 using be.Models;
+using be.Security;
 using System.Security.Claims;
 
 namespace be.Controllers
@@ -273,7 +274,7 @@ namespace be.Controllers
 
         // GET: api/admin/reviews - Get all reviews (Admin only)
         [HttpGet("/api/admin/reviews")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageReviews)]
         public async Task<ActionResult<List<ReviewResponse>>> GetAllReviews(
             [FromQuery] int? productId = null,
             [FromQuery] int? rating = null,
@@ -351,7 +352,7 @@ namespace be.Controllers
 
         // DELETE: api/admin/reviews/{id} - Delete review (Admin only)
         [HttpDelete("/api/admin/reviews/{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageReviews)]
         public async Task<IActionResult> DeleteReviewAdmin(int id)
         {
             try
@@ -378,7 +379,7 @@ namespace be.Controllers
 
         // GET: api/admin/reviews/stats - Get review statistics (Admin only)
         [HttpGet("/api/admin/reviews/stats")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageReviews)]
         public async Task<ActionResult<ReviewStatsResponse>> GetReviewStats()
         {
             try

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using be.Security;
 using System.Security.Claims;
 
 namespace be.Controllers
@@ -30,7 +31,7 @@ namespace be.Controllers
 
         // POST: api/upload/product-image - Upload product image
         [HttpPost("product-image")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageCatalog)]
         public async Task<ActionResult> UploadProductImage(IFormFile file)
         {
             try

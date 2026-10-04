@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using be.Data;
 using be.DTOs.Order;
 using be.Models;
+using be.Security;
 using System.Security.Claims;
 
 namespace be.Controllers
@@ -314,7 +315,7 @@ namespace be.Controllers
 
         // PUT: api/orders/{id}/status - Update order status (Admin only)
         [HttpPut("{id}/status")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageOrders)]
         public async Task<ActionResult<OrderResponse>> UpdateOrderStatus(int id, [FromBody] UpdateOrderStatusRequest request)
         {
             try
@@ -441,7 +442,7 @@ namespace be.Controllers
 
         // GET: api/orders/admin/all - Get all orders (Admin only)
         [HttpGet("admin/all")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageOrders)]
         public async Task<ActionResult<List<OrderResponse>>> GetAllOrders(
             [FromQuery] string? status = null,
             [FromQuery] string? search = null,
@@ -533,7 +534,7 @@ namespace be.Controllers
 
         // GET: api/orders/admin/{id} - Get order details (Admin only)
         [HttpGet("admin/{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.ManageOrders)]
         public async Task<ActionResult<OrderResponse>> GetAdminOrder(int id)
         {
             try
