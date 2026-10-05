@@ -6,8 +6,7 @@ using System.Security.Claims;
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/upload")]
     public class UploadController : ControllerBase
     {
         private readonly ILogger<UploadController> _logger;
@@ -29,71 +28,7 @@ namespace be.Controllers
             _maxFileSize = configuration.GetValue<long?>("Uploads:MaxFileSizeBytes") ?? 5 * 1024 * 1024;
         }
 
-        // POST: api/upload/product-image - Upload product image
-        [HttpPost("product-image")]
-        [Authorize(Policy = AppPolicies.ManageCatalog)]
-        public async Task<ActionResult> UploadProductImage(IFormFile file)
-        {
-            try
-            {
-                if (file == null || file.Length == 0)
-                {
-                    return BadRequest(new { message = "No file uploaded" });
-                }
-
-                // Validate file size
-                if (file.Length > _maxFileSize)
-                {
-                    return BadRequest(new { message = $"File size exceeds maximum allowed size of {_maxFileSize / 1024 / 1024}MB" });
-                }
-
-                var safeOriginalFileName = Path.GetFileName(file.FileName);
-                var extension = Path.GetExtension(safeOriginalFileName).ToLowerInvariant();
-                if (string.IsNullOrEmpty(extension) || !AllowedImageExtensions.Contains(extension))
-                {
-                    return BadRequest(new { message = $"Invalid file type. Allowed types: {string.Join(", ", AllowedImageExtensions)}" });
-                }
-
-                if (!AllowedImageContentTypes.Contains(file.ContentType.ToLowerInvariant()))
-                {
-                    return BadRequest(new { message = "Invalid image content type" });
-                }
-
-                // Create uploads directory if it doesn't exist
-                var uploadsDir = Path.Combine(_environment.ContentRootPath, "wwwroot", "uploads", "products");
-                if (!Directory.Exists(uploadsDir))
-                {
-                    Directory.CreateDirectory(uploadsDir);
-                }
-
-                // Generate unique filename
-                var fileName = $"{Guid.NewGuid()}{extension}";
-                var filePath = Path.Combine(uploadsDir, fileName);
-
-                // Save file
-                await using (var stream = new FileStream(filePath, FileMode.CreateNew))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                // Return file URL
-                var fileUrl = $"/uploads/products/{fileName}";
-
-                return Ok(new
-                {
-                    message = "Product image uploaded successfully",
-                    fileUrl = fileUrl,
-                    fileName = fileName
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error uploading product image");
-                return StatusCode(500, new { message = "An error occurred while uploading the image" });
-            }
-        }
-
-        // POST: api/upload/avatar - Upload user avatar
+        // POST: api/v1/upload/avatar - Upload user avatar
         [HttpPost("avatar")]
         [Authorize]
         public async Task<ActionResult> UploadAvatar(IFormFile file)

@@ -11,8 +11,7 @@ using System.Security.Claims;
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/admin")]
     [Authorize(Policy = AppPolicies.AdminAccess)]
     public class AdminController : ControllerBase
     {

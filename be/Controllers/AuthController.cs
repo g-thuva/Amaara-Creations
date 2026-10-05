@@ -11,8 +11,7 @@ using be.Services;
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/auth")]
     public class AuthController : ControllerBase
     {
         private const string GenericLoginMessage = "Invalid email or password.";
@@ -158,7 +157,6 @@ namespace be.Controllers
         }
 
         [HttpPost("refresh")]
-        [HttpPost("refresh-token")]
         [EnableRateLimiting("auth-sensitive")]
         public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
         {

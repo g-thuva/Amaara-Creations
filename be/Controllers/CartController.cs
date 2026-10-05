@@ -9,8 +9,7 @@ using System.Security.Claims;
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/cart")]
     [Authorize] // All cart endpoints require authentication
     public class CartController : ControllerBase
     {

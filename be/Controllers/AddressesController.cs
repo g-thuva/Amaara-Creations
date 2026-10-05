@@ -9,8 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/addresses")]
     [Authorize]
     public class AddressesController : ControllerBase
     {
@@ -154,7 +153,6 @@ namespace be.Controllers
             return Ok(new { message = "Address deleted." });
         }
 
-        [HttpPost("{id:int}/default")]
         [HttpPut("{id:int}/default")]
         public async Task<ActionResult<AddressResponse>> SetDefault(int id, CancellationToken cancellationToken)
         {

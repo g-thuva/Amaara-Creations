@@ -10,8 +10,7 @@ using System.Security.Claims;
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/orders")]
     [Authorize] // All order endpoints require authentication
     public class OrdersController : ControllerBase
     {
@@ -96,19 +95,12 @@ namespace be.Controllers
                     return Unauthorized(new { message = "User not found" });
                 }
 
-                var isAdmin = User.IsInRole("Admin");
-
                 var query = _context.Orders
                     .Include(o => o.OrderItems)
                         .ThenInclude(oi => oi.Product)
                     .Include(o => o.User)
+                    .Where(o => o.UserId == userId)
                     .AsQueryable();
-
-                // Non-admin users can only see their own orders
-                if (!isAdmin)
-                {
-                    query = query.Where(o => o.UserId == userId);
-                }
 
                 var order = await query
                     .Where(o => o.Id == id)
@@ -313,8 +305,8 @@ namespace be.Controllers
             }
         }
 
-        // PUT: api/orders/{id}/status - Update order status (Admin only)
-        [HttpPut("{id}/status")]
+        // PUT: api/v1/admin/orders/{id}/status - Update order status (Admin only)
+        [HttpPut("/api/v1/admin/orders/{id:int}/status")]
         [Authorize(Policy = AppPolicies.ManageOrders)]
         public async Task<ActionResult<OrderResponse>> UpdateOrderStatus(int id, [FromBody] UpdateOrderStatusRequest request)
         {
@@ -440,8 +432,8 @@ namespace be.Controllers
             }
         }
 
-        // GET: api/orders/admin/all - Get all orders (Admin only)
-        [HttpGet("admin/all")]
+        // GET: api/v1/admin/orders - Get all orders (Admin only)
+        [HttpGet("/api/v1/admin/orders")]
         [Authorize(Policy = AppPolicies.ManageOrders)]
         public async Task<ActionResult<List<OrderResponse>>> GetAllOrders(
             [FromQuery] string? status = null,
@@ -532,8 +524,8 @@ namespace be.Controllers
             }
         }
 
-        // GET: api/orders/admin/{id} - Get order details (Admin only)
-        [HttpGet("admin/{id}")]
+        // GET: api/v1/admin/orders/{id} - Get order details (Admin only)
+        [HttpGet("/api/v1/admin/orders/{id:int}")]
         [Authorize(Policy = AppPolicies.ManageOrders)]
         public async Task<ActionResult<OrderResponse>> GetAdminOrder(int id)
         {

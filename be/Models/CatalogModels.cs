@@ -136,6 +136,23 @@ namespace be.Models
         [StringLength(200)]
         public string? AltText { get; set; }
 
+        [StringLength(255)]
+        public string? OriginalFileName { get; set; }
+
+        [StringLength(120)]
+        public string? ContentType { get; set; }
+
+        public long FileSize { get; set; }
+
+        public int? Width { get; set; }
+
+        public int? Height { get; set; }
+
+        [StringLength(80)]
+        public string StorageProvider { get; set; } = "local";
+
+        public string? CreatedByUserId { get; set; }
+
         public int SortOrder { get; set; }
 
         public bool IsPrimary { get; set; }

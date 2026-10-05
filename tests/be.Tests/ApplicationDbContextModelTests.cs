@@ -25,6 +25,20 @@ namespace be.Tests
         }
 
         [Fact]
+        public void Phase3CatalogueCmsEntitiesAreMapped()
+        {
+            using var context = CreateContext();
+            var entityNames = context.Model.GetEntityTypes().Select(e => e.ClrType.Name).ToHashSet();
+
+            Assert.Contains(nameof(InventoryTransaction), entityNames);
+            Assert.Contains(nameof(CmsPage), entityNames);
+            Assert.Contains(nameof(CmsSection), entityNames);
+            Assert.Contains(nameof(SiteSetting), entityNames);
+            Assert.NotNull(context.Model.FindEntityType(typeof(ProductMedia))!.FindProperty(nameof(ProductMedia.StorageProvider)));
+            Assert.NotNull(context.Model.FindEntityType(typeof(ProductMedia))!.FindProperty(nameof(ProductMedia.OriginalFileName)));
+        }
+
+        [Fact]
         public void ProductVariantUsesRowVersionConcurrency()
         {
             using var context = CreateContext();

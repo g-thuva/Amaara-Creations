@@ -1,18 +1,12 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using be.Data;
 using be.DTOs.Product;
-using be.Models;
-using be.Security;
-using System.Security.Claims;
-using System.Text.RegularExpressions;
 
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/products")]
     public class ProductsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -24,17 +18,35 @@ namespace be.Controllers
             _logger = logger;
         }
 
-        // GET: api/products
+        // GET: api/v1/products
         [HttpGet]
         public async Task<ActionResult<ProductListResponse>> GetProducts(
             [FromQuery] string? category = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20)
+            [FromQuery] int pageSize = 20,
+            [FromQuery] int? categoryId = null,
+            [FromQuery] int? collectionId = null,
+            [FromQuery] decimal? minPrice = null,
+            [FromQuery] decimal? maxPrice = null,
+            [FromQuery] bool? inStock = null,
+            [FromQuery] bool? featured = null,
+            [FromQuery] string sort = "newest")
         {
             try
             {
-                var query = _context.Products.Where(p => p.IsActive);
+                if (pageNumber < 1 || pageSize < 1 || pageSize > 100 || pageNumber > 1000000 ||
+                    minPrice < 0 || maxPrice < 0 || (minPrice.HasValue && maxPrice.HasValue && minPrice > maxPrice))
+                    return BadRequest(new { message = "Invalid pagination or price range." });
+                if (!new[] { "newest", "price-asc", "price-desc", "name", "featured" }.Contains(sort))
+                    return BadRequest(new { message = "Unsupported sort order." });
+                var query = _context.Products.AsNoTracking().Where(p => p.IsActive);
+                if (categoryId.HasValue) query = query.Where(p => p.CategoryId == categoryId && p.CategoryEntity!.IsActive);
+                if (collectionId.HasValue) query = query.Where(p => p.ProductCollections.Any(c => c.CollectionId == collectionId && c.Collection!.IsActive));
+                if (minPrice.HasValue) query = query.Where(p => p.Price >= minPrice);
+                if (maxPrice.HasValue) query = query.Where(p => p.Price <= maxPrice);
+                if (inStock.HasValue) query = query.Where(p => (p.Stock > 0) == inStock);
+                if (featured.HasValue) query = query.Where(p => p.IsFeatured == featured);
 
                 // Filter by category
                 if (!string.IsNullOrEmpty(category))
@@ -54,8 +66,15 @@ namespace be.Controllers
                 var totalCount = await query.CountAsync();
 
                 // Apply pagination
-                var products = await query
-                    .OrderByDescending(p => p.CreatedAt)
+                var sorted = sort switch
+                {
+                    "price-asc" => query.OrderBy(p => p.Price),
+                    "price-desc" => query.OrderByDescending(p => p.Price),
+                    "name" => query.OrderBy(p => p.Name),
+                    "featured" => query.OrderByDescending(p => p.IsFeatured),
+                    _ => query.OrderByDescending(p => p.CreatedAt)
+                };
+                var products = await sorted.ThenBy(p => p.Id)
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
                     .Select(p => new ProductResponse
@@ -97,13 +116,14 @@ namespace be.Controllers
             }
         }
 
-        // GET: api/products/{id}
+        // GET: api/v1/products/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<ProductResponse>> GetProduct(int id)
         {
             try
             {
                 var product = await _context.Products
+                    .AsNoTracking()
                     .Where(p => p.Id == id && p.IsActive)
                     .Select(p => new ProductResponse
                     {
@@ -121,6 +141,10 @@ namespace be.Controllers
                         Stock = p.Stock,
                         IsActive = p.IsActive,
                         IsFeatured = p.IsFeatured,
+                        Media = p.Media.Where(m => m.MediaType == "image").OrderByDescending(m => m.IsPrimary).ThenBy(m => m.SortOrder).ThenBy(m => m.Id)
+                            .Select(m => new StorefrontMediaResponse { Id = m.Id, Url = m.Url ?? m.StorageKey, AltText = m.AltText, Width = m.Width, Height = m.Height, IsPrimary = m.IsPrimary }).ToList(),
+                        Variants = p.Variants.Where(v => v.IsActive).OrderBy(v => v.Name).ThenBy(v => v.Id)
+                            .Select(v => new StorefrontVariantResponse { Id = v.Id, Name = v.Name, PriceOverride = v.PriceOverride, StockQuantity = v.StockQuantity }).ToList(),
                         CreatedAt = p.CreatedAt,
                         UpdatedAt = p.UpdatedAt
                     })
@@ -138,190 +162,6 @@ namespace be.Controllers
                 _logger.LogError(ex, "Error getting product {ProductId}", id);
                 return StatusCode(500, new { message = "An error occurred while retrieving the product" });
             }
-        }
-
-        // POST: api/products (Admin only)
-        [HttpPost]
-        [Authorize(Policy = AppPolicies.ManageCatalog)]
-        public async Task<ActionResult<ProductResponse>> CreateProduct([FromBody] CreateProductRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var product = new Product
-                {
-                    Name = request.Name,
-                    Slug = await GenerateUniqueSlugAsync(request.Slug ?? request.Name),
-                    Price = request.Price,
-                    BasePrice = request.BasePrice ?? request.Price,
-                    Description = request.Description,
-                    ShortDescription = request.ShortDescription,
-                    ImageUrl = request.ImageUrl,
-                    Category = request.Category,
-                    CategoryId = request.CategoryId,
-                    BaseSku = request.BaseSku,
-                    Stock = request.Stock,
-                    IsActive = true,
-                    IsFeatured = request.IsFeatured,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                _context.Products.Add(product);
-                await _context.SaveChangesAsync();
-
-                var response = new ProductResponse
-                {
-                    Id = product.Id,
-                    Name = product.Name,
-                    Slug = product.Slug,
-                    Price = product.Price,
-                    BasePrice = product.BasePrice,
-                    Description = product.Description,
-                    ShortDescription = product.ShortDescription,
-                    ImageUrl = product.ImageUrl,
-                    Category = product.Category,
-                    CategoryId = product.CategoryId,
-                    BaseSku = product.BaseSku,
-                    Stock = product.Stock,
-                    IsActive = product.IsActive,
-                    IsFeatured = product.IsFeatured,
-                    CreatedAt = product.CreatedAt,
-                    UpdatedAt = product.UpdatedAt
-                };
-
-                return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating product");
-                return StatusCode(500, new { message = "An error occurred while creating the product" });
-            }
-        }
-
-        // PUT: api/products/{id} (Admin only)
-        [HttpPut("{id}")]
-        [Authorize(Policy = AppPolicies.ManageCatalog)]
-        public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var product = await _context.Products.FindAsync(id);
-                if (product == null)
-                {
-                    return NotFound(new { message = "Product not found" });
-                }
-
-                // Update only provided fields
-                if (request.Name != null) product.Name = request.Name;
-                if (request.Slug != null) product.Slug = await GenerateUniqueSlugAsync(request.Slug, product.Id);
-                else if (string.IsNullOrWhiteSpace(product.Slug) && request.Name != null) product.Slug = await GenerateUniqueSlugAsync(request.Name, product.Id);
-                if (request.Price.HasValue) product.Price = request.Price.Value;
-                if (request.BasePrice.HasValue) product.BasePrice = request.BasePrice.Value;
-                if (request.Description != null) product.Description = request.Description;
-                if (request.ShortDescription != null) product.ShortDescription = request.ShortDescription;
-                if (request.ImageUrl != null) product.ImageUrl = request.ImageUrl;
-                if (request.Category != null) product.Category = request.Category;
-                if (request.CategoryId.HasValue) product.CategoryId = request.CategoryId.Value;
-                if (request.BaseSku != null) product.BaseSku = request.BaseSku;
-                if (request.Stock.HasValue) product.Stock = request.Stock.Value;
-                if (request.IsActive.HasValue) product.IsActive = request.IsActive.Value;
-                if (request.IsFeatured.HasValue) product.IsFeatured = request.IsFeatured.Value;
-
-                product.UpdatedAt = DateTime.UtcNow;
-                if (product.BasePrice <= 0)
-                {
-                    product.BasePrice = product.Price;
-                }
-                if (string.IsNullOrWhiteSpace(product.Slug))
-                {
-                    product.Slug = await GenerateUniqueSlugAsync(product.Name, product.Id);
-                }
-
-                await _context.SaveChangesAsync();
-
-                var response = new ProductResponse
-                {
-                    Id = product.Id,
-                    Name = product.Name,
-                    Slug = product.Slug,
-                    Price = product.Price,
-                    BasePrice = product.BasePrice,
-                    Description = product.Description,
-                    ShortDescription = product.ShortDescription,
-                    ImageUrl = product.ImageUrl,
-                    Category = product.Category,
-                    CategoryId = product.CategoryId,
-                    BaseSku = product.BaseSku,
-                    Stock = product.Stock,
-                    IsActive = product.IsActive,
-                    IsFeatured = product.IsFeatured,
-                    CreatedAt = product.CreatedAt,
-                    UpdatedAt = product.UpdatedAt
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating product {ProductId}", id);
-                return StatusCode(500, new { message = "An error occurred while updating the product" });
-            }
-        }
-
-        // DELETE: api/products/{id} (Admin only)
-        [HttpDelete("{id}")]
-        [Authorize(Policy = AppPolicies.ManageCatalog)]
-        public async Task<IActionResult> DeleteProduct(int id)
-        {
-            try
-            {
-                var product = await _context.Products.FindAsync(id);
-                if (product == null)
-                {
-                    return NotFound(new { message = "Product not found" });
-                }
-
-                // Soft delete (set IsActive to false) instead of hard delete
-                product.IsActive = false;
-                product.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Product deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting product {ProductId}", id);
-                return StatusCode(500, new { message = "An error occurred while deleting the product" });
-            }
-        }
-
-        private async Task<string> GenerateUniqueSlugAsync(string value, int? existingProductId = null)
-        {
-            var slug = Regex.Replace(value.Trim().ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
-            if (string.IsNullOrWhiteSpace(slug))
-            {
-                slug = $"product-{Guid.NewGuid():N}"[..20];
-            }
-
-            var candidate = slug;
-            var suffix = 2;
-            while (await _context.Products.AnyAsync(p => p.Slug == candidate && (!existingProductId.HasValue || p.Id != existingProductId.Value)))
-            {
-                candidate = $"{slug}-{suffix++}";
-            }
-
-            return candidate;
         }
     }
 }

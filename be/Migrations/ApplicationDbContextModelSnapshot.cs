@@ -372,6 +372,97 @@ namespace be.Migrations
                     b.ToTable("Categories", (string)null);
                 });
 
+            modelBuilder.Entity("be.Models.CmsPage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("nvarchar(180)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsPublished");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("CmsPages", (string)null);
+                });
+
+            modelBuilder.Entity("be.Models.CmsSection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CmsPageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SectionKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CmsPageId", "SectionKey")
+                        .IsUnique();
+
+                    b.HasIndex("CmsPageId", "SortOrder");
+
+                    b.ToTable("CmsSections", (string)null);
+                });
+
             modelBuilder.Entity("be.Models.Collection", b =>
                 {
                     b.Property<int>("Id")
@@ -522,6 +613,51 @@ namespace be.Migrations
                     b.HasIndex("CustomDesignId");
 
                     b.ToTable("CustomDesignAssets", (string)null);
+                });
+
+            modelBuilder.Entity("be.Models.InventoryTransaction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("NewQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PerformedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("PreviousQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProductVariantId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityDelta")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PerformedByUserId");
+
+                    b.HasIndex("ProductId", "CreatedAt");
+
+                    b.HasIndex("ProductVariantId", "CreatedAt");
+
+                    b.ToTable("InventoryTransactions", (string)null);
                 });
 
             modelBuilder.Entity("be.Models.Order", b =>
@@ -875,8 +1011,22 @@ namespace be.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("Height")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("bit");
@@ -885,6 +1035,10 @@ namespace be.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OriginalFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
@@ -897,11 +1051,25 @@ namespace be.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("StorageProvider")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)")
+                        .HasDefaultValue("local");
+
                     b.Property<string>("Url")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int?>("Width")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("ProductId", "IsPrimary");
 
@@ -1230,6 +1398,52 @@ namespace be.Migrations
                     b.ToTable("ShippingZones", (string)null);
                 });
 
+            modelBuilder.Entity("be.Models.SiteSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("ValueType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsPublic");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("SiteSettings", (string)null);
+                });
+
             modelBuilder.Entity("be.Models.User", b =>
                 {
                     b.Property<string>("Id")
@@ -1450,6 +1664,17 @@ namespace be.Migrations
                     b.Navigation("ParentCategory");
                 });
 
+            modelBuilder.Entity("be.Models.CmsSection", b =>
+                {
+                    b.HasOne("be.Models.CmsPage", "Page")
+                        .WithMany("Sections")
+                        .HasForeignKey("CmsPageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Page");
+                });
+
             modelBuilder.Entity("be.Models.CustomDesign", b =>
                 {
                     b.HasOne("be.Models.CustomDesignAsset", "PreviewMedia")
@@ -1476,6 +1701,30 @@ namespace be.Migrations
                         .IsRequired();
 
                     b.Navigation("CustomDesign");
+                });
+
+            modelBuilder.Entity("be.Models.InventoryTransaction", b =>
+                {
+                    b.HasOne("be.Models.User", "PerformedByUser")
+                        .WithMany()
+                        .HasForeignKey("PerformedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("be.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("be.Models.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PerformedByUser");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductVariant");
                 });
 
             modelBuilder.Entity("be.Models.Order", b =>
@@ -1579,6 +1828,11 @@ namespace be.Migrations
 
             modelBuilder.Entity("be.Models.ProductMedia", b =>
                 {
+                    b.HasOne("be.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("be.Models.Product", "Product")
                         .WithMany("Media")
                         .HasForeignKey("ProductId")
@@ -1681,6 +1935,11 @@ namespace be.Migrations
                     b.Navigation("ChildCategories");
 
                     b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("be.Models.CmsPage", b =>
+                {
+                    b.Navigation("Sections");
                 });
 
             modelBuilder.Entity("be.Models.Collection", b =>

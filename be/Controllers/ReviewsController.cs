@@ -10,8 +10,7 @@ using System.Security.Claims;
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/reviews")]
     public class ReviewsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -23,8 +22,8 @@ namespace be.Controllers
             _logger = logger;
         }
 
-        // GET: api/products/{productId}/reviews - Get product reviews
-        [HttpGet("/api/products/{productId}/reviews")]
+        // GET: api/v1/products/{productId}/reviews - Get product reviews
+        [HttpGet("/api/v1/products/{productId:int}/reviews")]
         public async Task<ActionResult<ProductReviewsResponse>> GetProductReviews(int productId)
         {
             try
@@ -87,8 +86,8 @@ namespace be.Controllers
             }
         }
 
-        // POST: api/products/{productId}/reviews - Add review (authenticated)
-        [HttpPost("/api/products/{productId}/reviews")]
+        // POST: api/v1/products/{productId}/reviews - Add review (authenticated)
+        [HttpPost("/api/v1/products/{productId:int}/reviews")]
         [Authorize]
         public async Task<ActionResult<ReviewResponse>> CreateReview(int productId, [FromBody] CreateReviewRequest request)
         {
@@ -166,8 +165,8 @@ namespace be.Controllers
             }
         }
 
-        // PUT: api/reviews/{id} - Update review (owner only)
-        [HttpPut("{id}")]
+        // PUT: api/v1/reviews/{id} - Update review (owner only)
+        [HttpPut("{id:int}")]
         [Authorize]
         public async Task<ActionResult<ReviewResponse>> UpdateReview(int id, [FromBody] UpdateReviewRequest request)
         {
@@ -231,8 +230,8 @@ namespace be.Controllers
             }
         }
 
-        // DELETE: api/reviews/{id} - Delete review (owner/admin)
-        [HttpDelete("{id}")]
+        // DELETE: api/v1/reviews/{id} - Delete review (owner/admin)
+        [HttpDelete("{id:int}")]
         [Authorize]
         public async Task<IActionResult> DeleteReview(int id)
         {
@@ -244,7 +243,7 @@ namespace be.Controllers
                     return Unauthorized(new { message = "User not found" });
                 }
 
-                var isAdmin = User.IsInRole("Admin");
+                var isAdmin = User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.SuperAdmin);
 
                 var review = await _context.Reviews
                     .FirstOrDefaultAsync(r => r.Id == id);
@@ -272,8 +271,8 @@ namespace be.Controllers
             }
         }
 
-        // GET: api/admin/reviews - Get all reviews (Admin only)
-        [HttpGet("/api/admin/reviews")]
+        // GET: api/v1/admin/reviews - Get all reviews (Admin only)
+        [HttpGet("/api/v1/admin/reviews")]
         [Authorize(Policy = AppPolicies.ManageReviews)]
         public async Task<ActionResult<List<ReviewResponse>>> GetAllReviews(
             [FromQuery] int? productId = null,
@@ -350,8 +349,8 @@ namespace be.Controllers
             }
         }
 
-        // DELETE: api/admin/reviews/{id} - Delete review (Admin only)
-        [HttpDelete("/api/admin/reviews/{id}")]
+        // DELETE: api/v1/admin/reviews/{id} - Delete review (Admin only)
+        [HttpDelete("/api/v1/admin/reviews/{id:int}")]
         [Authorize(Policy = AppPolicies.ManageReviews)]
         public async Task<IActionResult> DeleteReviewAdmin(int id)
         {
@@ -377,8 +376,8 @@ namespace be.Controllers
             }
         }
 
-        // GET: api/admin/reviews/stats - Get review statistics (Admin only)
-        [HttpGet("/api/admin/reviews/stats")]
+        // GET: api/v1/admin/reviews/stats - Get review statistics (Admin only)
+        [HttpGet("/api/v1/admin/reviews/stats")]
         [Authorize(Policy = AppPolicies.ManageReviews)]
         public async Task<ActionResult<ReviewStatsResponse>> GetReviewStats()
         {

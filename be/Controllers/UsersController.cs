@@ -10,8 +10,7 @@ using System.Security.Claims;
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/users")]
     [Authorize] // All user endpoints require authentication
     public class UsersController : ControllerBase
     {

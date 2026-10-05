@@ -82,12 +82,21 @@ namespace be.Data
                 entity.Property(e => e.Url).HasMaxLength(500);
                 entity.Property(e => e.MediaType).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.AltText).HasMaxLength(200);
+                entity.Property(e => e.OriginalFileName).HasMaxLength(255);
+                entity.Property(e => e.ContentType).HasMaxLength(120);
+                entity.Property(e => e.StorageProvider).IsRequired().HasMaxLength(80).HasDefaultValue("local");
+                entity.Property(e => e.CreatedByUserId).HasMaxLength(450);
                 entity.HasIndex(e => new { e.ProductId, e.IsPrimary });
                 entity.HasIndex(e => new { e.ProductId, e.SortOrder });
+                entity.HasIndex(e => e.CreatedAt);
                 entity.HasOne(e => e.Product)
                     .WithMany(e => e.Media)
                     .HasForeignKey(e => e.ProductId)
                     .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<Product>()
@@ -287,6 +296,65 @@ namespace be.Data
                     .WithMany()
                     .HasForeignKey(e => e.ActorUserId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<InventoryTransaction>(entity =>
+            {
+                entity.ToTable("InventoryTransactions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Reason).IsRequired().HasMaxLength(300);
+                entity.HasIndex(e => new { e.ProductId, e.CreatedAt });
+                entity.HasIndex(e => new { e.ProductVariantId, e.CreatedAt });
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.ProductVariant)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductVariantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.PerformedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.PerformedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<CmsPage>(entity =>
+            {
+                entity.ToTable("CmsPages");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(160);
+                entity.Property(e => e.Slug).IsRequired().HasMaxLength(180);
+                entity.Property(e => e.Summary).HasMaxLength(300);
+                entity.HasIndex(e => e.Slug).IsUnique();
+                entity.HasIndex(e => e.IsPublished);
+            });
+
+            modelBuilder.Entity<CmsSection>(entity =>
+            {
+                entity.ToTable("CmsSections");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.SectionKey).IsRequired().HasMaxLength(120);
+                entity.Property(e => e.ContentType).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.Content).IsRequired();
+                entity.HasIndex(e => new { e.CmsPageId, e.SectionKey }).IsUnique();
+                entity.HasIndex(e => new { e.CmsPageId, e.SortOrder });
+                entity.HasOne(e => e.Page)
+                    .WithMany(e => e.Sections)
+                    .HasForeignKey(e => e.CmsPageId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<SiteSetting>(entity =>
+            {
+                entity.ToTable("SiteSettings");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Key).IsRequired().HasMaxLength(120);
+                entity.Property(e => e.Value).IsRequired().HasMaxLength(4000);
+                entity.Property(e => e.ValueType).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.Description).HasMaxLength(300);
+                entity.HasIndex(e => e.Key).IsUnique();
+                entity.HasIndex(e => e.IsPublic);
             });
         }
     }

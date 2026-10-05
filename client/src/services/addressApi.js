@@ -22,7 +22,7 @@ export const addressApi = {
   },
 
   setDefault: async (id) => {
-    const response = await api.post(`/addresses/${id}/default`);
+    const response = await api.put(`/addresses/${id}/default`);
     return response.data;
   }
 };

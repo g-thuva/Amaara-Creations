@@ -9,8 +9,7 @@ using System.Security.Claims;
 namespace be.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/wishlist")]
     [Authorize] // All wishlist endpoints require authentication
     public class WishlistController : ControllerBase
     {

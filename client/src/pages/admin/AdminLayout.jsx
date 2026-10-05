@@ -16,6 +16,36 @@ const menuItems = [
     icon: "fa-solid fa-box",
     submenu: []
   },
+  {
+    title: "Categories",
+    path: "/admin/categories",
+    icon: "fa-solid fa-tags",
+    submenu: []
+  },
+  {
+    title: "Collections",
+    path: "/admin/collections",
+    icon: "fa-solid fa-layer-group",
+    submenu: []
+  },
+  {
+    title: "Media",
+    path: "/admin/media",
+    icon: "fa-solid fa-images",
+    submenu: []
+  },
+  {
+    title: "Content",
+    path: "/admin/content",
+    icon: "fa-solid fa-file-lines",
+    submenu: []
+  },
+  {
+    title: "Settings",
+    path: "/admin/settings",
+    icon: "fa-solid fa-gear",
+    submenu: []
+  },
   { 
     title: "Orders", 
     path: "/admin/orders", 

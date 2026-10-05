@@ -114,6 +114,8 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();
 builder.Services.AddScoped<IEmailService, DevelopmentEmailService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -254,13 +256,6 @@ app.MapGet("/health", () => Results.Ok(new
     timestamp = DateTimeOffset.UtcNow
 }));
 
-app.MapGet("/api/v1/health", () => Results.Ok(new
-{
-    status = "ok",
-    environment = app.Environment.EnvironmentName,
-    timestamp = DateTimeOffset.UtcNow
-}));
-
 app.MapControllers();
 
 // Seed roles on startup. In Development, allow the app to start so /health can
@@ -308,16 +303,20 @@ try
                 };
 
                 var result = await userManager.CreateAsync(adminUser, adminPassword);
-                if (result.Succeeded)
+                if (!result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(adminUser, AppRoles.SuperAdmin);
-                    logger.LogInformation("Configured bootstrap admin user created.");
+                    throw new InvalidOperationException(
+                        $"Configured bootstrap admin user could not be created: {string.Join(", ", result.Errors.Select(e => e.Code))}");
                 }
-                else
+
+                var roleResult = await userManager.AddToRoleAsync(adminUser, AppRoles.SuperAdmin);
+                if (!roleResult.Succeeded)
                 {
-                    logger.LogError("Failed to create configured bootstrap admin user. Errors: {Errors}",
-                        string.Join(", ", result.Errors.Select(e => e.Description)));
+                    throw new InvalidOperationException(
+                        $"Configured bootstrap admin role could not be assigned: {string.Join(", ", roleResult.Errors.Select(e => e.Code))}");
                 }
+
+                logger.LogInformation("Configured bootstrap admin user created.");
             }
             else
             {
@@ -325,7 +324,13 @@ try
                 var isInSuperAdminRole = await userManager.IsInRoleAsync(existingAdmin, AppRoles.SuperAdmin);
                 if (!isInAdminRole && !isInSuperAdminRole)
                 {
-                    await userManager.AddToRoleAsync(existingAdmin, AppRoles.SuperAdmin);
+                    var roleResult = await userManager.AddToRoleAsync(existingAdmin, AppRoles.SuperAdmin);
+                    if (!roleResult.Succeeded)
+                    {
+                        throw new InvalidOperationException(
+                            $"Configured bootstrap admin role could not be assigned: {string.Join(", ", roleResult.Errors.Select(e => e.Code))}");
+                    }
+
                     logger.LogInformation("Admin role added to configured bootstrap user.");
                 }
             }

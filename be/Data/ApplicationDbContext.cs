@@ -35,6 +35,10 @@ namespace be.Data
         public DbSet<Shipment> Shipments { get; set; }
         public DbSet<Promotion> Promotions { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
+        public DbSet<CmsPage> CmsPages { get; set; }
+        public DbSet<CmsSection> CmsSections { get; set; }
+        public DbSet<SiteSetting> SiteSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -17,8 +17,29 @@ namespace be.DTOs.Product
         public bool IsActive { get; set; }
         public bool IsFeatured { get; set; }
         public bool IsOutOfStock => Stock == 0;
+        public List<StorefrontMediaResponse> Media { get; set; } = new();
+        public List<StorefrontVariantResponse> Variants { get; set; } = new();
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+    }
+
+    // Public presentation fields only: no storage metadata, actor IDs or rowversions.
+    public class StorefrontMediaResponse
+    {
+        public int Id { get; set; }
+        public string Url { get; set; } = string.Empty;
+        public string? AltText { get; set; }
+        public int? Width { get; set; }
+        public int? Height { get; set; }
+        public bool IsPrimary { get; set; }
+    }
+
+    public class StorefrontVariantResponse
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal? PriceOverride { get; set; }
+        public int StockQuantity { get; set; }
     }
 }
 

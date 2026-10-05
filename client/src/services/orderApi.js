@@ -21,7 +21,7 @@ export const orderApi = {
 
   // Update order status (Admin only)
   updateOrderStatus: async (id, status) => {
-    const response = await api.put(`/orders/${id}/status`, { status });
+    const response = await api.put(`/admin/orders/${id}/status`, { status });
     return response.data;
   },
 
@@ -34,13 +34,13 @@ export const orderApi = {
     queryParams.append('pageNumber', pageNumber);
     queryParams.append('pageSize', pageSize);
 
-    const response = await api.get(`/orders/admin/all?${queryParams.toString()}`);
+    const response = await api.get(`/admin/orders?${queryParams.toString()}`);
     return response.data;
   },
 
   // Get order details (Admin only)
   getAdminOrderById: async (id) => {
-    const response = await api.get(`/orders/admin/${id}`);
+    const response = await api.get(`/admin/orders/${id}`);
     return response.data;
   },
 };
