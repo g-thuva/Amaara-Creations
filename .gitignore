@@ -32,6 +32,12 @@ client/dist/
 client/.vite/
 client/build/
 client/dist-ssr/
+client/test-results/
+client/playwright-report/
+client/*.tmp.mjs
+client/*.tmp.ps1
+client/.runtime/
+client/.phase4-qa-fixture.json
 client/*.local
 
 # Logs

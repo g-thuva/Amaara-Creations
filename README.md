@@ -21,7 +21,7 @@ npm run dev
 Frontend configuration:
 
 - `VITE_API_BASE_URL` defaults to `http://localhost:5192/api/v1`
-- Legacy `/api/*` routes remain available for compatibility while new local frontend installs use `/api/v1`
+- Application APIs use canonical `/api/v1/*` routes. Legacy unversioned `/api/*` aliases are not exposed.
 - `VITE_MEDIA_BASE_URL` defaults to `http://localhost:5192`
 
 Quality checks:
@@ -50,7 +50,7 @@ Development configuration is in `be/appsettings.Development.json`. Use user secr
 
 ```powershell
 cd be
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost\SQLEXPRESS01;Database=AmaaraCreationsDB;Trusted_Connection=true;TrustServerCertificate=true;"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=AmaaraCreationsDB;Trusted_Connection=true;Encrypt=false;TrustServerCertificate=true;"
 dotnet user-secrets set "Jwt:Key" "replace-with-a-local-32-character-minimum-secret"
 dotnet user-secrets set "AdminBootstrap:Enabled" "true"
 dotnet user-secrets set "AdminBootstrap:Email" "admin@example.test"
@@ -59,6 +59,8 @@ dotnet user-secrets set "AdminBootstrap:Password" "replace-with-a-strong-local-p
 
 `AdminBootstrap` is disabled by default and never falls back to a hard-coded password.
 
+`Encrypt=false` is a local-development compatibility setting for the verified default SQL Server instance. Production connection encryption must remain enabled and environment-managed.
+
 ## Implementation Notes
 
 See `docs/implementation/phase-00-stabilisation.md` for the Phase 0 stabilisation record, command results, current API/route inventory, security changes, and remaining manual infrastructure steps.
@@ -66,3 +68,25 @@ See `docs/implementation/phase-00-stabilisation.md` for the Phase 0 stabilisatio
 See `docs/implementation/phase-01-foundation.md` for the Phase 1 foundation/data-model implementation record and migration notes.
 
 See `docs/implementation/phase-02-authentication-accounts.md` for the Phase 2 authentication, account, refresh-session, and saved-address implementation record.
+
+See `docs/implementation/phase-03-catalog-media-cms.md` for the Phase 3 catalogue, media, CMS, settings, Swagger, admin UI, and migration record.
+
+See `docs/implementation/phase-04-storefront-ui-ux.md` for the Phase 4 storefront design system, customer routes, API integration, responsive/accessibility work, and verification record.
+
+See `docs/implementation/api-routing-v1-cleanup.md` for the canonical API v1 routing cleanup, removed legacy aliases, Swagger verification, and final endpoint list.
+
+## Swagger / OpenAPI
+
+Swagger is enabled in Development only.
+
+```powershell
+cd be
+dotnet run --urls http://localhost:5192
+```
+
+- Swagger UI: `http://localhost:5192/swagger`
+- Swagger direct page: `http://localhost:5192/swagger/index.html`
+- OpenAPI JSON: `http://localhost:5192/swagger/v1/swagger.json`
+- API base: `http://localhost:5192/api/v1`
+
+Use the Swagger **Authorize** button with a JWT access token from `POST /api/v1/auth/login`. Enter the raw token value; Swagger applies the Bearer scheme.
