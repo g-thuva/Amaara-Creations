@@ -1,4 +1,4 @@
-import api from './api';
+import api, { refreshSession } from './api';
 
 export const authApi = {
   register: async (userData) => {
@@ -21,7 +21,7 @@ export const authApi = {
   },
 
   refresh: async () => {
-    const response = await api.post('/auth/refresh');
+    const response = await refreshSession();
     return response.data;
   },
 

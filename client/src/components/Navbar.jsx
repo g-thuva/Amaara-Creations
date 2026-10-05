@@ -1,179 +1,31 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import "./Navbar.css";
-
-const Navbar = () => {
+﻿import { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useStore } from '../contexts/StoreContext';
+import { Button, Dialog, Icon } from './storefront/UI';
+export default function Navbar() {
+  const [open, setOpen] = useState(false);
+  const { isAuthenticated, authStatus, user, logout } = useAuth();
+  const { values, cart, wishlist } = useStore();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { isAuthenticated, user, logout } = useAuth();
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  const isAdmin = user?.role === "Admin";
-
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location]);
-
-  // Handle scroll effect
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const toggleDropdown = (e) => {
-    e.stopPropagation();
-    setShowDropdown(!showDropdown);
-  };
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-    if (showDropdown) setShowDropdown(false);
-  };
-
-  const handleLogout = async () => {
-    setShowDropdown(false);
-    await logout();
-    navigate("/login");
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const closeDropdown = (e) => {
-      if (showDropdown && !e.target.closest('.profile-menu')) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener('click', closeDropdown);
-    return () => document.removeEventListener('click', closeDropdown);
-  }, [showDropdown]);
-
-  return (
-    <>
-      {/* Mobile Menu Button */}
-      <button 
-        className={`mobile-menu-btn ${isMobileMenuOpen ? 'open' : ''}`} 
-        onClick={toggleMobileMenu}
-        aria-label="Toggle menu"
-      >
-        <i className={`fa-solid ${isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'}`} />
-      </button>
-
-      {/* Mobile Sidebar Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="mobile-overlay" 
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Main Navigation */}
-      <nav className={`navbar ${isScrolled ? 'scrolled' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-        <div className="navbar-container">
-          <Link to="/" className="navbar-logo">
-            Amaara Creations
-          </Link>
-
-          {/* Desktop Navigation */}
-          <ul className="desktop-nav">
-            <li className={location.pathname === '/' ? 'active' : ''}>
-              <Link to="/"><i className="fa-solid fa-house" /> Home</Link>
-            </li>
-            <li className={location.pathname === '/products' ? 'active' : ''}>
-              <Link to="/products"><i className="fa-solid fa-box" /> Products</Link>
-            </li>
-            <li className={location.pathname === '/custom' ? 'active' : ''}>
-              <Link to="/custom"><i className="fa-solid fa-screwdriver-wrench" /> Custom Builder</Link>
-            </li>
-            <li className={location.pathname === '/wishlist' ? 'active' : ''}>
-              <Link to="/wishlist"><i className="fa-solid fa-heart" /> Wishlist</Link>
-            </li>
-            <li className={location.pathname === '/cart' ? 'active' : ''}>
-              <Link to="/cart"><i className="fa-solid fa-cart-shopping" /> Cart</Link>
-            </li>
-          </ul>
-
-          {/* Mobile Navigation */}
-          <div className={`mobile-nav ${isMobileMenuOpen ? 'open' : ''}`}>
-            <ul>
-              <li className={location.pathname === '/' ? 'active' : ''}>
-                <Link to="/"><i className="fa-solid fa-house" /> Home</Link>
-              </li>
-              <li className={location.pathname === '/products' ? 'active' : ''}>
-                <Link to="/products"><i className="fa-solid fa-box" /> Products</Link>
-              </li>
-              <li className={location.pathname === '/custom' ? 'active' : ''}>
-                <Link to="/custom"><i className="fa-solid fa-screwdriver-wrench" /> Custom Builder</Link>
-              </li>
-              <li className={location.pathname === '/wishlist' ? 'active' : ''}>
-                <Link to="/wishlist"><i className="fa-solid fa-heart" /> Wishlist</Link>
-              </li>
-              <li className={location.pathname === '/cart' ? 'active' : ''}>
-                <Link to="/cart"><i className="fa-solid fa-cart-shopping" /> Cart</Link>
-              </li>
-              
-              {/* Auth Buttons */}
-              <div className="mobile-auth-buttons">
-                {!isAuthenticated ? (
-                  <>
-                    <Link to="/login" className="btn btn-outline">Login</Link>
-                    <Link to="/register" className="btn btn-primary">Register</Link>
-                  </>
-                ) : (
-                  <>
-                    <Link to="/profile" className="btn btn-outline">Profile</Link>
-                    {isAdmin && <Link to="/admin" className="btn btn-outline">Admin</Link>}
-                    <button onClick={handleLogout} className="btn btn-outline">Logout</button>
-                  </>
-                )}
-              </div>
-            </ul>
-          </div>
-
-          {/* Profile Menu */}
-          <div className="profile-menu">
-            <i
-              aria-hidden="true"
-              style={{ fontSize: 28 }}
-              className="fa-solid fa-circle-user profile-icon"
-              onClick={toggleDropdown}
-            />
-
-            {showDropdown && (
-              <div className="dropdown">
-                {!isAuthenticated ? (
-                  <>
-                    <Link to="/login" className="dropdown-item">Login</Link>
-                    <Link to="/register" className="dropdown-item">Register</Link>
-                  </>
-                ) : (
-                  <>
-                    <div className="dropdown-header">{user?.name || user?.email}</div>
-                    <Link to="/profile" className="dropdown-item">Profile</Link>
-                    <Link to="/orders" className="dropdown-item">My Orders</Link>
-                    {isAdmin && <Link to="/admin" className="dropdown-item">Admin Dashboard</Link>}
-                    <button onClick={handleLogout} className="dropdown-item">Logout</button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </nav>
-    </>
-  );
-};
-
-export default Navbar;
+  const links = [['/products', 'Shop all'], ['/custom', 'Custom stickers'], ['/about', 'Our story'], ['/contact', 'Contact']];
+  const signOut = async () => { setOpen(false); await logout(); navigate('/'); };
+  return <>
+    <a className="s-skip" href="#store-main" onClick={e => { e.preventDefault(); document.getElementById('store-main')?.focus(); }}>Skip to content</a>
+    {values['announcement.text'] && <div className="s-announcement">{values['announcement.text']}</div>}
+    <header className="s-header"><div className="s-container s-header-inner">
+      <Link to="/" className="s-brand" aria-label={`${values['site.name'] || 'Amaara Creations'} home`}><span className="s-brand-mark" aria-hidden="true">a<span>✳</span></span><span>{values['site.name'] || 'Amaara'}<small>{values['site.name'] ? '' : 'CREATIONS'}</small></span></Link>
+      <nav className="s-desktop-nav" aria-label="Main navigation">{links.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}</nav>
+      <div className="s-header-actions">
+        <Link to="/products" className="s-icon-link s-search-link" aria-label="Search products"><Icon name="search"/></Link>
+        <Link to="/wishlist" className="s-icon-link" aria-label={`Wishlist${wishlist.data ? `, ${wishlist.data.totalItems} items` : ''}`}><Icon name="heart"/>{wishlist.data?.totalItems > 0 && <span className="s-count">{wishlist.data.totalItems}</span>}</Link>
+        <Link to={isAuthenticated ? '/profile' : '/login'} className="s-icon-link s-account-link" aria-label={isAuthenticated ? 'My account' : 'Sign in'}><Icon name="user"/></Link>
+        <Link to="/cart" className="s-icon-link" aria-label={`Cart${cart.data ? `, ${cart.data.totalItems} items` : ''}`}><Icon name="bag"/>{cart.data?.totalItems > 0 && <span className="s-count">{cart.data.totalItems}</span>}</Link>
+        <button className="s-icon-link s-menu-button" onClick={() => setOpen(true)} aria-label="Open navigation" aria-expanded={open}><Icon name="menu"/></button>
+      </div>
+    </div></header>
+    <Dialog open={open} onClose={() => setOpen(false)} title="Explore Amaara" drawer><nav className="s-mobile-nav" aria-label="Mobile navigation">{links.map(([to, label]) => <NavLink key={to} to={to} onClick={() => setOpen(false)}>{label}<Icon name="arrow"/></NavLink>)}
+      {authStatus === 'loading' ? <p>Restoring session…</p> : isAuthenticated ? <><Link to="/profile" onClick={() => setOpen(false)}>My account</Link><Link to="/orders" onClick={() => setOpen(false)}>My orders</Link>{user?.roles?.some(role => ['Admin', 'SuperAdmin'].includes(role)) && <Link to="/admin" onClick={() => setOpen(false)}>Admin panel</Link>}<Button variant="secondary" onClick={signOut}>Sign out</Button></> : <><Link to="/login" onClick={() => setOpen(false)}>Sign in</Link><Link to="/register" onClick={() => setOpen(false)}>Create an account</Link></>}
+    </nav></Dialog>
+  </>;
+}

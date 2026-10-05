@@ -30,8 +30,8 @@ const Register = () => {
     }
 
     // Validate password length
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (form.password.length < 6 || !/[a-z]/.test(form.password) || !/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+      setError("Use at least 6 characters with uppercase, lowercase and a number.");
       return;
     }
     
@@ -77,15 +77,17 @@ const Register = () => {
           <p className="auth-subtitle">Join Amaara Creations today</p>
         </div>
         
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message" role="alert" id="form-error">{error}</div>}
         
-        <form className="auth-form" onSubmit={handleRegister}>
+        <form aria-describedby={error ? "form-error" : undefined} className="auth-form" onSubmit={handleRegister}>
           <div className="form-group">
             <label htmlFor="name" className="form-label">Full Name</label>
             <input
               id="name"
               type="text"
               name="name"
+              autoComplete="name"
+              maxLength="100"
               className="form-control"
               required
               value={form.name}
@@ -100,6 +102,8 @@ const Register = () => {
               id="email"
               type="email"
               name="email"
+              autoComplete="email"
+              maxLength="256"
               className="form-control"
               required
               value={form.email}
@@ -114,6 +118,8 @@ const Register = () => {
               id="password"
               type="password"
               name="password"
+              autoComplete="new-password"
+              aria-describedby="password-help"
               className="form-control"
               required
               minLength="6"
@@ -121,6 +127,7 @@ const Register = () => {
               onChange={handleChange}
               placeholder="Create a password (min 6 characters)"
             />
+            <p id="password-help" className="s-meta">At least 6 characters, including uppercase, lowercase and a number.</p>
           </div>
           
           <div className="form-group">
@@ -129,6 +136,7 @@ const Register = () => {
               id="confirmPassword"
               type="password"
               name="confirmPassword"
+              autoComplete="new-password"
               className="form-control"
               required
               minLength="6"

@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { API_BASE_URL } from './config';
-import { normalizeApiError } from './apiError';
 import { getAccessToken, notifyAuthFailure, setAccessToken } from './authSession';
 
 // Create axios instance
@@ -13,6 +12,10 @@ const api = axios.create({
 });
 
 let refreshPromise = null;
+export const refreshSession = () => {
+  refreshPromise ??= api.post('/auth/refresh').finally(() => { refreshPromise = null; });
+  return refreshPromise;
+};
 
 const isAuthRefreshRequest = (config) => {
   const url = (config?.url || '').toLowerCase();
@@ -38,26 +41,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response) {
-      const apiError = normalizeApiError(error);
-      console.error('API Error Response:', {
-        status: apiError.status,
-        message: apiError.message,
-        correlationId: apiError.correlationId
-      });
-    }
-
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRefreshRequest(originalRequest)) {
       originalRequest._retry = true;
 
       try {
-        refreshPromise ??= api.post('/auth/refresh').finally(() => {
-          refreshPromise = null;
-        });
-
-        const response = await refreshPromise;
+        const response = await refreshSession();
         setAccessToken(response.data.token);
         originalRequest.headers.Authorization = `Bearer ${response.data.token}`;
         return api(originalRequest);

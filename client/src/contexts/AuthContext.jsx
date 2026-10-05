@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [authStatus, setAuthStatus] = useState('loading');
 
   useEffect(() => {
+    let active = true;
     setAuthFailureHandler(() => {
       clearAccessToken();
       setUser(null);
@@ -19,10 +20,12 @@ export const AuthProvider = ({ children }) => {
     const restoreSession = async () => {
       try {
         const response = await authApi.refresh();
+        if (!active) return;
         setAccessToken(response.token);
         setUser(response.user);
         setAuthStatus('authenticated');
       } catch {
+        if (!active) return;
         clearAccessToken();
         setUser(null);
         setAuthStatus('unauthenticated');
@@ -30,6 +33,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     restoreSession();
+    return () => { active = false; };
   }, []);
 
   const login = async (credentials) => {

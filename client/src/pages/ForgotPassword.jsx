@@ -32,9 +32,9 @@ const ForgotPassword = () => {
           <h1 className="auth-title">Reset Password</h1>
           <p className="auth-subtitle">Enter your email and we will send reset instructions.</p>
         </div>
-        {message && <div className="success-message">{message}</div>}
-        {error && <div className="error-message">{error}</div>}
-        <form className="auth-form" onSubmit={handleSubmit}>
+        {message && <div className="success-message" role="status">{message}</div>}
+        {error && <div className="error-message" role="alert" id="form-error">{error}</div>}
+        <form aria-describedby={error ? "form-error" : undefined} className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email" className="form-label">Email Address</label>
             <input id="email" type="email" className="form-control" required value={email} onChange={(e) => setEmail(e.target.value)} />

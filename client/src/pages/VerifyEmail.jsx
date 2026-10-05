@@ -10,6 +10,8 @@ const VerifyEmail = () => {
   const email = useMemo(() => searchParams.get('email') || '', [searchParams]);
   const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('Verifying your email...');
+  const [resending, setResending] = useState(false);
+  const [resendEmail, setResendEmail] = useState(email);
 
   useEffect(() => {
     const verify = async () => {
@@ -32,10 +34,13 @@ const VerifyEmail = () => {
     verify();
   }, [userId, token]);
 
-  const resend = async () => {
-    if (!email) return;
-    const response = await authApi.resendConfirmation(email);
-    setMessage(response.message);
+  const resend = async (event) => {
+    event.preventDefault();
+    if (!resendEmail || resending) return;
+    setResending(true);
+    try { const response = await authApi.resendConfirmation(resendEmail); setMessage(response.message); }
+    catch { setMessage('Unable to resend right now. Please try again.'); }
+    finally { setResending(false); }
   };
 
   return (
@@ -45,7 +50,7 @@ const VerifyEmail = () => {
           <h1 className="auth-title">{status === 'success' ? 'Email Verified' : 'Verify Email'}</h1>
           <p className="auth-subtitle">{message}</p>
         </div>
-        {status === 'failed' && email && <button className="btn-auth" onClick={resend}>Resend Verification</button>}
+        {status === 'failed' && <form className="auth-form" onSubmit={resend}><label htmlFor="resend-email">Email address</label><input id="resend-email" type="email" autoComplete="email" required value={resendEmail} onChange={e => setResendEmail(e.target.value)}/><button className="btn-auth" disabled={resending}>{resending ? 'Sending…' : 'Resend verification'}</button></form>}
         <div className="auth-footer"><Link to="/login" className="auth-link">Go to login</Link></div>
       </div>
     </div>

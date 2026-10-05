@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import "./Auth.css";
+import { customerError } from '../utils/storefront';
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -24,12 +25,11 @@ const Login = () => {
       await login({ email, password });
       
       // On successful login, redirect to intended page or profile
-      const redirectTo = location.state?.from || "/profile";
+      const from = location.state?.from;
+      const redirectTo = typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/profile';
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      const errorMessage = err.response?.data?.message ||
-                          err.response?.data?.errors?.join(", ") ||
-                          "Invalid email or password. Please try again.";
+      const errorMessage = err.response?.status === 401 ? 'Unable to sign in. Check your details and confirm your email before trying again.' : customerError(err);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -44,15 +44,16 @@ const Login = () => {
           <p className="auth-subtitle">Sign in to continue to Amaara Creations</p>
         </div>
         
-        {message && <div className="success-message" style={{ color: 'green', marginBottom: '1rem' }}>{message}</div>}
-        {error && <div className="error-message">{error}</div>}
+        {message && <div className="success-message" role="status" style={{ color: 'green', marginBottom: '1rem' }}>{message}</div>}
+        {error && <div className="error-message" role="alert" id="form-error">{error}</div>}
         
-        <form className="auth-form" onSubmit={handleLogin}>
+        <form aria-describedby={error ? "form-error" : undefined} className="auth-form" onSubmit={handleLogin}>
           <div className="form-group">
             <label htmlFor="email" className="form-label">Email Address</label>
             <input
               id="email"
               type="email"
+              autoComplete="email"
               className="form-control"
               required
               value={email}
@@ -71,6 +72,7 @@ const Login = () => {
             <input
               id="password"
               type="password"
+              autoComplete="current-password"
               className="form-control"
               required
               value={password}

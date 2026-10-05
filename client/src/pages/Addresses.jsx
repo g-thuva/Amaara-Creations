@@ -1,146 +1,21 @@
-import React, { useEffect, useState } from 'react';
+﻿import { useState } from 'react';
 import { addressApi } from '../services/addressApi';
-import './Profile.css';
-
-const emptyForm = {
-  label: 'Home',
-  recipientName: '',
-  phone: '',
-  addressLine1: '',
-  addressLine2: '',
-  city: '',
-  districtOrProvince: '',
-  postalCode: '',
-  country: 'Sri Lanka',
-  isDefault: false
-};
-
-const Addresses = () => {
-  const [addresses, setAddresses] = useState([]);
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const loadAddresses = async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      setAddresses(await addressApi.getAddresses());
-    } catch {
-      setError('Failed to load addresses.');
-    } finally {
-      setIsLoading(false);
-    }
+import { useStore } from '../contexts/StoreContext';
+import { useResource } from '../hooks/useResource';
+import { Button, ConfirmDialog, Dialog, EmptyState, ErrorState, PageHeader, Skeleton } from '../components/storefront/UI';
+const fields = [['label', 'Label', 80, true, 'off'], ['recipientName', 'Recipient name', 120, true, 'name'], ['phone', 'Phone', 40, false, 'tel'], ['addressLine1', 'Address line 1', 200, true, 'address-line1'], ['addressLine2', 'Address line 2', 200, false, 'address-line2'], ['city', 'City', 100, true, 'address-level2'], ['districtOrProvince', 'District or province', 100, false, 'address-level1'], ['postalCode', 'Postal code', 30, false, 'postal-code'], ['country', 'Country', 80, true, 'country-name']];
+export default function Addresses() {
+  const data = useResource(addressApi.getAddresses, 'addresses');
+  const { mutate, pending } = useStore();
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const save = async e => {
+    e.preventDefault(); const form = new FormData(e.currentTarget);
+    const payload = Object.fromEntries(fields.map(([key]) => [key, form.get(key)])); payload.isDefault = form.get('isDefault') === 'on';
+    if (await mutate(() => editing.id ? addressApi.updateAddress(editing.id, payload) : addressApi.createAddress(payload), data.reload, 'Address saved.')) setEditing(null);
   };
-
-  useEffect(() => {
-    loadAddresses();
-  }, []);
-
-  const editAddress = (address) => {
-    setEditingId(address.id);
-    setForm({
-      label: address.label,
-      recipientName: address.recipientName,
-      phone: address.phone || '',
-      addressLine1: address.addressLine1,
-      addressLine2: address.addressLine2 || '',
-      city: address.city,
-      districtOrProvince: address.districtOrProvince || '',
-      postalCode: address.postalCode || '',
-      country: address.country,
-      isDefault: address.isDefault
-    });
-  };
-
-  const resetForm = () => {
-    setEditingId(null);
-    setForm(emptyForm);
-  };
-
-  const saveAddress = async (event) => {
-    event.preventDefault();
-    setIsSaving(true);
-    setError('');
-    try {
-      if (editingId) {
-        await addressApi.updateAddress(editingId, form);
-      } else {
-        await addressApi.createAddress(form);
-      }
-      resetForm();
-      await loadAddresses();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save address.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const deleteAddress = async (id) => {
-    if (!window.confirm('Delete this address?')) return;
-    await addressApi.deleteAddress(id);
-    await loadAddresses();
-  };
-
-  const setDefault = async (id) => {
-    await addressApi.setDefault(id);
-    await loadAddresses();
-  };
-
-  return (
-    <div className="profile-container">
-      <div className="profile-header">
-        <h1>Saved Addresses</h1>
-      </div>
-      {error && <div className="error-message">{error}</div>}
-      <div className="profile-content">
-        <div className="profile-details">
-          <h2>{editingId ? 'Edit Address' : 'Add Address'}</h2>
-          <form onSubmit={saveAddress}>
-            {['label', 'recipientName', 'phone', 'addressLine1', 'addressLine2', 'city', 'districtOrProvince', 'postalCode', 'country'].map((field) => (
-              <div className="detail-group" key={field}>
-                <label className="detail-label" htmlFor={field}>{field.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase())}</label>
-                <input
-                  id={field}
-                  className="form-control"
-                  required={['label', 'recipientName', 'addressLine1', 'city', 'country'].includes(field)}
-                  value={form[field]}
-                  onChange={(e) => setForm({ ...form, [field]: e.target.value })}
-                />
-              </div>
-            ))}
-            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem' }}>
-              <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} />
-              Default address
-            </label>
-            <div className="profile-actions">
-              <button className="btn btn-primary" type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Address'}</button>
-              {editingId && <button className="btn btn-outline" type="button" onClick={resetForm}>Cancel</button>}
-            </div>
-          </form>
-        </div>
-        <div className="profile-details">
-          <h2>Your Addresses</h2>
-          {isLoading ? <p>Loading addresses...</p> : addresses.length === 0 ? <p>No saved addresses yet.</p> : addresses.map((address) => (
-            <div className="detail-group" key={address.id}>
-              <strong>{address.label}{address.isDefault ? ' (Default)' : ''}</strong>
-              <p className="detail-value">{address.recipientName}</p>
-              <p>{address.addressLine1}{address.addressLine2 ? `, ${address.addressLine2}` : ''}</p>
-              <p>{address.city}, {address.country}</p>
-              <div className="profile-actions">
-                <button className="btn btn-outline" onClick={() => editAddress(address)}>Edit</button>
-                {!address.isDefault && <button className="btn btn-outline" onClick={() => setDefault(address.id)}>Set Default</button>}
-                <button className="btn btn-outline" onClick={() => deleteAddress(address.id)}>Delete</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Addresses;
+  return <><PageHeader title="Address book">Your saved delivery details.</PageHeader><Button onClick={() => setEditing({ label: 'Home', country: 'Sri Lanka' })}>Add an address</Button>{data.loading ? <Skeleton count={2}/> : data.error ? <ErrorState error={data.error} retry={data.reload}/> : !data.data?.length ? <EmptyState title="No saved addresses yet" to={null}>Add an address to keep your delivery details together.</EmptyState> : <div className="s-address-grid">{data.data.map(address => <article className="s-panel" key={address.id}><div className="s-row"><h2>{address.label}</h2>{address.isDefault && <span className="s-badge">Default</span>}</div><address><strong>{address.recipientName}</strong><br/>{address.addressLine1}<br/>{address.addressLine2 && <>{address.addressLine2}<br/></>}{address.city}, {address.districtOrProvince} {address.postalCode}<br/>{address.country}{address.phone && <><br/>{address.phone}</>}</address><div className="s-actions"><Button variant="text" disabled={pending} onClick={() => setEditing(address)}>Edit</Button><Button variant="text" disabled={pending} onClick={() => setDeleting(address)}>Delete</Button>{!address.isDefault && <Button variant="text" disabled={pending} onClick={() => mutate(() => addressApi.setDefault(address.id), data.reload, 'Default address updated.')}>Set default</Button>}</div></article>)}</div>}
+    <Dialog open={!!editing} onClose={pending ? () => {} : () => setEditing(null)} title={editing?.id ? 'Edit address' : 'Add an address'}><form className="s-form" onSubmit={save}><fieldset disabled={pending}>{fields.map(([key, label, max, required, autocomplete]) => <label key={key}>{label}{required ? ' *' : ''}<input name={key} type={key === 'phone' ? 'tel' : 'text'} autoComplete={autocomplete} required={required} maxLength={max} defaultValue={editing?.[key] || ''}/></label>)}<label className="s-checkbox"><input type="checkbox" name="isDefault" defaultChecked={editing?.isDefault}/> Make this my default address</label><Button type="submit" disabled={pending}>{pending ? 'Saving…' : 'Save address'}</Button></fieldset></form></Dialog>
+    <ConfirmDialog open={!!deleting} title="Delete this address?" pending={pending} onClose={() => setDeleting(null)} onConfirm={async () => { if (await mutate(() => addressApi.deleteAddress(deleting.id), data.reload, 'Address deleted.')) setDeleting(null); }}>{deleting?.label} will be removed from your address book.</ConfirmDialog>
+  </>;
+}
