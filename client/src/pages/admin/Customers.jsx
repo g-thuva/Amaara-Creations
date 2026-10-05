@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/adminApi";
 import "./AdminStyles.css";
@@ -13,11 +13,7 @@ const Customers = () => {
     pageSize: 20
   });
 
-  useEffect(() => {
-    fetchCustomers();
-  }, [filters.search, filters.pageNumber]);
-
-  const fetchCustomers = async () => {
+const fetchCustomers = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await adminApi.getAllCustomers({
@@ -32,7 +28,9 @@ const Customers = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
   return (
     <div className="admin-page">

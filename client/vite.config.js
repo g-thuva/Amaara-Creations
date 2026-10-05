@@ -4,6 +4,7 @@ import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [react()],
+  test: { include: ['src/**/*.test.{js,jsx,ts,tsx}'] },
   base: '/Amaara-Creations/',
   build: {
     rollupOptions: {

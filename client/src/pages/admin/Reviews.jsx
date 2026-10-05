@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { reviewApi } from "../../services/reviewApi";
 import "./AdminStyles.css";
 
@@ -12,11 +12,7 @@ const Reviews = () => {
     pageSize: 20
   });
 
-  useEffect(() => {
-    fetchReviews();
-  }, [filters.rating, filters.search, filters.pageNumber]);
-
-  const fetchReviews = async () => {
+const fetchReviews = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await reviewApi.getAllReviews({
@@ -32,7 +28,9 @@ const Reviews = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
   const handleDelete = async (reviewId) => {
     if (window.confirm("Are you sure you want to delete this review?")) {

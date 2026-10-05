@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { orderApi } from "../../services/orderApi";
 import "./AdminStyles.css";
@@ -14,11 +14,7 @@ const AdOrders = () => {
     pageSize: 20
   });
 
-  useEffect(() => {
-    fetchOrders();
-  }, [filters.status, filters.search, filters.pageNumber]);
-
-  const fetchOrders = async () => {
+const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await orderApi.getAllOrders({
@@ -34,7 +30,9 @@ const AdOrders = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
