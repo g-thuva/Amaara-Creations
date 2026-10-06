@@ -5,7 +5,7 @@ namespace be.Data
 {
     public partial class ApplicationDbContext
     {
-        partial void ConfigurePhase1Foundation(ModelBuilder modelBuilder)
+        partial void ConfigureFoundationFoundation(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Category>(entity =>
             {
