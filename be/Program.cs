@@ -16,6 +16,8 @@ using be.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
+
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -113,9 +115,10 @@ builder.Services.AddAuthorization(options =>
 // Register TokenService
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();
-builder.Services.AddScoped<IEmailService, DevelopmentEmailService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
+builder.Services.AddScoped<ICustomStickerPricingService, CustomStickerPricingService>();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -125,6 +128,18 @@ builder.Services.AddRateLimiter(options =>
         limiter.PermitLimit = builder.Configuration.GetValue<int?>("Authentication:RateLimitPermitLimit") ?? 10;
         limiter.Window = TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Authentication:RateLimitWindowMinutes") ?? 1);
         limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiter.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("custom-quote", limiter =>
+    {
+        limiter.PermitLimit = 30;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("custom-upload", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
         limiter.QueueLimit = 0;
     });
 });
@@ -236,6 +251,7 @@ app.UseHttpsRedirection();
 app.UseMiddleware<CorrelationIdMiddleware>();
 
 Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads"));
+Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "App_Data", "private-media"));
 
 // Enable static file serving for uploaded images
 app.UseStaticFiles();
@@ -334,6 +350,11 @@ try
                     logger.LogInformation("Admin role added to configured bootstrap user.");
                 }
             }
+        }
+
+        if (app.Environment.IsDevelopment())
+        {
+            await CustomBuilderDevelopmentSeeder.SeedAsync(scope.ServiceProvider);
         }
     }
 }
