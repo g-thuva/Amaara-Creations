@@ -10,7 +10,6 @@ be/*.suo
 be/*.cache
 be/Properties/launchSettings.json
 be/wwwroot/uploads/
-be/Migrations/*.Designer.cs
 be/*.db
 be/*.db-shm
 be/*.db-wal
@@ -21,7 +20,8 @@ be/package.json
 be/**/*.pdb
 be/**/*.dll
 be/**/*.exe
-
+be/appsettings.Development.Local.json
+be/appsettings.Development.json
 # Tests
 tests/**/bin/
 tests/**/obj/

@@ -1,4 +1,4 @@
-# Phase 2 - Authentication & Accounts
+# Authentication - Authentication & Accounts
 
 ## Previous Authentication Architecture
 
@@ -135,7 +135,7 @@ Protected routes now wait for auth restoration before redirecting. Admin routes 
 
 ## Migration Changes
 
-- No new schema migration was required. Phase 1 already added `RefreshSessions` and `Addresses`.
+- No new schema migration was required. Foundation already added `RefreshSessions` and `Addresses`.
 
 ## Commands Executed
 
@@ -161,7 +161,7 @@ Protected routes now wait for auth restoration before redirecting. Admin routes 
 - Frontend tests: passed, 4 tests.
 - Frontend build: passed.
 - Frontend audit: passed, 0 vulnerabilities.
-- EF migration list: Phase 1 migration is visible; applied/pending status unavailable because local SQL Server is unreachable.
+- EF migration list: Foundation migration is visible; applied/pending status unavailable because local SQL Server is unreachable.
 
 ## Manual Environment Configuration Required
 
@@ -176,6 +176,6 @@ Protected routes now wait for auth restoration before redirecting. Admin routes 
 - Live database smoke tests were not completed because SQL Server was unreachable in this environment.
 - Development email sink logs tokenized URLs only in Development to support local verification/reset testing.
 
-## Phase 3 Readiness
+## Catalogue Media Readiness
 
-Phase 3 can assume secure session restoration, account verification, password recovery, saved addresses, and policy-based admin foundations are present on `develop`.
+Catalogue Media can assume secure session restoration, account verification, password recovery, saved addresses, and policy-based admin foundations are present on `develop`.

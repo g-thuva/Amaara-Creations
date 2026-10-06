@@ -40,14 +40,14 @@ No ASP.NET API versioning package generated these routes. `MapControllers()` was
 | `/api/v1/orders/admin/{id}` | `/api/v1/admin/orders/{id}` | Migrated | Admin order boundary standardized |
 | `/api/v1/orders/{id}/status` | `/api/v1/admin/orders/{id}/status` | Migrated | Admin mutation no longer looks customer-scoped |
 | `/api/Products` | `/api/v1/products` | Removed/replaced | Public reads only |
-| `POST /api/v1/products` | `/api/v1/admin/products` | Removed/replaced | Phase 3 admin product API is source of truth |
-| `PUT /api/v1/products/{id}` | `/api/v1/admin/products/{id}` | Removed/replaced | Phase 3 admin product API is source of truth |
+| `POST /api/v1/products` | `/api/v1/admin/products` | Removed/replaced | Catalogue Media admin product API is source of truth |
+| `PUT /api/v1/products/{id}` | `/api/v1/admin/products/{id}` | Removed/replaced | Catalogue Media admin product API is source of truth |
 | `DELETE /api/v1/products/{id}` | `/api/v1/admin/products/{id}/archive` | Removed/replaced | Archive/reactivate replaces public-route mutation |
 | `/api/products/{productId}/reviews` | `/api/v1/products/{productId}/reviews` | Migrated | Public/customer review route versioned |
 | `/api/admin/reviews` | `/api/v1/admin/reviews` | Migrated | Admin reviews versioned |
 | `/api/admin/reviews/{id}` | `/api/v1/admin/reviews/{id}` | Migrated | Admin reviews versioned |
 | `/api/admin/reviews/stats` | `/api/v1/admin/reviews/stats` | Migrated | Admin reviews versioned |
-| `/api/upload/product-image` | `/api/v1/admin/products/{id}/media` | Removed/replaced | Phase 3 media API is source of truth |
+| `/api/upload/product-image` | `/api/v1/admin/products/{id}/media` | Removed/replaced | Catalogue Media media API is source of truth |
 | `/api/v1/upload/product-image` | `/api/v1/admin/products/{id}/media` | Removed/replaced | Stale frontend service removed |
 | `/api/v1/health` | `/health` | Removed | Health is infrastructure, version-neutral |
 
@@ -259,4 +259,4 @@ Runtime:
 
 ## Status
 
-ROUTING CLEANUP COMPLETE - SAFE TO CONTINUE PHASE 3.
+ROUTING CLEANUP COMPLETE - SAFE TO CONTINUE Catalogue Media.

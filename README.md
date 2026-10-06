@@ -65,13 +65,17 @@ dotnet user-secrets set "AdminBootstrap:Password" "replace-with-a-strong-local-p
 
 See `docs/implementation/phase-00-stabilisation.md` for the Phase 0 stabilisation record, command results, current API/route inventory, security changes, and remaining manual infrastructure steps.
 
-See `docs/implementation/phase-01-foundation.md` for the Phase 1 foundation/data-model implementation record and migration notes.
+See `docs/implementation/foundation.md` for the Foundation foundation/data-model implementation record and migration notes.
 
-See `docs/implementation/phase-02-authentication-accounts.md` for the Phase 2 authentication, account, refresh-session, and saved-address implementation record.
+See `docs/implementation/authentication-accounts.md` for the Authentication authentication, account, refresh-session, and saved-address implementation record.
 
-See `docs/implementation/phase-03-catalog-media-cms.md` for the Phase 3 catalogue, media, CMS, settings, Swagger, admin UI, and migration record.
+See `docs/implementation/catalog-media-cms.md` for the Catalogue Media catalogue, media, CMS, settings, Swagger, admin UI, and migration record.
 
-See `docs/implementation/phase-04-storefront-ui-ux.md` for the Phase 4 storefront design system, customer routes, API integration, responsive/accessibility work, and verification record.
+See `docs/implementation/storefront-ui-ux.md` for the Storefront storefront design system, customer routes, API integration, responsive/accessibility work, and verification record.
+
+See `docs/implementation/brand-audit.md` for the Storefront Revision 2 brand-evidence status, adopted continuity decisions, and the owner references still required.
+
+See `docs/implementation/custom-builder.md` for the server-backed custom sticker builder, versioned pricing/configuration, private artwork, cart/order snapshots, proof workflow, admin operations, and verification record.
 
 See `docs/implementation/api-routing-v1-cleanup.md` for the canonical API v1 routing cleanup, removed legacy aliases, Swagger verification, and final endpoint list.
 

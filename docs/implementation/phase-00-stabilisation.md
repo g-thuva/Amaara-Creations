@@ -292,7 +292,7 @@ Known incomplete/future:
 - Password reset requires a real email flow before production use.
 - Data Protection keys are local and unencrypted in Development; production should use a managed key store.
 
-## Deferred To Phase 1
+## Deferred To Foundation
 
 - Entity/data model expansion.
 - Category/collection/variant model.
@@ -303,7 +303,7 @@ Known incomplete/future:
 - Audit log.
 - TypeScript foundation.
 
-## Deferred To Phase 2
+## Deferred To Authentication
 
 - HttpOnly refresh-token sessions.
 - Refresh token rotation.
@@ -340,6 +340,6 @@ dotnet ef database update
 dotnet run --urls http://localhost:5192
 ```
 
-## Phase 1 Readiness
+## Foundation Readiness
 
-Status: ready for Phase 1 after a developer supplies a reachable SQL Server and verifies `dotnet ef database update` plus data-backed auth/product/cart/admin smoke tests.
+Status: ready for Foundation after a developer supplies a reachable SQL Server and verifies `dotnet ef database update` plus data-backed auth/product/cart/admin smoke tests.

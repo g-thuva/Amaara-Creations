@@ -1,16 +1,16 @@
-# Phase 3 - Catalogue, Media & CMS Administration
+# Catalogue Media - Catalogue, Media & CMS Administration
 
 ## Purpose
 
-Phase 3 turns the Phase 1 catalogue foundations into manageable admin workflows: products, categories, collections, variants, media, inventory adjustments, CMS pages, site settings, and Swagger/OpenAPI documentation.
+Catalogue Media turns the Foundation catalogue foundations into manageable admin workflows: products, categories, collections, variants, media, inventory adjustments, CMS pages, site settings, and Swagger/OpenAPI documentation.
 
-## Initial Phase 3 Repository State
+## Initial Catalogue Media Repository State
 
 - Path: `C:\Nexaura`
 - Branch: `develop`
 - Initial status: clean
 - Latest commits inspected:
-  - `d65b2e7 docs: record phase 2 authentication baseline`
+  - `d65b2e7 docs: record Authentication authentication baseline`
   - `083cc0c test(auth): cover session token foundations`
   - `b0ff0e0 feat(client): move auth to memory and guarded routes`
   - `5f892d3 feat(api): add address management and auth policies`
@@ -18,7 +18,7 @@ Phase 3 turns the Phase 1 catalogue foundations into manageable admin workflows:
 
 ## Verified Phase 0/1/2 Status
 
-Phase 0 documented the .NET 8 / React / SQL Server baseline, environment configuration, upload hardening, and Swagger package presence. Phase 1 added the catalogue foundation entities: `Category`, `Collection`, `ProductCollection`, `ProductVariant`, `ProductMedia`, `AuditLog`, and related commerce foundations. Phase 2 added refresh sessions, email/account flows, saved addresses, and policies including `ManageCatalog` and `ManageContent`.
+Phase 0 documented the .NET 8 / React / SQL Server baseline, environment configuration, upload hardening, and Swagger package presence. Foundation added the catalogue foundation entities: `Category`, `Collection`, `ProductCollection`, `ProductVariant`, `ProductMedia`, `AuditLog`, and related commerce foundations. Authentication added refresh sessions, email/account flows, saved addresses, and policies including `ManageCatalog` and `ManageContent`.
 
 ## Architecture Used
 
@@ -26,7 +26,7 @@ The implementation preserves the modular monolith. Admin APIs live under `/api/v
 
 ## Database / Schema Changes
 
-Migration: `20261005103855_Phase3CatalogueMediaCms`.
+Migration: `20261005103855_CatalogueMediaCatalogueMediaCms`.
 
 Added tables:
 
@@ -43,7 +43,7 @@ Implemented `/api/v1/admin/products` with server-side pagination, search, filter
 
 ## Category Management
 
-Implemented `/api/v1/admin/categories` with list/detail/create/update/archive/reactivate. Parent hierarchy is supported because Phase 1 included `ParentCategoryId`; self-parenting and obvious cycles are rejected.
+Implemented `/api/v1/admin/categories` with list/detail/create/update/archive/reactivate. Parent hierarchy is supported because Foundation included `ParentCategoryId`; self-parenting and obvious cycles are rejected.
 
 ## Collection Management
 
@@ -86,7 +86,7 @@ Added public active category and collection endpoints:
 
 ## Admin APIs
 
-Admin APIs use Phase 2 policies: `ManageCatalog` for catalogue/media and `ManageContent` for CMS/settings.
+Admin APIs use Authentication policies: `ManageCatalog` for catalogue/media and `ManageContent` for CMS/settings.
 
 ## Authorization Policies
 
@@ -170,14 +170,14 @@ Existing `Uploads:MaxFileSizeBytes` is reused by the storage service.
 
 ## Tests
 
-Backend model tests now cover Phase 3 entity mappings and ProductMedia metadata. Frontend existing Vitest coverage still passes. No new E2E framework was added.
+Backend model tests now cover Catalogue Media entity mappings and ProductMedia metadata. Frontend existing Vitest coverage still passes. No new E2E framework was added.
 
 ## Build Results
 
 - `dotnet restore`: PASS
 - `dotnet build --configuration Release`: PASS
 - `dotnet test ..\tests\be.Tests\be.Tests.csproj --configuration Release --no-restore`: PASS, 8 tests
-- `dotnet ef migrations list --configuration Release --no-build`: PASS; all migrations through `20261005103855_Phase3CatalogueMediaCms` are applied
+- `dotnet ef migrations list --configuration Release --no-build`: PASS; all migrations through `20261005103855_CatalogueMediaCatalogueMediaCms` are applied
 - `dotnet ef database update --configuration Release --no-build`: PASS using the Development connection string and the normal Windows authentication context
 - `npm ci`: FAIL, locked native esbuild binary
 - `npm install`: PASS, repaired dependencies with Node 20 vs required Node 22 warning
@@ -202,14 +202,14 @@ Backend model tests now cover Phase 3 entity mappings and ProductMedia metadata.
 ## Known Limitations
 
 - Collection edit page does not prefetch existing product IDs into the multi-select; API support exists.
-- CMS content is structured text, not rich HTML. That is deliberate for XSS safety in Phase 3.
+- CMS content is structured text, not rich HTML. That is deliberate for XSS safety in Catalogue Media.
 - Authenticated browser automation could not be completed because the isolated Chrome DevTools target was unavailable in this session. Real frontend login requests, API authorization, frontend compilation, and all admin APIs were verified independently; no authenticated-browser claim is made.
 
-## Deferred Phase 4 Work
+## Deferred Storefront Work
 
 Storefront UX redesign, navigation redesign, product-card/PDP presentation, SEO presentation, and visual content consumption refinements.
 
-## Deferred Phase 5 Work
+## Deferred Custom Builder Work
 
 End-to-end custom sticker builder, server pricing, proof generation, design cart/order workflow, and production workflow.
 
@@ -217,15 +217,15 @@ End-to-end custom sticker builder, server pricing, proof generation, design cart
 
 Payment gateway, shipping engine, coupons, webhooks, refunds, order fulfilment state machine, and checkout inventory reservation.
 
-## Phase 4 Readiness
+## Storefront Readiness
 
-READY FOR PHASE 4. The Phase 3 migration is applied, backend and frontend builds/tests pass, DB-backed public endpoints pass, authorization is enforced, authenticated admin reads pass, and the anonymous admin browser guard renders correctly. Authenticated browser E2E coverage remains a documented test-infrastructure gap rather than a Phase 3 runtime blocker.
+READY FOR Storefront. The Catalogue Media migration is applied, backend and frontend builds/tests pass, DB-backed public endpoints pass, authorization is enforced, authenticated admin reads pass, and the anonymous admin browser guard renders correctly. Authenticated browser E2E coverage remains a documented test-infrastructure gap rather than a Catalogue Media runtime blocker.
 
-## PHASE 3 COMPLETION VERIFICATION
+## Catalogue Media COMPLETION VERIFICATION
 
 ### Previous Partial-Completion State
 
-The initial Phase 3 pass was marked partially complete because SQL Server rejected the encrypted provider connection, the migration could not be applied, and real database-backed authentication and mutation flows were not yet exercised. Those blockers are retained here as implementation history and were resolved during this completion pass.
+The initial Catalogue Media pass was marked partially complete because SQL Server rejected the encrypted provider connection, the migration could not be applied, and real database-backed authentication and mutation flows were not yet exercised. Those blockers are retained here as implementation history and were resolved during this completion pass.
 
 ### SQL Server Root Cause and Development Fix
 
@@ -251,7 +251,7 @@ The initial Phase 3 pass was marked partially complete because SQL Server reject
 
 - Generated SQL was reviewed before completion. It contained only expected column/table/index/foreign-key additions and no `DROP`, `TRUNCATE`, or `DELETE` statements.
 - `dotnet ef database update --configuration Release --no-build`: PASS; the final run reported the database already up to date.
-- `__EFMigrationsHistory`: verified to contain `20261005103855_Phase3CatalogueMediaCms` and the preceding migration chain.
+- `__EFMigrationsHistory`: verified to contain `20261005103855_CatalogueMediaCatalogueMediaCms` and the preceding migration chain.
 - Verified tables: `InventoryTransactions`, `CmsPages`, `CmsSections`, `SiteSettings`, `AuditLogs`, `Categories`, `Collections`, `Products`, `ProductVariants`, `ProductMedia`, and `Users`.
 - Verified ProductMedia fields: `ContentType`, `CreatedByUserId`, `FileSize`, `Height`, `OriginalFileName`, `StorageProvider`, and `Width`.
 - Existing Users, Products, Orders, and Identity schema were preserved.
@@ -351,4 +351,4 @@ The authorized request used the same Bearer header defined by Swagger. Interacti
 
 ### Completion Status
 
-Phase 3 is COMPLETE and READY FOR PHASE 4. No Phase 4 implementation was started.
+Catalogue Media is COMPLETE and READY FOR Storefront. No Storefront implementation was started.

@@ -1,4 +1,4 @@
-# Phase 1 - Foundation & Data Model
+# Foundation - Foundation & Data Model
 
 ## Starting Repository State
 
@@ -6,7 +6,7 @@
 - Repository started clean after Phase 0 commits.
 - Backend baseline: .NET 8 (`global.json` SDK line 8.0.420), ASP.NET Core Identity, EF Core SQL Server 8.0.10, JWT auth.
 - Frontend baseline: React 19, Vite 6.4, Node 22 expected by `.nvmrc`, JavaScript app with incremental TypeScript introduced in this phase.
-- Existing APIs used legacy `/api/[controller]` routes; Phase 1 preserves them and adds `/api/v1/[controller]`.
+- Existing APIs used legacy `/api/[controller]` routes; Foundation preserves them and adds `/api/v1/[controller]`.
 - SQL Server was not available locally during implementation, so migration compilation/script generation was verified, but live database update was not truthfully claimed.
 
 ## Architecture Decisions
@@ -69,8 +69,8 @@ Changed existing entities:
 
 ## Migration
 
-- Migration name: `20261003072610_Phase1FoundationDataModel`.
-- SQL script: `docs/implementation/phase-01-foundation.sql`.
+- Migration name: `20261003072610_FoundationFoundationDataModel`.
+- SQL script: `docs/implementation/foundation.sql`.
 
 ## Migration And Backfill Strategy
 
@@ -116,7 +116,7 @@ Changed existing entities:
 - Backend xUnit test project: `tests/be.Tests`.
 - Tests cover:
   - pagination contracts
-  - Phase 1 EF model entity presence
+  - Foundation EF model entity presence
   - ProductVariant rowversion concurrency
   - OrderItem snapshot/nullability foundation
   - correlation middleware safe incoming ID behavior
@@ -126,8 +126,8 @@ Changed existing entities:
 
 - `git status --short`
 - `dotnet build be\be.csproj --no-restore --configuration Release`
-- `dotnet ef migrations add Phase1FoundationDataModel --project be\be.csproj --startup-project be\be.csproj --configuration Release`
-- `dotnet ef migrations script --project be\be.csproj --startup-project be\be.csproj --configuration Release --idempotent --output docs\implementation\phase-01-foundation.sql`
+- `dotnet ef migrations add FoundationFoundationDataModel --project be\be.csproj --startup-project be\be.csproj --configuration Release`
+- `dotnet ef migrations script --project be\be.csproj --startup-project be\be.csproj --configuration Release --idempotent --output docs\implementation\foundation.sql`
 - `dotnet restore tests\be.Tests\be.Tests.csproj`
 - `dotnet test tests\be.Tests\be.Tests.csproj --configuration Release --no-restore`
 - `npm install`
@@ -164,10 +164,10 @@ Changed existing entities:
 - Apply the generated migration to a real SQL Server database and run smoke tests against Products, Orders, Admin dashboard, Cart, Wishlist, Reviews, Uploads, and Auth.
 - Migrate list endpoints from legacy custom pagination responses to `PagedResult<T>`.
 - Replace remaining manual anonymous error payloads with ProblemDetails helpers where practical.
-- Implement Phase 2 refresh-session lifecycle using the new `RefreshSessions` table.
-- Build address UI/workflows in Phase 2 using the new `Addresses` table.
+- Implement Authentication refresh-session lifecycle using the new `RefreshSessions` table.
+- Build address UI/workflows in Authentication using the new `Addresses` table.
 
-## Phase 2 Prerequisites
+## Authentication Prerequisites
 
 - Confirm SQL Server migration succeeds on a copy of production-like data.
 - Confirm backfilled categories/media/variants are acceptable to admin users.
