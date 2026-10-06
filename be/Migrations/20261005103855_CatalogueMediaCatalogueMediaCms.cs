@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace be.Migrations
 {
     /// <inheritdoc />
-    public partial class Phase3CatalogueMediaCms : Migration
+    public partial class CatalogueMediaCatalogueMediaCms : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
