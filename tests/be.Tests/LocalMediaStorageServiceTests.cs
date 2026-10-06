@@ -29,6 +29,23 @@ public sealed class LocalMediaStorageServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UploadPrivateAsyncStoresOutsideWebRootWithoutPublicUrl()
+    {
+        var service = CreateService();
+        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        var file = CreateFile(bytes, "artwork.png", "image/png");
+
+        var result = await service.UploadPrivateAsync(file, "custom-artwork/42");
+
+        Assert.StartsWith("private/custom-artwork-42/", result.StorageKey);
+        Assert.Equal(string.Empty, result.PublicUrl);
+        Assert.True(await service.ExistsAsync(result.StorageKey));
+        Assert.False(File.Exists(Path.Combine(_contentRoot, "wwwroot", result.StorageKey.Replace('/', Path.DirectorySeparatorChar))));
+        await using var stream = await service.OpenReadAsync(result.StorageKey);
+        Assert.True(stream.Length > 0);
+    }
+
+    [Fact]
     public async Task UploadAsyncRejectsMismatchedExtensionAndContentType()
     {
         var service = CreateService();

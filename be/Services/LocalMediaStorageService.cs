@@ -25,6 +25,16 @@ namespace be.Services
 
         public async Task<StoredMedia> UploadAsync(IFormFile file, string area, CancellationToken cancellationToken = default)
         {
+            return await UploadCoreAsync(file, area, false, cancellationToken);
+        }
+
+        public async Task<StoredMedia> UploadPrivateAsync(IFormFile file, string area, CancellationToken cancellationToken = default)
+        {
+            return await UploadCoreAsync(file, area, true, cancellationToken);
+        }
+
+        private async Task<StoredMedia> UploadCoreAsync(IFormFile file, string area, bool isPrivate, CancellationToken cancellationToken)
+        {
             if (file.Length <= 0)
             {
                 throw new InvalidOperationException("No file was uploaded.");
@@ -52,8 +62,10 @@ namespace be.Services
             }
 
             var fileName = $"{Guid.NewGuid():N}{imageInfo.Extension}";
-            var relativeStorageKey = $"uploads/{safeArea}/{DateTime.UtcNow:yyyy/MM}/{fileName}";
-            var physicalPath = Path.Combine(_environment.ContentRootPath, "wwwroot", relativeStorageKey.Replace('/', Path.DirectorySeparatorChar));
+            var relativeStorageKey = isPrivate
+                ? $"private/{safeArea}/{DateTime.UtcNow:yyyy/MM}/{fileName}"
+                : $"uploads/{safeArea}/{DateTime.UtcNow:yyyy/MM}/{fileName}";
+            var physicalPath = GetPhysicalPath(relativeStorageKey);
             Directory.CreateDirectory(Path.GetDirectoryName(physicalPath)!);
 
             await using (var target = new FileStream(physicalPath, FileMode.CreateNew))
@@ -63,7 +75,7 @@ namespace be.Services
 
             return new StoredMedia(
                 relativeStorageKey,
-                GetPublicUrl(relativeStorageKey),
+                isPrivate ? string.Empty : GetPublicUrl(relativeStorageKey),
                 originalFileName,
                 imageInfo.ContentType,
                 file.Length,
@@ -85,12 +97,23 @@ namespace be.Services
 
         public string GetPublicUrl(string storageKey)
         {
+            if (storageKey.Replace('\\', '/').StartsWith("private/", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Private media does not have a public URL.");
+            }
+
             return "/" + storageKey.Replace('\\', '/').TrimStart('/');
         }
 
         public Task<bool> ExistsAsync(string storageKey, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(File.Exists(GetPhysicalPath(storageKey)));
+        }
+
+        public Task<Stream> OpenReadAsync(string storageKey, CancellationToken cancellationToken = default)
+        {
+            Stream stream = new FileStream(GetPhysicalPath(storageKey), FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            return Task.FromResult(stream);
         }
 
         private string GetPhysicalPath(string storageKey)
@@ -101,7 +124,19 @@ namespace be.Services
                 throw new InvalidOperationException("Invalid storage key.");
             }
 
-            return Path.Combine(_environment.ContentRootPath, "wwwroot", normalized.Replace('/', Path.DirectorySeparatorChar));
+            var isPrivate = normalized.StartsWith("private/", StringComparison.OrdinalIgnoreCase);
+            var relative = isPrivate ? normalized["private/".Length..] : normalized;
+            var root = isPrivate
+                ? Path.Combine(_environment.ContentRootPath, "App_Data", "private-media")
+                : Path.Combine(_environment.ContentRootPath, "wwwroot");
+            var fullRoot = Path.GetFullPath(root) + Path.DirectorySeparatorChar;
+            var fullPath = Path.GetFullPath(Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar)));
+            if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Invalid storage key.");
+            }
+
+            return fullPath;
         }
 
         private static async Task<(string ContentType, string Extension, int Width, int Height)> ReadImageInfoAsync(Stream stream, string? declaredContentType, string extension, CancellationToken cancellationToken)

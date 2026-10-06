@@ -13,8 +13,10 @@ namespace be.Services
     public interface IMediaStorageService
     {
         Task<StoredMedia> UploadAsync(IFormFile file, string area, CancellationToken cancellationToken = default);
+        Task<StoredMedia> UploadPrivateAsync(IFormFile file, string area, CancellationToken cancellationToken = default);
         Task DeleteAsync(string storageKey, CancellationToken cancellationToken = default);
         string GetPublicUrl(string storageKey);
         Task<bool> ExistsAsync(string storageKey, CancellationToken cancellationToken = default);
+        Task<Stream> OpenReadAsync(string storageKey, CancellationToken cancellationToken = default);
     }
 }
