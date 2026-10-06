@@ -7,7 +7,7 @@ namespace be.Tests
     public class ApplicationDbContextModelTests
     {
         [Fact]
-        public void Phase1FoundationEntitiesAreMapped()
+        public void FoundationFoundationEntitiesAreMapped()
         {
             using var context = CreateContext();
             var entityNames = context.Model.GetEntityTypes().Select(e => e.ClrType.Name).ToHashSet();
@@ -25,7 +25,7 @@ namespace be.Tests
         }
 
         [Fact]
-        public void Phase3CatalogueCmsEntitiesAreMapped()
+        public void CatalogueMediaCatalogueCmsEntitiesAreMapped()
         {
             using var context = CreateContext();
             var entityNames = context.Model.GetEntityTypes().Select(e => e.ClrType.Name).ToHashSet();

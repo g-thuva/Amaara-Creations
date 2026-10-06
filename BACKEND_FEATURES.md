@@ -366,26 +366,26 @@ POST   /api/upload/avatar            - Upload user avatar
 
 ## 📝 **Priority Implementation Order**
 
-### **Phase 1: Core Features (Must Have)**
+### **Foundation: Core Features (Must Have)**
 1. ✅ Authentication & Authorization
 2. ✅ Product Management (CRUD)
 3. ✅ Cart Management
 4. ✅ Order Management (Create & View)
 
-### **Phase 2: Enhanced Features (Should Have)**
+### **Authentication: Enhanced Features (Should Have)**
 5. ✅ Review Management
 6. ✅ Wishlist Management
 7. ✅ User Profile Management
 8. ✅ Custom Product Builder
 
-### **Phase 3: Admin Features (Important)**
+### **Catalogue Media: Admin Features (Important)**
 9. ✅ Admin Dashboard
 10. ✅ Admin Products Management
 11. ✅ Admin Orders Management
 12. ✅ Admin Customers Management
 13. ✅ Admin Reviews Management
 
-### **Phase 4: Additional Features (Nice to Have)**
+### **Storefront: Additional Features (Nice to Have)**
 14. ✅ Image Upload
 15. ✅ Email Notifications
 16. ✅ Search & Filtering

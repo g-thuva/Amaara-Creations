@@ -28,13 +28,13 @@ A persistent authentication session record that stores hashed refresh-token data
 Immutable order-line facts captured at checkout so historical Orders do not depend on mutable Product records.
 
 ## Payment
-A record of attempted or completed payment for an Order. Gateway integration is outside Phase 1.
+A record of attempted or completed payment for an Order. Gateway integration is outside Foundation.
 
 ## Shipment
-A fulfillment record for an Order. Carrier and tracking workflow is outside Phase 1.
+A fulfillment record for an Order. Carrier and tracking workflow is outside Foundation.
 
 ## Promotion
-A reusable discount/coupon foundation. Discount application logic is outside Phase 1.
+A reusable discount/coupon foundation. Discount application logic is outside Foundation.
 
 ## Audit Log
 A privileged/business change record that must not contain secrets, passwords, raw tokens, or payment-card data.
