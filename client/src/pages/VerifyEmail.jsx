@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../services/authApi';
 import './Auth.css';
+import AuthShell from '../components/storefront/AuthShell';
 
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
@@ -44,7 +45,7 @@ const VerifyEmail = () => {
   };
 
   return (
-    <div className="auth-container">
+    <AuthShell>
       <div className="auth-card">
         <div className="auth-header">
           <h1 className="auth-title">{status === 'success' ? 'Email Verified' : 'Verify Email'}</h1>
@@ -53,7 +54,7 @@ const VerifyEmail = () => {
         {status === 'failed' && <form className="auth-form" onSubmit={resend}><label htmlFor="resend-email">Email address</label><input id="resend-email" type="email" autoComplete="email" required value={resendEmail} onChange={e => setResendEmail(e.target.value)}/><button className="btn-auth" disabled={resending}>{resending ? 'Sending…' : 'Resend verification'}</button></form>}
         <div className="auth-footer"><Link to="/login" className="auth-link">Go to login</Link></div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

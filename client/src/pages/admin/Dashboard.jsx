@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { adminApi } from "../../services/adminApi";
+import AppIcon from "../../components/AppIcon";
 
 const Dashboard = () => {
   const [dashboardStats, setDashboardStats] = useState(null);
@@ -62,28 +63,28 @@ const Dashboard = () => {
       value: `Rs. ${dashboardStats?.totalRevenue?.toLocaleString() || '0'}`, 
       change: dashboardStats?.revenueThisMonth ? `+${((dashboardStats.revenueThisMonth / (dashboardStats.totalRevenue || 1)) * 100).toFixed(1)}%` : '0%', 
       trend: "up", 
-      icon: <i className="fa-solid fa-dollar-sign" />
+      icon: <AppIcon name="chart" />
     },
     { 
       title: "Total Orders", 
       value: dashboardStats?.totalOrders?.toLocaleString() || '0', 
       change: dashboardStats?.ordersThisMonth ? `+${((dashboardStats.ordersThisMonth / (dashboardStats.totalOrders || 1)) * 100).toFixed(1)}%` : '0%', 
       trend: "up", 
-      icon: <i className="fa-solid fa-bag-shopping" />
+      icon: <AppIcon name="bag" />
     },
     { 
       title: "Total Customers", 
       value: dashboardStats?.totalCustomers?.toLocaleString() || '0', 
       change: "+0%", 
       trend: "up", 
-      icon: <i className="fa-solid fa-users" />
+      icon: <AppIcon name="users" />
     },
     { 
       title: "Avg. Rating", 
       value: dashboardStats?.averageRating?.toFixed(1) || '0.0', 
       change: "+0.0", 
       trend: "up", 
-      icon: <i className="fa-solid fa-star" />
+      icon: <AppIcon name="star" />
     },
   ];
 
@@ -117,7 +118,7 @@ const Dashboard = () => {
               <span className="stat-title">{stat.title}</span>
             </div>
             <div className={`stat-change ${stat.trend}`}>
-              <i className="fa-solid fa-arrow-trend-up" />
+              <AppIcon name="chart" />
               <span>{stat.change}</span>
             </div>
           </div>

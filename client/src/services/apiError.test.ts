@@ -9,7 +9,7 @@ describe('normalizeApiError', () => {
         data: {
           title: 'Validation failed',
           status: 400,
-          correlationId: 'phase1-test',
+          correlationId: 'Foundation-test',
           errors: {
             name: ['Name is required']
           }
@@ -20,7 +20,7 @@ describe('normalizeApiError', () => {
     expect(result).toEqual({
       status: 400,
       message: 'Validation failed',
-      correlationId: 'phase1-test',
+      correlationId: 'Foundation-test',
       validationErrors: {
         name: ['Name is required']
       }

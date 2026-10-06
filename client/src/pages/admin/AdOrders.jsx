@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { orderApi } from "../../services/orderApi";
+import AppIcon from "../../components/AppIcon";
 import "./AdminStyles.css";
 
 const AdOrders = () => {
@@ -89,7 +90,7 @@ const fetchOrders = useCallback(async () => {
           <option value="Cancelled">Cancelled</option>
         </select>
         <button onClick={fetchOrders} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <i className="fa-solid fa-rotate" /> Refresh
+          <AppIcon name="refresh" /> Refresh
         </button>
       </div>
 
@@ -157,7 +158,7 @@ const fetchOrders = useCallback(async () => {
                         onClick={() => navigate(`/admin/orders/${order.id}`)}
                         title="View Details"
                       >
-                        <i className="fa-solid fa-eye" /> View
+                        <AppIcon name="eye" /> View
                       </button>
                     </td>
                   </tr>

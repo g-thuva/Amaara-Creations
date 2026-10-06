@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/adminApi";
+import AppIcon from "../../components/AppIcon";
 import "./AdminStyles.css";
 
 const Customers = () => {
@@ -53,7 +54,7 @@ const fetchCustomers = useCallback(async () => {
           style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
         />
         <button onClick={fetchCustomers} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <i className="fa-solid fa-rotate" /> Refresh
+          <AppIcon name="refresh" /> Refresh
         </button>
       </div>
 
@@ -89,14 +90,14 @@ const fetchCustomers = useCallback(async () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <i className="fa-solid fa-envelope" />
+                        <AppIcon name="mail" />
                         {customer.email || 'N/A'}
                       </div>
                     </td>
                     <td>
                       {customer.phone ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <i className="fa-solid fa-phone" />
+                          <AppIcon name="phone" />
                           {customer.phone}
                         </div>
                       ) : (
@@ -106,7 +107,7 @@ const fetchCustomers = useCallback(async () => {
                     <td>
                       {customer.address ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <i className="fa-solid fa-location-dot" />
+                          <AppIcon name="mapPin" />
                           <span style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {customer.address}
                           </span>
@@ -122,7 +123,7 @@ const fetchCustomers = useCallback(async () => {
                         onClick={() => navigate(`/admin/customers/${customer.id}`)}
                         title="View Details"
                       >
-                        <i className="fa-solid fa-eye" /> View
+                        <AppIcon name="eye" /> View
                       </button>
                     </td>
                   </tr>

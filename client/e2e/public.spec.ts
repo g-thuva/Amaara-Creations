@@ -5,7 +5,7 @@ test('public routes, empty states, direct links and mobile keyboard navigation',
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   for (const route of ['products', 'about', 'contact', 'custom', 'login', 'register', 'forgot-password', 'reset-password', 'verify-email', 'products/2147483647', 'not-a-route']) {
     await page.goto(`./#/${route}`);
-    await expect(page.getByRole('heading', { level: 1 }).or(page.getByRole('heading', { name: 'Product not found', exact: true }))).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   }
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('./'); await page.getByRole('button', { name: 'Open navigation' }).click();
@@ -18,7 +18,41 @@ test('public routes, empty states, direct links and mobile keyboard navigation',
   await page.keyboard.press('Escape'); await expect(page.getByRole('button', { name: /^Filters/ })).toBeFocused();
   expect(failures).toEqual([]);
 });
-for (const width of [320, 375, 390, 430, 768, 1024, 1440]) {
+test('CMS hero carousel exposes named controls and honours reduced motion', async ({ page }) => {
+  await page.route('**/api/v1/content/pages/home', async route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      id: 1,
+      title: 'Home',
+      slug: 'home',
+      summary: null,
+      sections: [{
+        id: 1,
+        sectionKey: 'hero',
+        contentType: 'json',
+        sortOrder: 0,
+        isActive: true,
+        content: JSON.stringify({ slides: [
+          { title: 'Wedding stickers', body: 'Personal details for the day.', ctaLabel: 'Shop', ctaUrl: '/products' },
+          { title: 'Car decals', body: 'Made to feel like yours.', ctaLabel: 'Preview', ctaUrl: '/custom' },
+        ] }),
+      }],
+    }),
+  }));
+  await page.goto('./');
+  await expect(page.getByRole('region', { name: 'Featured' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pause carousel' })).toBeVisible();
+  await page.getByRole('button', { name: 'Next slide' }).click();
+  await expect(page.getByRole('heading', { name: 'Car decals' })).toBeVisible();
+  await page.getByRole('button', { name: 'Pause carousel' }).click();
+  await expect(page.getByRole('button', { name: 'Play carousel' })).toBeVisible();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Play carousel' })).toBeVisible();
+});
+
+for (const width of [320, 375, 390, 430, 768, 1024, 1280, 1440]) {
   test(`public responsive layout at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     for (const route of ['', 'products', 'custom', 'login', 'about', 'contact']) {

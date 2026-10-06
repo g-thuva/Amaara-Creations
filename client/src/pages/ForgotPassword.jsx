@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authApi } from '../services/authApi';
 import './Auth.css';
+import AuthShell from '../components/storefront/AuthShell';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -26,7 +27,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="auth-container">
+    <AuthShell>
       <div className="auth-card">
         <div className="auth-header">
           <h1 className="auth-title">Reset Password</h1>
@@ -43,7 +44,7 @@ const ForgotPassword = () => {
         </form>
         <div className="auth-footer"><Link to="/login" className="auth-link">Return to login</Link></div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import "./Auth.css";
 import { customerError } from '../utils/storefront';
+import AuthShell from '../components/storefront/AuthShell';
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -37,7 +38,7 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-container">
+    <AuthShell>
       <div className="auth-card">
         <div className="auth-header">
           <h1 className="auth-title">Welcome Back</h1>
@@ -93,7 +94,7 @@ const Login = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

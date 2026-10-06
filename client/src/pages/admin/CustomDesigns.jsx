@@ -1,0 +1,14 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { adminCustomBuilderApi } from '../../services/customBuilderApi';
+import { customerError, money } from '../../utils/storefront';
+
+export default function CustomDesigns() {
+  const [result, setResult] = useState(null); const [filters, setFilters] = useState({ search: '', proofStatus: '', productionStatus: '', page: 1, pageSize: 20 }); const [error, setError] = useState('');
+  useEffect(() => { let active = true; adminCustomBuilderApi.listDesigns(filters).then((value) => active && setResult(value)).catch((requestError) => active && setError(customerError(requestError))); return () => { active = false; }; }, [filters]);
+  return <div className="admin-page"><div className="page-header"><div className="header-content"><div><h2>Custom design production</h2><p>Ordered custom stickers, proofs and production status.</p></div></div></div>
+    <div className="card"><div className="card-body form-row"><label>Search<input className="form-control" value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value, page: 1 })} /></label><label>Proof status<select className="form-control" value={filters.proofStatus} onChange={(event) => setFilters({ ...filters, proofStatus: event.target.value, page: 1 })}><option value="">All</option>{['Preparing', 'AwaitingApproval', 'ChangesRequested', 'Approved', 'NotRequired'].map((status) => <option key={status}>{status}</option>)}</select></label><label>Production<select className="form-control" value={filters.productionStatus} onChange={(event) => setFilters({ ...filters, productionStatus: event.target.value, page: 1 })}><option value="">All</option>{['NotStarted', 'Queued', 'Printing', 'Finishing', 'QualityCheck', 'Ready'].map((status) => <option key={status}>{status}</option>)}</select></label></div></div>
+    {error && <p className="out-of-stock-alert">{error}</p>}
+    <div className="products-table-container table-responsive"><table className="admin-table"><thead><tr><th>Design</th><th>Order</th><th>Customer</th><th>Specification</th><th>Proof</th><th>Production</th><th>Subtotal</th><th /></tr></thead><tbody>{result?.items?.map((item) => <tr key={item.id}><td><strong>{item.name}</strong></td><td>{item.orderNumber || '—'}</td><td>{item.customerName || item.customerEmail || '—'}</td><td>{item.width} × {item.height} cm · {item.quantity}</td><td><span className="badge">{item.proofStatus}</span></td><td><span className="badge">{item.productionStatus}</span></td><td>{money(item.calculatedPrice)}</td><td><Link className="btn btn-outline-primary btn-sm" to={`/admin/custom-designs/${item.id}`}>Open</Link></td></tr>)}</tbody></table>{result && result.items.length === 0 && <p className="card-body">No ordered custom designs match these filters.</p>}</div>
+  </div>;
+}

@@ -1,0 +1,22 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { adminCustomBuilderApi } from '../../services/customBuilderApi';
+import { customBuilderApi } from '../../services/customBuilderApi';
+import { customerError, money } from '../../utils/storefront';
+
+export default function CustomDesignDetail() {
+  const { id } = useParams(); const [data, setData] = useState(null); const [error, setError] = useState(''); const [pending, setPending] = useState(false); const [message, setMessage] = useState('');
+  const load = useCallback(async () => { try { setData(await adminCustomBuilderApi.getDesign(id)); } catch (requestError) { setError(customerError(requestError)); } }, [id]);
+  useEffect(() => { load(); }, [load]);
+  const download = async (asset) => { const blob = await customBuilderApi.downloadPrivate(asset.downloadUrl); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = asset.originalFileName || `asset-${asset.id}`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
+  const upload = async (event) => { const file = event.target.files?.[0]; if (!file) return; setPending(true); try { await adminCustomBuilderApi.uploadProof(id, file, message); setMessage(''); await load(); } catch (requestError) { setError(customerError(requestError)); } finally { setPending(false); event.target.value = ''; } };
+  const production = async (status) => { setPending(true); try { await adminCustomBuilderApi.updateProductionStatus(id, status); await load(); } catch (requestError) { setError(customerError(requestError)); } finally { setPending(false); } };
+  if (!data) return <div className="admin-page"><p>{error || 'Loading design…'}</p></div>;
+  const design = data.design;
+  return <div className="admin-page"><Link to="/admin/custom-designs">← Custom designs</Link><div className="page-header"><div className="header-content"><div><h2>{design.name}</h2><p>{data.order?.orderNumber || 'No order'} · {data.customer?.name || data.customer?.email}</p></div><strong>{money(design.subtotal)}</strong></div></div>{error && <p className="out-of-stock-alert">{error}</p>}
+    <div className="card"><div className="card-header"><h3 className="card-title">Production specification</h3></div><div className="card-body"><dl className="s-spec-list"><div><dt>Dimensions</dt><dd>{design.width} × {design.height} cm</dd></div><div><dt>Quantity</dt><dd>{design.quantity}</dd></div><div><dt>Shape</dt><dd>{design.shapeLabel || '—'}</dd></div><div><dt>Material</dt><dd>{design.materialLabel || '—'}</dd></div><div><dt>Finish</dt><dd>{design.finishLabel || '—'}</dd></div><div><dt>Text</dt><dd>{design.customText || '—'}</dd></div><div><dt>Configuration</dt><dd>v{design.builderConfigurationVersion} / {design.pricingVersion}</dd></div><div><dt>Proof</dt><dd>{design.proofStatus}</dd></div></dl></div></div>
+    <div className="card"><div className="card-header"><h3 className="card-title">Original artwork</h3></div><div className="card-body">{design.assets.length ? design.assets.map((asset) => <button key={asset.id} className="btn btn-outline-primary" onClick={() => download(asset)}>Download {asset.originalFileName}</button>) : <p>No artwork was supplied.</p>}</div></div>
+    <div className="card"><div className="card-header"><h3 className="card-title">Proof revisions</h3></div><div className="card-body"><label className="form-group">Customer-visible message<textarea className="form-control" maxLength="1000" value={message} onChange={(event) => setMessage(event.target.value)} /></label><label className="btn btn-primary">Upload new proof<input hidden type="file" accept="image/jpeg,image/png,image/webp" disabled={pending} onChange={upload} /></label><ol>{design.proofRevisions.map((proof) => <li key={proof.id}>Revision {proof.revisionNumber}: {proof.status}{proof.customerResponse && ` — ${proof.customerResponse}`}</li>)}</ol></div></div>
+    <div className="card"><div className="card-header"><h3 className="card-title">Production state</h3></div><div className="card-body"><p>Current: <strong>{design.productionStatus}</strong></p><div className="action-buttons">{['Queued', 'Printing', 'Finishing', 'QualityCheck', 'Ready'].map((status) => <button className="btn btn-outline-primary" key={status} disabled={pending || design.productionStatus === status} onClick={() => production(status)}>{status}</button>)}</div></div></div>
+  </div>;
+}

@@ -10,13 +10,13 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
   const productId = fixture.products[0];
   const api = 'http://localhost:5197/api/v1';
   const suppliedCustomer = !!(process.env.STOREFRONT_CUSTOMER_EMAIL && process.env.STOREFRONT_CUSTOMER_PASSWORD);
-  const email = process.env.STOREFRONT_CUSTOMER_EMAIL || `phase4-smoke-${Date.now()}@example.test`;
+  const email = process.env.STOREFRONT_CUSTOMER_EMAIL || `Storefront-smoke-${Date.now()}@example.test`;
   const password = process.env.STOREFRONT_CUSTOMER_PASSWORD || `Qa4!${randomBytes(16).toString('hex')}`;
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   fixture.customerEmail = email; writeFileSync(fixturePath!, JSON.stringify(fixture));
   if (!suppliedCustomer) {
     await page.goto('./#/register');
-    await page.getByLabel('Full Name', { exact: true }).fill('Phase4 QA Customer');
+    await page.getByLabel('Full Name', { exact: true }).fill('Storefront QA Customer');
     await page.getByLabel('Email Address', { exact: true }).fill(email);
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByLabel('Confirm Password', { exact: true }).fill(password);
@@ -34,14 +34,14 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
     await expect(page.getByRole('heading', { name: 'Email Verified' })).toBeVisible();
   }
   await page.goto(`./#/products/${productId}`);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Phase4 QA print 01');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Storefront QA print 01');
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
   await expect(page).toHaveURL(/#\/login$/);
   await page.getByLabel('Email Address', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`#\\/products\\/${productId}$`));
-  await page.reload(); await expect(page.getByRole('heading', { level: 1 })).toHaveText('Phase4 QA print 01');
+  await page.reload(); await expect(page.getByRole('heading', { level: 1 })).toHaveText('Storefront QA print 01');
   await page.getByRole('button', { name: 'View image 2', exact: true }).click();
   await expect(page.getByRole('button', { name: 'View image 2' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Product option').selectOption({ label: 'Large format' });
@@ -68,7 +68,7 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page).toHaveURL(/page=2/); await expect(page.locator('.s-product-card')).toHaveCount(1);
   await page.getByLabel('Sort by').selectOption('price-desc');
-  await expect(page).not.toHaveURL(/page=2/); await expect(page.locator('.s-product-card').first()).toContainText('Phase4 QA print 13');
+  await expect(page).not.toHaveURL(/page=2/); await expect(page.locator('.s-product-card').first()).toContainText('Storefront QA print 13');
   await page.getByRole('searchbox', { name: 'Search products', exact: true }).fill('no-such-qa-result');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'No products found', exact: true })).toBeVisible();
@@ -83,11 +83,11 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
   await expect(page.getByRole('link', { name: 'Cart, 4 items', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Save something that feels like you.' })).toBeVisible();
-  await page.goto('./#/profile'); await page.getByLabel('Full name', { exact: true }).fill('Phase4 QA Updated');
+  await page.goto('./#/profile'); await page.getByLabel('Full name', { exact: true }).fill('Storefront QA Updated');
   await page.getByRole('button', { name: 'Save profile', exact: true }).click();
-  await expect(page.getByText('Welcome, Phase4 QA Updated.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Welcome, Storefront QA Updated.', { exact: true })).toBeVisible();
   await page.goto('./#/addresses'); await page.getByRole('button', { name: 'Add an address' }).click();
-  await page.getByLabel('Recipient name *', { exact: true }).fill('Phase4 QA Customer');
+  await page.getByLabel('Recipient name *', { exact: true }).fill('Storefront QA Customer');
   await page.getByLabel('Address line 1 *', { exact: true }).fill('Temporary verification address');
   await page.getByLabel('City *', { exact: true }).fill('Colombo');
   await page.getByRole('button', { name: 'Save address', exact: true }).click();

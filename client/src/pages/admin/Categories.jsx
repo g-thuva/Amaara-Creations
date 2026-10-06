@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { adminApi } from "../../services/adminApi";
 import "./AdminStyles.css";
+import AppIcon from "../../components/AppIcon";
 
 const blank = { name: "", slug: "", description: "", parentCategoryId: "", sortOrder: 0, isActive: true };
 
@@ -46,7 +47,7 @@ const Categories = () => {
             <tr key={category.id}>
               <td>{category.name}</td><td>{category.slug}</td><td>{items.find((item) => item.id === category.parentCategoryId)?.name || ""}</td><td>{category.sortOrder}</td>
               <td><span className={`badge ${category.isActive ? "badge-success" : "badge-warning"}`}>{category.isActive ? "Active" : "Archived"}</span></td>
-              <td><div className="action-buttons"><button className="btn-edit" onClick={() => edit(category)}><i className="fa-solid fa-pen" /></button><button className="btn-delete" onClick={() => toggle(category)}><i className={`fa-solid ${category.isActive ? "fa-box-archive" : "fa-rotate-left"}`} /></button></div></td>
+              <td><div className="action-buttons"><button className="btn-edit" onClick={() => edit(category)}><AppIcon name="edit" /></button><button className="btn-delete" onClick={() => toggle(category)}><AppIcon name={category.isActive ? "archive" : "refresh"} /></button></div></td>
             </tr>
           ))}</tbody>
         </table>

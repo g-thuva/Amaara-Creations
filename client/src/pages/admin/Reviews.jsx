@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { reviewApi } from "../../services/reviewApi";
+import AppIcon from "../../components/AppIcon";
 import "./AdminStyles.css";
 
 const Reviews = () => {
@@ -48,7 +49,7 @@ const fetchReviews = useCallback(async () => {
   const renderStars = (rating) => {
     return Array(5).fill(0).map((_, i) => (
       <span key={i} style={{ color: i < rating ? '#ffc107' : '#ddd' }}>
-        <i className={`${i < rating ? 'fa-solid' : 'fa-regular'} fa-star`} />
+        <AppIcon name="star" fill={i < rating ? 'currentColor' : 'none'} />
       </span>
     ));
   };
@@ -86,7 +87,7 @@ const fetchReviews = useCallback(async () => {
           <option value="1">1 Star</option>
         </select>
         <button onClick={fetchReviews} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <i className="fa-solid fa-rotate" /> Refresh
+          <AppIcon name="refresh" /> Refresh
         </button>
       </div>
 
@@ -144,7 +145,7 @@ const fetchReviews = useCallback(async () => {
                         onClick={() => handleDelete(review.id)}
                         title="Delete Review"
                       >
-                        <i className="fa-solid fa-trash" /> Delete
+                        <AppIcon name="trash" /> Delete
                       </button>
                     </td>
                   </tr>

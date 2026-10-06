@@ -5,7 +5,11 @@ import CmsSections from './CmsSections';
 import ProductCard from './ProductCard';
 import { Quantity } from './UI';
 import ProtectedRoute from '../ProtectedRoute';
-vi.mock('../../contexts/StoreContext', () => ({ useStore: () => ({ wishlist: { data: { items: [{ productId: 7 }] } }, pending: false, toggleWishlist: vi.fn() }) }));
+import HeroCarousel from '../home/HeroCarousel';
+import CategoryCards from '../home/CategoryCards';
+import Footer from '../Footer';
+import { normaliseHeroSlides } from '../home/heroSlides';
+vi.mock('../../contexts/StoreContext', () => ({ useStore: () => ({ values: {}, wishlist: { data: { items: [{ productId: 7 }] } }, pending: false, toggleWishlist: vi.fn() }) }));
 vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ authStatus: 'loading', isAuthenticated: false }) }));
 describe('storefront presentation', () => {
   it('escapes CMS text and suppresses unknown blocks and unsafe CTAs', () => {
@@ -27,5 +31,33 @@ describe('storefront presentation', () => {
   it('does not show protected content during restoration', () => {
     const markup = renderToStaticMarkup(<MemoryRouter><ProtectedRoute><p>Private details</p></ProtectedRoute></MemoryRouter>);
     expect(markup).toContain('Restoring session'); expect(markup).not.toContain('Private details');
+  });
+  it('normalises single and multi-slide CMS hero contracts and limits the carousel', () => {
+    expect(normaliseHeroSlides({ title: 'Wedding stickers', ctaUrl: '/products' })[0].title).toBe('Wedding stickers');
+    const slides = normaliseHeroSlides({ slides: Array.from({ length: 7 }, (_, index) => ({ title: `Slide ${index + 1}` })) });
+    expect(slides).toHaveLength(5);
+    expect(normaliseHeroSlides({ title: 'Safe', ctaUrl: 'javascript:alert(1)' })[0].ctaUrl).toBeNull();
+    expect(normaliseHeroSlides(null)[0].title).toBe('Custom stickers & decals');
+  });
+  it('renders labelled carousel controls only for multiple slides', () => {
+    const single = renderToStaticMarkup(<MemoryRouter><HeroCarousel hero={{ title: 'One slide' }} /></MemoryRouter>);
+    const multiple = renderToStaticMarkup(<MemoryRouter><HeroCarousel hero={{ slides: [{ title: 'One' }, { title: 'Two' }] }} /></MemoryRouter>);
+    expect(single).toContain('aria-roledescription="carousel"');
+    expect(single).not.toContain('Pause carousel');
+    expect(multiple).toContain('Pause carousel');
+    expect(multiple).toContain('Go to slide 2 of 2');
+  });
+  it('handles zero, one and many category cards', () => {
+    expect(renderToStaticMarkup(<MemoryRouter><CategoryCards categories={[]} /></MemoryRouter>)).toBe('');
+    const one = renderToStaticMarkup(<MemoryRouter><CategoryCards categories={[{ id: 1, name: 'Wedding', imageUrl: null }]} /></MemoryRouter>);
+    const many = renderToStaticMarkup(<MemoryRouter><CategoryCards categories={[{ id: 1, name: 'Wedding' }, { id: 2, name: 'Car decals' }]} /></MemoryRouter>);
+    expect(one).toContain('Shop Wedding');
+    expect(many).toContain('Car decals');
+  });
+  it('hides contact and social footer columns when settings are empty', () => {
+    const markup = renderToStaticMarkup(<MemoryRouter><Footer /></MemoryRouter>);
+    expect(markup).toContain('Quick links');
+    expect(markup).not.toContain('<h2>Contact</h2>');
+    expect(markup).not.toContain('Stay in touch');
   });
 });

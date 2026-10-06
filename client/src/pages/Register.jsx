@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import "./Auth.css";
+import AuthShell from '../components/storefront/AuthShell';
 
 const Register = () => {
   const [form, setForm] = useState({ 
@@ -70,7 +71,7 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-container">
+    <AuthShell>
       <div className="auth-card">
         <div className="auth-header">
           <h1 className="auth-title">Create Account</h1>
@@ -162,7 +163,7 @@ const Register = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

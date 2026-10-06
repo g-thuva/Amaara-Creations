@@ -12,11 +12,11 @@ test('profile, address, checkout and order history use real APIs', async ({ page
   await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   await expect(page).toHaveURL(/#\/profile$/);
-  await page.getByLabel('Full name', { exact: true }).fill('Phase4 QA Updated');
+  await page.getByLabel('Full name', { exact: true }).fill('Storefront QA Updated');
   await page.getByRole('button', { name: 'Save profile', exact: true }).click();
-  await expect(page.getByText('Welcome, Phase4 QA Updated.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Welcome, Storefront QA Updated.', { exact: true })).toBeVisible();
   await page.goto('./#/addresses'); await page.getByRole('button', { name: 'Add an address' }).click();
-  await page.getByLabel('Recipient name *', { exact: true }).fill('Phase4 QA Customer');
+  await page.getByLabel('Recipient name *', { exact: true }).fill('Storefront QA Customer');
   await page.getByLabel('Address line 1 *', { exact: true }).fill('Temporary verification address');
   await page.getByLabel('City *', { exact: true }).fill('Colombo');
   await page.getByRole('button', { name: 'Save address', exact: true }).click();

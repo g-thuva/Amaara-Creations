@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { adminApi } from "../../services/adminApi";
 import "./AdminStyles.css";
+import AppIcon from "../../components/AppIcon";
 
 const blank = { name: "", slug: "", description: "", sortOrder: 0, isActive: true };
 
@@ -48,7 +49,7 @@ const Collections = () => {
     <div className="admin-page">
       <div className="page-header"><div className="header-content"><div><h2>Collections</h2><p>{items.length} collections</p></div></div></div>
       <div className="products-table-container"><table className="admin-table"><thead><tr><th>Name</th><th>Slug</th><th>Products</th><th>Status</th><th>Actions</th></tr></thead><tbody>{items.map((collection) => (
-        <tr key={collection.id}><td>{collection.name}</td><td>{collection.slug}</td><td>{collection.productCount}</td><td><span className={`badge ${collection.isActive ? "badge-success" : "badge-warning"}`}>{collection.isActive ? "Active" : "Archived"}</span></td><td><div className="action-buttons"><button className="btn-edit" onClick={() => edit(collection)}><i className="fa-solid fa-pen" /></button><button className="btn-delete" onClick={() => toggle(collection)}><i className={`fa-solid ${collection.isActive ? "fa-box-archive" : "fa-rotate-left"}`} /></button></div></td></tr>
+        <tr key={collection.id}><td>{collection.name}</td><td>{collection.slug}</td><td>{collection.productCount}</td><td><span className={`badge ${collection.isActive ? "badge-success" : "badge-warning"}`}>{collection.isActive ? "Active" : "Archived"}</span></td><td><div className="action-buttons"><button className="btn-edit" onClick={() => edit(collection)}><AppIcon name="edit" /></button><button className="btn-delete" onClick={() => toggle(collection)}><AppIcon name={collection.isActive ? "archive" : "refresh"} /></button></div></td></tr>
       ))}</tbody></table></div>
       <div className="card"><div className="card-header"><h3 className="card-title">{editing ? "Edit Collection" : "Create Collection"}</h3></div><form className="add-product-form" onSubmit={save}>
         <div className="form-row"><label className="form-group">Name<input className="form-control" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label><label className="form-group">Slug<input className="form-control" value={form.slug || ""} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></label></div>

@@ -1,67 +1,80 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import AppIcon from "../../components/AppIcon";
 import "./AdminStyles.css";
 
 const menuItems = [
   { 
     title: "Dashboard", 
     path: "/admin/dashboard", 
-    icon: "fa-solid fa-house",
+    icon: "home",
     submenu: []
   },
   { 
     title: "Products", 
     path: "/admin/products", 
-    icon: "fa-solid fa-box",
+    icon: "package",
     submenu: []
   },
   {
     title: "Categories",
     path: "/admin/categories",
-    icon: "fa-solid fa-tags",
+    icon: "tag",
     submenu: []
   },
   {
     title: "Collections",
     path: "/admin/collections",
-    icon: "fa-solid fa-layer-group",
+    icon: "layers",
     submenu: []
   },
   {
     title: "Media",
     path: "/admin/media",
-    icon: "fa-solid fa-images",
+    icon: "images",
     submenu: []
   },
   {
     title: "Content",
     path: "/admin/content",
-    icon: "fa-solid fa-file-lines",
+    icon: "file",
     submenu: []
   },
   {
     title: "Settings",
     path: "/admin/settings",
-    icon: "fa-solid fa-gear",
+    icon: "settings",
+    submenu: []
+  },
+  {
+    title: "Custom Builder",
+    path: "/admin/custom-builder",
+    icon: "edit",
+    submenu: []
+  },
+  {
+    title: "Custom Designs",
+    path: "/admin/custom-designs",
+    icon: "layers",
     submenu: []
   },
   { 
     title: "Orders", 
     path: "/admin/orders", 
-    icon: "fa-solid fa-bag-shopping",
+    icon: "bag",
     submenu: []
   },
   { 
     title: "Customers", 
     path: "/admin/customers", 
-    icon: "fa-solid fa-users",
+    icon: "users",
     submenu: []
   },
   { 
     title: "Reviews", 
     path: "/admin/reviews", 
-    icon: "fa-solid fa-star",
+    icon: "star",
     submenu: []
   },
 ];
@@ -127,11 +140,11 @@ const AdminLayout = () => {
                   }
                 }}
               >
-                <i className={item.icon} />
+                <AppIcon name={item.icon} />
                 <span>{item.title}</span>
                 {item.submenu.length > 0 && (
                   <span style={{ marginLeft: 'auto' }}>
-                    <i className={`fa-solid ${activeSubmenu === index ? 'fa-chevron-down' : 'fa-chevron-right'}`} />
+                    <AppIcon name={activeSubmenu === index ? 'chevronDown' : 'chevronRight'} />
                   </span>
                 )}
               </Link>
@@ -160,7 +173,7 @@ const AdminLayout = () => {
           ))}
           
           <div className="menu-item" onClick={handleLogout} style={{ cursor: 'pointer' }}>
-            <i className="fa-solid fa-right-from-bracket" />
+            <AppIcon name="logout" />
             <span>Logout</span>
           </div>
         </nav>
@@ -172,14 +185,14 @@ const AdminLayout = () => {
         <header className="admin-header">
           <div className="header-left">
             <button className="toggle-sidebar" onClick={toggleSidebar}>
-              <i className={`fa-solid ${sidebarOpen ? 'fa-xmark' : 'fa-bars'}`} />
+              <AppIcon name={sidebarOpen ? 'x' : 'menu'} />
             </button>
             <button 
               className="back-button" 
               onClick={() => navigate('/')}
               title="Back to Home"
             >
-              <i className="fa-solid fa-arrow-left" />
+              <AppIcon name="arrowLeft" />
             </button>
             <h3 style={{ margin: 0, color: '#2d3748' }}>
               {menuItems.find(item => item.path === location.pathname)?.title || 'Dashboard'}

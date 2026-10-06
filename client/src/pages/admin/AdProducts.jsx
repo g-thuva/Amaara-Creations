@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { adminApi } from "../../services/adminApi";
 import { resolveMediaUrl } from "../../services/config";
 import "./AdminStyles.css";
+import AppIcon from "../../components/AppIcon";
 
 const emptyForm = {
   name: "",
@@ -168,7 +169,7 @@ const AdProducts = () => {
             <p>{pageInfo.totalItems} products</p>
           </div>
           <button className="btn-add-product" onClick={resetForm}>
-            <i className="fa-solid fa-plus" /> New Product
+            <AppIcon name="plus" /> New Product
           </button>
         </div>
       </div>
@@ -221,9 +222,9 @@ const AdProducts = () => {
                 <td><span className={`badge ${product.isActive ? "badge-success" : "badge-warning"}`}>{product.isActive ? "Active" : "Archived"}</span></td>
                 <td>
                   <div className="action-buttons">
-                    <button className="btn-edit" title="Edit" onClick={() => startEdit(product)}><i className="fa-solid fa-pen" /></button>
-                    <button className="btn-edit" title="Media and variants" onClick={() => openProductTools(product)}><i className="fa-solid fa-layer-group" /></button>
-                    <button className="btn-delete" title={product.isActive ? "Archive" : "Reactivate"} onClick={() => toggleArchive(product)}><i className={`fa-solid ${product.isActive ? "fa-box-archive" : "fa-rotate-left"}`} /></button>
+                    <button className="btn-edit" title="Edit" onClick={() => startEdit(product)}><AppIcon name="edit" /></button>
+                    <button className="btn-edit" title="Media and variants" onClick={() => openProductTools(product)}><AppIcon name="layers" /></button>
+                    <button className="btn-delete" title={product.isActive ? "Archive" : "Reactivate"} onClick={() => toggleArchive(product)}><AppIcon name={product.isActive ? "archive" : "refresh"} /></button>
                   </div>
                 </td>
               </tr>

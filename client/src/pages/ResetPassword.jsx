@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../services/authApi';
 import './Auth.css';
+import AuthShell from '../components/storefront/AuthShell';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -39,7 +40,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="auth-container">
+    <AuthShell>
       <div className="auth-card">
         <div className="auth-header">
           <h1 className="auth-title">Choose New Password</h1>
@@ -60,7 +61,7 @@ const ResetPassword = () => {
         </form>
         <div className="auth-footer"><Link to="/login" className="auth-link">Sign in</Link></div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

@@ -27,6 +27,8 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const AccountSecurity = lazy(() => import("./pages/AccountSecurity"));
 const Addresses = lazy(() => import("./pages/Addresses"));
+const SavedDesigns = lazy(() => import("./pages/SavedDesigns"));
+const ProofReview = lazy(() => import("./pages/ProofReview"));
 
 
 //admin
@@ -41,6 +43,9 @@ const Collections = lazy(() => import("./pages/admin/Collections"));
 const Media = lazy(() => import("./pages/admin/Media"));
 const Content = lazy(() => import("./pages/admin/Content"));
 const Settings = lazy(() => import("./pages/admin/Settings"));
+const AdminCustomBuilder = lazy(() => import("./pages/admin/CustomBuilderConfig"));
+const AdminCustomDesigns = lazy(() => import("./pages/admin/CustomDesigns"));
+const AdminCustomDesignDetail = lazy(() => import("./pages/admin/CustomDesignDetail"));
 
 
 function App() {
@@ -48,8 +53,10 @@ function App() {
   const isAdminRoute = location.pathname.startsWith('/admin');
   useEffect(() => {
     if (isAdminRoute) return;
-    const titles = { '/': 'Stickers & creative details', '/products': 'Shop', '/custom': 'Custom sticker preview', '/login': 'Sign in', '/register': 'Create account', '/about': 'Our story', '/contact': 'Contact' };
-    document.title = `${titles[location.pathname] || 'Your Amaara'} | Amaara Creations`;
+    const titles = { '/': 'Custom stickers & decals', '/products': 'Shop stickers & decals', '/custom': 'Custom sticker builder', '/login': 'Sign in', '/register': 'Create account', '/about': 'About Amaara', '/contact': 'Contact Amaara', '/cart': 'Shopping cart', '/wishlist': 'Wishlist', '/profile': 'Your profile', '/addresses': 'Your addresses', '/orders': 'Your orders', '/account/designs': 'Saved designs' };
+    const descriptions = { '/': 'Custom stickers, decals and personalised printed details from Amaara Creations.', '/products': 'Browse stickers, decals and printed products currently available from Amaara Creations.', '/custom': 'Preview custom sticker text, type and proportions before contacting Amaara Creations.' };
+    document.title = `${titles[location.pathname] || 'Amaara Creations'} | Amaara Creations`;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', descriptions[location.pathname] || 'Explore Amaara Creations products, custom sticker previews and customer account services.');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [location.pathname, isAdminRoute]);
 
@@ -62,6 +69,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<Products />} />
           <Route path="/custom" element={<CustomBuilder />} />
+          <Route path="/custom/:id" element={<CustomBuilder />} />
           <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
           <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
@@ -71,6 +79,8 @@ function App() {
             <Route path="/addresses" element={<Addresses/>}/>
             <Route path="/orders" element={<Orders/>}/>
             <Route path="/orders/:id" element={<OrderDetails/>}/>
+            <Route path="/account/designs" element={<SavedDesigns/>}/>
+            <Route path="/account/designs/:id/proof" element={<ProofReview/>}/>
           </Route>
           <Route path="/account" element={<Navigate to="/profile" replace/>}/>
           <Route path="/account/profile" element={<Navigate to="/profile" replace/>}/>
@@ -98,6 +108,9 @@ function App() {
             <Route path="reviews" element={<Reviews />} />
             <Route path="customers" element={<Customers />} />
             <Route path="orders" element={<AdOrders />} />
+            <Route path="custom-builder" element={<AdminCustomBuilder />} />
+            <Route path="custom-designs" element={<AdminCustomDesigns />} />
+            <Route path="custom-designs/:id" element={<AdminCustomDesignDetail />} />
           </Route>
           <Route path="*" element={<NotFound/>}/>
         </Routes>
