@@ -12,6 +12,8 @@ namespace be.DTOs.Order
         public int Quantity { get; set; }
         public decimal Price { get; set; } // Price at time of order
         public decimal Subtotal { get; set; } // Price * Quantity
+        public int? CustomDesignSnapshotVersion { get; set; }
+        public string? ConfigurationSnapshotJson { get; set; }
     }
 }
 

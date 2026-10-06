@@ -5,7 +5,10 @@ using be.Data;
 using be.DTOs.Order;
 using be.Models;
 using be.Security;
+using be.Services;
+using be.DTOs.CustomBuilder;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace be.Controllers
 {
@@ -16,11 +19,13 @@ namespace be.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<OrdersController> _logger;
+        private readonly ICustomStickerPricingService _pricing;
 
-        public OrdersController(ApplicationDbContext context, ILogger<OrdersController> logger)
+        public OrdersController(ApplicationDbContext context, ILogger<OrdersController> logger, ICustomStickerPricingService pricing)
         {
             _context = context;
             _logger = logger;
+            _pricing = pricing;
         }
 
         // GET: api/orders - Get user's orders
@@ -67,7 +72,9 @@ namespace be.Controllers
                             ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                             Quantity = oi.Quantity,
                             Price = oi.Price,
-                            Subtotal = oi.Subtotal
+                            Subtotal = oi.Subtotal,
+                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
+                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
                         }).ToList(),
                         CreatedAt = o.CreatedAt,
                         UpdatedAt = o.UpdatedAt
@@ -130,7 +137,9 @@ namespace be.Controllers
                             ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                             Quantity = oi.Quantity,
                             Price = oi.Price,
-                            Subtotal = oi.Subtotal
+                            Subtotal = oi.Subtotal,
+                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
+                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
                         }).ToList(),
                         CreatedAt = o.CreatedAt,
                         UpdatedAt = o.UpdatedAt
@@ -171,6 +180,8 @@ namespace be.Controllers
                 // Get user's cart items
                 var cartItems = await _context.CartItems
                     .Include(c => c.Product)
+                    .Include(c => c.CustomDesign)!.ThenInclude(design => design!.BuilderConfigurationVersion)!.ThenInclude(version => version!.Options)
+                    .Include(c => c.CustomDesign)!.ThenInclude(design => design!.Assets)
                     .Where(c => c.UserId == userId)
                     .ToListAsync();
 
@@ -183,9 +194,60 @@ namespace be.Controllers
                 decimal total = 0;
                 var orderItems = new List<OrderItem>();
                 var errors = new List<string>();
+                var activeConfiguration = await _context.CustomBuilderConfigurationVersions.Include(version => version.Options)
+                    .Where(version => version.Status == BuilderVersionStatus.Published)
+                    .OrderByDescending(version => version.PublishedAt).ThenByDescending(version => version.VersionNumber)
+                    .FirstOrDefaultAsync();
 
                 foreach (var cartItem in cartItems)
                 {
+                    if (cartItem.ItemType == CartItemType.CustomDesign)
+                    {
+                        var design = cartItem.CustomDesign;
+                        if (design == null || design.UserId != userId || design.Status != CustomDesignStatus.InCart)
+                        {
+                            errors.Add("A custom design in the cart is no longer available.");
+                            continue;
+                        }
+                        if (activeConfiguration == null)
+                        {
+                            errors.Add("The custom builder is not currently configured.");
+                            continue;
+                        }
+                        if (activeConfiguration.ArtworkRequired && !design.Assets.Any(asset => asset.AssetType == "artwork"))
+                        {
+                            errors.Add($"Artwork is required for {design.Name}.");
+                            continue;
+                        }
+                        try
+                        {
+                            var quoteRequest = new CustomQuoteRequest
+                            {
+                                Width = design.Width, Height = design.Height, Quantity = design.Quantity, ShapeCode = design.ShapeCode,
+                                MaterialCode = design.MaterialCode, FinishCode = design.FinishCode, FontCode = design.FontCode,
+                                ColourCode = design.ColourCode, CustomText = design.CustomText, TextAlignment = design.TextAlignment
+                            };
+                            var quote = _pricing.Quote(activeConfiguration, quoteRequest);
+                            var snapshot = CreateCustomSnapshot(design, activeConfiguration, quote);
+                            total += quote.Subtotal;
+                            orderItems.Add(new OrderItem
+                            {
+                                ItemType = OrderItemType.CustomDesign, CustomDesignId = design.Id, ProductNameSnapshot = design.Name,
+                                SkuSnapshot = $"CUSTOM-{design.Id}", Quantity = quote.Quantity, Price = quote.UnitPrice, UnitPrice = quote.UnitPrice,
+                                Subtotal = quote.Subtotal, ConfigurationSnapshotJson = JsonSerializer.Serialize(snapshot), CustomDesignSnapshotVersion = 1
+                            });
+                            design.BuilderConfigurationVersionId = activeConfiguration.Id; design.UnitPrice = quote.UnitPrice;
+                            design.CalculatedPrice = quote.Subtotal; design.PricingRuleVersion = quote.PricingVersion; design.QuotedAt = quote.QuotedAt;
+                            design.Status = CustomDesignStatus.Ordered; design.ProofStatus = activeConfiguration.ProofRequired ? ProofStatus.Preparing : ProofStatus.NotRequired;
+                            design.ProductionStatus = ProductionStatus.NotStarted; design.UpdatedAt = DateTime.UtcNow;
+                        }
+                        catch (CustomBuilderValidationException exception)
+                        {
+                            errors.AddRange(exception.Errors.Select(error => $"{design.Name}: {error}"));
+                        }
+                        continue;
+                    }
+
                     var product = cartItem.Product;
                     if (product == null || !product.IsActive)
                     {
@@ -290,7 +352,9 @@ namespace be.Controllers
                         ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                         Quantity = oi.Quantity,
                         Price = oi.Price,
-                        Subtotal = oi.Subtotal
+                        Subtotal = oi.Subtotal,
+                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
+                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
                     }).ToList(),
                     CreatedAt = order.CreatedAt,
                     UpdatedAt = order.UpdatedAt
@@ -303,6 +367,25 @@ namespace be.Controllers
                 _logger.LogError(ex, "Error creating order");
                 return StatusCode(500, new { message = "An error occurred while creating the order" });
             }
+        }
+
+        private static object CreateCustomSnapshot(CustomDesign design, CustomBuilderConfigurationVersion configuration, CustomQuoteResponse quote)
+        {
+            string? Label(BuilderOptionGroup group, string? code) => configuration.Options.FirstOrDefault(option => option.Group == group && option.Code == code)?.Label;
+            return new
+            {
+                SnapshotVersion = 1, DesignSchemaVersion = design.DesignSchemaVersion, DesignName = design.Name,
+                ConfigurationVersionId = configuration.Id, ConfigurationVersion = configuration.VersionNumber, quote.PricingVersion,
+                configuration.MeasurementUnit, quote.Width, quote.Height, quote.Quantity,
+                Shape = new { Code = design.ShapeCode, Label = Label(BuilderOptionGroup.Shape, design.ShapeCode) },
+                Material = new { Code = design.MaterialCode, Label = Label(BuilderOptionGroup.Material, design.MaterialCode) },
+                Finish = new { Code = design.FinishCode, Label = Label(BuilderOptionGroup.Finish, design.FinishCode) },
+                Font = new { Code = design.FontCode, Label = Label(BuilderOptionGroup.Font, design.FontCode) },
+                Colour = new { Code = design.ColourCode, Label = Label(BuilderOptionGroup.Colour, design.ColourCode) },
+                design.CustomText, design.TextAlignment, quote.Currency, quote.UnitPrice, quote.Subtotal,
+                ArtworkAssetIds = design.Assets.Where(asset => asset.AssetType == "artwork").Select(asset => asset.Id).ToArray(),
+                CapturedAt = DateTime.UtcNow
+            };
         }
 
         // PUT: api/v1/admin/orders/{id}/status - Update order status (Admin only)
@@ -417,7 +500,9 @@ namespace be.Controllers
                         ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                         Quantity = oi.Quantity,
                         Price = oi.Price,
-                        Subtotal = oi.Subtotal
+                        Subtotal = oi.Subtotal,
+                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
+                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
                     }).ToList(),
                     CreatedAt = order.CreatedAt,
                     UpdatedAt = order.UpdatedAt
@@ -501,7 +586,9 @@ namespace be.Controllers
                             ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                             Quantity = oi.Quantity,
                             Price = oi.Price,
-                            Subtotal = oi.Subtotal
+                            Subtotal = oi.Subtotal,
+                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
+                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
                         }).ToList(),
                         CreatedAt = o.CreatedAt,
                         UpdatedAt = o.UpdatedAt
@@ -562,7 +649,9 @@ namespace be.Controllers
                             ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
                             Quantity = oi.Quantity,
                             Price = oi.Price,
-                            Subtotal = oi.Subtotal
+                            Subtotal = oi.Subtotal,
+                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
+                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
                         }).ToList(),
                         CreatedAt = o.CreatedAt,
                         UpdatedAt = o.UpdatedAt

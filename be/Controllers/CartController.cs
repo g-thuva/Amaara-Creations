@@ -1,296 +1,159 @@
+using System.Security.Claims;
+using be.Data;
+using be.DTOs.Cart;
+using be.DTOs.CustomBuilder;
+using be.Models;
+using be.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using be.Data;
-using be.DTOs.Cart;
-using be.Models;
-using System.Security.Claims;
 
-namespace be.Controllers
+namespace be.Controllers;
+
+[ApiController]
+[Route("api/v1/cart")]
+[Authorize]
+public class CartController : ControllerBase
 {
-    [ApiController]
-    [Route("api/v1/cart")]
-    [Authorize] // All cart endpoints require authentication
-    public class CartController : ControllerBase
+    private readonly ApplicationDbContext _context;
+    private readonly ICustomStickerPricingService _pricing;
+
+    public CartController(ApplicationDbContext context, ICustomStickerPricingService pricing)
     {
-        private readonly ApplicationDbContext _context;
-        private readonly ILogger<CartController> _logger;
+        _context = context;
+        _pricing = pricing;
+    }
 
-        public CartController(ApplicationDbContext context, ILogger<CartController> logger)
+    [HttpGet]
+    public async Task<ActionResult<CartResponse>> GetCart(CancellationToken cancellationToken)
+    {
+        var userId = UserId();
+        if (userId == null) return Unauthorized();
+        var items = await CartQuery().Where(item => item.UserId == userId).AsNoTracking().OrderBy(item => item.CreatedAt).ToListAsync(cancellationToken);
+        return Ok(ToCart(items));
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<CartItemResponse>> AddToCart([FromBody] AddToCartRequest request, CancellationToken cancellationToken)
+    {
+        var userId = UserId();
+        if (userId == null) return Unauthorized();
+        var product = await _context.Products.FirstOrDefaultAsync(item => item.Id == request.ProductId && item.IsActive, cancellationToken);
+        if (product == null) return NotFound(new { message = "Product not found" });
+        var existing = await _context.CartItems.FirstOrDefaultAsync(item => item.UserId == userId && item.ProductId == request.ProductId, cancellationToken);
+        var quantity = (existing?.Quantity ?? 0) + request.Quantity;
+        if (product.Stock < quantity) return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]> { ["quantity"] = [$"Only {product.Stock} items are available."] }));
+        var cartItem = existing ?? new CartItem { UserId = userId, ProductId = product.Id, ItemType = CartItemType.Product, CreatedAt = DateTime.UtcNow };
+        cartItem.Quantity = quantity; cartItem.UnitPriceSnapshot = product.Price; cartItem.UpdatedAt = DateTime.UtcNow;
+        if (existing == null) _context.CartItems.Add(cartItem);
+        await _context.SaveChangesAsync(cancellationToken);
+        cartItem.Product = product;
+        return Ok(ToItem(cartItem));
+    }
+
+    [HttpPut("{itemId:int}")]
+    public async Task<ActionResult<CartItemResponse>> UpdateCartItem(int itemId, [FromBody] UpdateCartItemRequest request, CancellationToken cancellationToken)
+    {
+        var userId = UserId();
+        if (userId == null) return Unauthorized();
+        var item = await CartQuery().FirstOrDefaultAsync(value => value.Id == itemId && value.UserId == userId, cancellationToken);
+        if (item == null) return NotFound();
+        if (item.ItemType == CartItemType.Product)
         {
-            _context = context;
-            _logger = logger;
+            if (item.Product == null || item.Product.Stock < request.Quantity) return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]> { ["quantity"] = [$"Only {item.Product?.Stock ?? 0} items are available."] }));
+            item.Quantity = request.Quantity; item.UnitPriceSnapshot = item.Product.Price;
         }
-
-        // GET: api/cart
-        [HttpGet]
-        public async Task<ActionResult<CartResponse>> GetCart()
+        else
         {
+            if (item.CustomDesign == null) return Conflict(new ProblemDetails { Title = "Custom design is unavailable", Status = 409 });
+            var configuration = await ActiveConfiguration(cancellationToken);
+            if (configuration == null) return Problem(statusCode: 503, title: "Custom builder is not configured");
+            var requestQuote = QuoteRequest(item.CustomDesign, request.Quantity);
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                var cartItems = await _context.CartItems
-                    .Include(c => c.Product)
-                    .Where(c => c.UserId == userId)
-                    .Select(c => new CartItemResponse
-                    {
-                        Id = c.Id,
-                        ProductId = c.ProductId,
-                        ProductName = c.Product!.Name,
-                        ProductPrice = c.Product.Price,
-                        ProductImageUrl = c.Product.ImageUrl,
-                        Quantity = c.Quantity,
-                        Subtotal = c.Product.Price * c.Quantity,
-                        IsOutOfStock = c.Product.Stock == 0,
-                        ProductStock = c.Product.Stock,
-                        CreatedAt = c.CreatedAt,
-                        UpdatedAt = c.UpdatedAt
-                    })
-                    .ToListAsync();
-
-                var total = cartItems.Sum(item => item.Subtotal);
-                var totalItems = cartItems.Sum(item => item.Quantity);
-
-                var response = new CartResponse
-                {
-                    Items = cartItems,
-                    Total = total,
-                    TotalItems = totalItems
-                };
-
-                return Ok(response);
+                var quote = _pricing.Quote(configuration, requestQuote);
+                item.Quantity = quote.Quantity; item.UnitPriceSnapshot = quote.UnitPrice; item.BuilderConfigurationVersionId = configuration.Id;
+                item.CustomDesign.Quantity = quote.Quantity; item.CustomDesign.UnitPrice = quote.UnitPrice; item.CustomDesign.CalculatedPrice = quote.Subtotal;
+                item.CustomDesign.PricingRuleVersion = quote.PricingVersion; item.CustomDesign.BuilderConfigurationVersionId = configuration.Id;
+                item.CustomDesign.QuotedAt = quote.QuotedAt; item.CustomDesign.UpdatedAt = DateTime.UtcNow;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting cart");
-                return StatusCode(500, new { message = "An error occurred while retrieving the cart" });
-            }
+            catch (CustomBuilderValidationException exception) { return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]> { ["quantity"] = exception.Errors.ToArray() })); }
         }
+        item.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        return Ok(ToItem(item));
+    }
 
-        // POST: api/cart
-        [HttpPost]
-        public async Task<ActionResult<CartItemResponse>> AddToCart([FromBody] AddToCartRequest request)
+    [HttpDelete("{itemId:int}")]
+    public async Task<IActionResult> RemoveCartItem(int itemId, CancellationToken cancellationToken)
+    {
+        var userId = UserId();
+        if (userId == null) return Unauthorized();
+        var item = await _context.CartItems.Include(value => value.CustomDesign).FirstOrDefaultAsync(value => value.Id == itemId && value.UserId == userId, cancellationToken);
+        if (item == null) return NotFound();
+        if (item.CustomDesign != null && item.CustomDesign.Status == CustomDesignStatus.InCart) item.CustomDesign.Status = CustomDesignStatus.Ready;
+        _context.CartItems.Remove(item);
+        await _context.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete]
+    public async Task<IActionResult> ClearCart(CancellationToken cancellationToken)
+    {
+        var userId = UserId();
+        if (userId == null) return Unauthorized();
+        var items = await _context.CartItems.Include(item => item.CustomDesign).Where(item => item.UserId == userId).ToListAsync(cancellationToken);
+        foreach (var item in items.Where(item => item.CustomDesign?.Status == CustomDesignStatus.InCart)) item.CustomDesign!.Status = CustomDesignStatus.Ready;
+        _context.CartItems.RemoveRange(items);
+        await _context.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    private string? UserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    private IQueryable<CartItem> CartQuery() => _context.CartItems
+        .Include(item => item.Product)
+        .Include(item => item.CustomDesign)!.ThenInclude(design => design!.BuilderConfigurationVersion)!.ThenInclude(version => version!.Options);
+
+    private async Task<CustomBuilderConfigurationVersion?> ActiveConfiguration(CancellationToken cancellationToken) => await _context.CustomBuilderConfigurationVersions
+        .Include(version => version.Options).Where(version => version.Status == BuilderVersionStatus.Published)
+        .OrderByDescending(version => version.PublishedAt).ThenByDescending(version => version.VersionNumber).FirstOrDefaultAsync(cancellationToken);
+
+    private static CustomQuoteRequest QuoteRequest(CustomDesign design, int quantity) => new()
+    {
+        Width = design.Width, Height = design.Height, Quantity = quantity, ShapeCode = design.ShapeCode, MaterialCode = design.MaterialCode,
+        FinishCode = design.FinishCode, FontCode = design.FontCode, ColourCode = design.ColourCode, CustomText = design.CustomText, TextAlignment = design.TextAlignment
+    };
+
+    private static CartResponse ToCart(IEnumerable<CartItem> items)
+    {
+        var mapped = items.Select(ToItem).ToList();
+        return new CartResponse { Items = mapped, Total = mapped.Sum(item => item.Subtotal), TotalItems = mapped.Sum(item => item.Quantity) };
+    }
+
+    private static CartItemResponse ToItem(CartItem item)
+    {
+        if (item.ItemType == CartItemType.CustomDesign && item.CustomDesign != null)
         {
-            try
+            var design = item.CustomDesign; var options = design.BuilderConfigurationVersion?.Options ?? Array.Empty<CustomBuilderOption>();
+            string? Label(BuilderOptionGroup group, string? code) => options.FirstOrDefault(option => option.Group == group && option.Code == code)?.Label;
+            return new CartItemResponse
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                // Check if product exists and is active
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Id == request.ProductId && p.IsActive);
-
-                if (product == null)
-                {
-                    return NotFound(new { message = "Product not found" });
-                }
-
-                // Check stock availability
-                if (product.Stock < request.Quantity)
-                {
-                    return BadRequest(new { message = $"Only {product.Stock} items available in stock" });
-                }
-
-                // Check if item already exists in cart
-                var existingCartItem = await _context.CartItems
-                    .FirstOrDefaultAsync(c => c.UserId == userId && c.ProductId == request.ProductId);
-
-                CartItem cartItem;
-
-                if (existingCartItem != null)
-                {
-                    // Update quantity if item already exists
-                    var newQuantity = existingCartItem.Quantity + request.Quantity;
-                    
-                    // Check stock availability for new total quantity
-                    if (product.Stock < newQuantity)
-                    {
-                        return BadRequest(new { message = $"Only {product.Stock} items available in stock. You already have {existingCartItem.Quantity} in cart." });
-                    }
-
-                    existingCartItem.Quantity = newQuantity;
-                    existingCartItem.UpdatedAt = DateTime.UtcNow;
-                    cartItem = existingCartItem;
-                }
-                else
-                {
-                    // Create new cart item
-                    cartItem = new CartItem
-                    {
-                        UserId = userId,
-                        ProductId = request.ProductId,
-                        Quantity = request.Quantity,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-
-                    _context.CartItems.Add(cartItem);
-                }
-
-                await _context.SaveChangesAsync();
-
-                // Reload with product data
-                await _context.Entry(cartItem)
-                    .Reference(c => c.Product)
-                    .LoadAsync();
-
-                var response = new CartItemResponse
-                {
-                    Id = cartItem.Id,
-                    ProductId = cartItem.ProductId,
-                    ProductName = cartItem.Product!.Name,
-                    ProductPrice = cartItem.Product.Price,
-                    ProductImageUrl = cartItem.Product.ImageUrl,
-                    Quantity = cartItem.Quantity,
-                    Subtotal = cartItem.Product.Price * cartItem.Quantity,
-                    IsOutOfStock = cartItem.Product.Stock == 0,
-                    ProductStock = cartItem.Product.Stock,
-                    CreatedAt = cartItem.CreatedAt,
-                    UpdatedAt = cartItem.UpdatedAt
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error adding to cart");
-                return StatusCode(500, new { message = "An error occurred while adding item to cart" });
-            }
+                Id = item.Id, ItemType = "CustomDesign", CustomDesignId = design.Id, ProductName = design.Name, DesignName = design.Name,
+                ProductPrice = item.UnitPriceSnapshot, Quantity = design.Quantity, Subtotal = item.UnitPriceSnapshot * design.Quantity,
+                Width = design.Width, Height = design.Height, MeasurementUnit = design.BuilderConfigurationVersion?.MeasurementUnit,
+                Shape = Label(BuilderOptionGroup.Shape, design.ShapeCode), Material = Label(BuilderOptionGroup.Material, design.MaterialCode),
+                Finish = Label(BuilderOptionGroup.Finish, design.FinishCode), CustomText = design.CustomText, EditUrl = $"/custom/{design.Id}",
+                IsOutOfStock = false, ProductStock = int.MaxValue, CreatedAt = item.CreatedAt, UpdatedAt = item.UpdatedAt
+            };
         }
-
-        // PUT: api/cart/{itemId}
-        [HttpPut("{itemId}")]
-        public async Task<ActionResult<CartItemResponse>> UpdateCartItem(int itemId, [FromBody] UpdateCartItemRequest request)
+        var product = item.Product;
+        return new CartItemResponse
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                var cartItem = await _context.CartItems
-                    .Include(c => c.Product)
-                    .FirstOrDefaultAsync(c => c.Id == itemId && c.UserId == userId);
-
-                if (cartItem == null)
-                {
-                    return NotFound(new { message = "Cart item not found" });
-                }
-
-                // Check stock availability
-                if (cartItem.Product!.Stock < request.Quantity)
-                {
-                    return BadRequest(new { message = $"Only {cartItem.Product.Stock} items available in stock" });
-                }
-
-                cartItem.Quantity = request.Quantity;
-                cartItem.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                var response = new CartItemResponse
-                {
-                    Id = cartItem.Id,
-                    ProductId = cartItem.ProductId,
-                    ProductName = cartItem.Product.Name,
-                    ProductPrice = cartItem.Product.Price,
-                    ProductImageUrl = cartItem.Product.ImageUrl,
-                    Quantity = cartItem.Quantity,
-                    Subtotal = cartItem.Product.Price * cartItem.Quantity,
-                    IsOutOfStock = cartItem.Product.Stock == 0,
-                    ProductStock = cartItem.Product.Stock,
-                    CreatedAt = cartItem.CreatedAt,
-                    UpdatedAt = cartItem.UpdatedAt
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating cart item {ItemId}", itemId);
-                return StatusCode(500, new { message = "An error occurred while updating cart item" });
-            }
-        }
-
-        // DELETE: api/cart/{itemId}
-        [HttpDelete("{itemId}")]
-        public async Task<IActionResult> RemoveCartItem(int itemId)
-        {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                var cartItem = await _context.CartItems
-                    .FirstOrDefaultAsync(c => c.Id == itemId && c.UserId == userId);
-
-                if (cartItem == null)
-                {
-                    return NotFound(new { message = "Cart item not found" });
-                }
-
-                _context.CartItems.Remove(cartItem);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Item removed from cart successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error removing cart item {ItemId}", itemId);
-                return StatusCode(500, new { message = "An error occurred while removing cart item" });
-            }
-        }
-
-        // DELETE: api/cart
-        [HttpDelete]
-        public async Task<IActionResult> ClearCart()
-        {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                var cartItems = await _context.CartItems
-                    .Where(c => c.UserId == userId)
-                    .ToListAsync();
-
-                _context.CartItems.RemoveRange(cartItems);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Cart cleared successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error clearing cart");
-                return StatusCode(500, new { message = "An error occurred while clearing cart" });
-            }
-        }
+            Id = item.Id, ItemType = "Product", ProductId = item.ProductId, ProductName = product?.Name ?? "Unavailable product",
+            ProductPrice = product?.Price ?? item.UnitPriceSnapshot, ProductImageUrl = product?.ImageUrl ?? string.Empty, Quantity = item.Quantity,
+            Subtotal = (product?.Price ?? item.UnitPriceSnapshot) * item.Quantity, IsOutOfStock = product == null || product.Stock == 0,
+            ProductStock = product?.Stock ?? 0, CreatedAt = item.CreatedAt, UpdatedAt = item.UpdatedAt
+        };
     }
 }
-

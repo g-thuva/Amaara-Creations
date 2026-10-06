@@ -44,6 +44,8 @@ namespace be.Models
 
         public string? ConfigurationSnapshotJson { get; set; }
 
+        public int? CustomDesignSnapshotVersion { get; set; }
+
         [StringLength(500)]
         public string? ImageSnapshot { get; set; }
 

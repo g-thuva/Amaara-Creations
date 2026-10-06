@@ -27,6 +27,9 @@ namespace be.Data
         public DbSet<Address> Addresses { get; set; }
         public DbSet<CustomDesign> CustomDesigns { get; set; }
         public DbSet<CustomDesignAsset> CustomDesignAssets { get; set; }
+        public DbSet<CustomBuilderConfigurationVersion> CustomBuilderConfigurationVersions { get; set; }
+        public DbSet<CustomBuilderOption> CustomBuilderOptions { get; set; }
+        public DbSet<CustomDesignProofRevision> CustomDesignProofRevisions { get; set; }
         public DbSet<RefreshSession> RefreshSessions { get; set; }
         public DbSet<OrderStatusHistory> OrderStatusHistories { get; set; }
         public DbSet<Payment> Payments { get; set; }
@@ -91,10 +94,12 @@ namespace be.Data
                 entity.HasOne(e => e.Product)
                     .WithMany()
                     .HasForeignKey(e => e.ProductId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
                 
                 // Index for faster queries
-                entity.HasIndex(e => new { e.UserId, e.ProductId });
+                entity.HasIndex(e => new { e.UserId, e.ProductId })
+                    .IsUnique()
+                    .HasFilter("[ProductId] IS NOT NULL");
             });
 
             // Configure Order entity
@@ -211,10 +216,12 @@ namespace be.Data
                 entity.HasIndex(e => e.CreatedAt);
             });
 
-            ConfigurePhase1Foundation(modelBuilder);
+            ConfigureFoundationFoundation(modelBuilder);
+            ConfigureCustomBuilder(modelBuilder);
         }
 
-        partial void ConfigurePhase1Foundation(ModelBuilder modelBuilder);
+        partial void ConfigureFoundationFoundation(ModelBuilder modelBuilder);
+        partial void ConfigureCustomBuilder(ModelBuilder modelBuilder);
     }
 }
 
