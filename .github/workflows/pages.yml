@@ -69,6 +69,8 @@ jobs:
           npm test
           
       - name: Build
+        env:
+          VITE_ROUTER_MODE: hash
         run: |
           cd client
           npm run build

@@ -1,21 +1,15 @@
-import { test, expect } from '@playwright/test';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-const fixturePath = process.env.STOREFRONT_FIXTURE;
-const email = process.env.STOREFRONT_CUSTOMER_EMAIL;
-const password = process.env.STOREFRONT_CUSTOMER_PASSWORD;
-test('profile, address, checkout and order history use real APIs', async ({ page }) => {
-  test.skip(!fixturePath || !existsSync(fixturePath) || !email || !password, 'Set the local fixture and disposable customer credentials.');
+import { test, expect } from './fixtures';
+test('profile, address, checkout and order history use real APIs', async ({ page, fixture }) => {
   test.setTimeout(120000);
-  const fixture = JSON.parse(readFileSync(fixturePath!, 'utf8').replace(/^\uFEFF/, ''));
-  await page.goto('./#/login');
-  await page.getByLabel('Email Address', { exact: true }).fill(email!);
-  await page.getByLabel('Password', { exact: true }).fill(password!);
+  await page.goto('./login');
+  await page.getByLabel('Email Address', { exact: true }).fill(fixture.customerEmail);
+  await page.getByLabel('Password', { exact: true }).fill(fixture.password);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
-  await expect(page).toHaveURL(/#\/profile$/);
+  await expect(page).toHaveURL(/\/profile$/);
   await page.getByLabel('Full name', { exact: true }).fill('Storefront QA Updated');
   await page.getByRole('button', { name: 'Save profile', exact: true }).click();
   await expect(page.getByText('Welcome, Storefront QA Updated.', { exact: true })).toBeVisible();
-  await page.goto('./#/addresses'); await page.getByRole('button', { name: 'Add an address' }).click();
+  await page.goto('./addresses'); await page.getByRole('button', { name: 'Add an address' }).click();
   await page.getByLabel('Recipient name *', { exact: true }).fill('Storefront QA Customer');
   await page.getByLabel('Address line 1 *', { exact: true }).fill('Temporary verification address');
   await page.getByLabel('City *', { exact: true }).fill('Colombo');
@@ -27,18 +21,16 @@ test('profile, address, checkout and order history use real APIs', async ({ page
   const setDefault = page.getByRole('button', { name: 'Set default', exact: true });
   if (await setDefault.count()) await setDefault.click();
   await expect(page.getByText('Default', { exact: true })).toBeVisible();
-  await page.goto(`./#/products/${fixture.products[0]}`);
+  await page.goto(`./products/${fixture.products[0]}`);
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
-  await page.goto('./#/checkout');
-  await page.getByLabel('Address', { exact: true }).fill('QA delivery address');
-  await page.getByLabel('City', { exact: true }).fill('Colombo');
-  await page.getByLabel('Postal code', { exact: true }).fill('00100');
-  await page.getByRole('button', { name: 'Place order', exact: true }).click();
-  await expect(page).toHaveURL(/#\/orders\/\d+$/);
-  await expect(page.getByText('Your order has been placed. No online payment has been collected.', { exact: true })).toBeVisible();
-  fixture.orderId = Number(page.url().split('/').at(-1)); writeFileSync(fixturePath!, JSON.stringify(fixture));
-  await page.goto('./#/orders'); await expect(page.getByRole('link', { name: 'View order' })).toBeVisible();
-  await page.goto('./#/addresses'); await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(page.getByText('Added to your cart.', { exact: true })).toBeVisible();
+  await page.goto('./checkout');
+  await expect(page.getByLabel('Saved address')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your order', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pay securely', exact: true })).toBeDisabled();
+  // Live smoke tests stop at the quote. Real sandbox payment requires separate merchant setup.
+  await page.goto('./orders'); await expect(page.getByRole('heading', { name: 'Your orders', exact: true })).toBeVisible();
+  await page.goto('./addresses'); await page.getByRole('button', { name: 'Delete', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'No saved addresses yet' })).toBeVisible();
 });

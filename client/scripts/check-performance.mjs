@@ -1,0 +1,13 @@
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
+import { resolve } from 'node:path';
+const assets = resolve('dist/assets');
+const files = readdirSync(assets);
+const initial = files.filter(name => /^index-.*\.js$/.test(name));
+if (initial.length !== 1) throw new Error('Expected one identifiable initial JavaScript entry.');
+const initialGzip = gzipSync(readFileSync(resolve(assets, initial[0]))).length;
+const largestRouteGzip = Math.max(...files.filter(name => name.endsWith('.js') && !initial.includes(name)).map(name => gzipSync(readFileSync(resolve(assets, name))).length));
+const css = files.filter(name => name.endsWith('.css')).reduce((sum, name) => sum + statSync(resolve(assets, name)).size, 0);
+const result = { initialGzipBytes: initialGzip, initialBudget: 128000, largestRouteGzipBytes: largestRouteGzip, routeBudget: 40000, totalCssBytes: css, cssBudget: 100000 };
+console.log(JSON.stringify(result, null, 2));
+if (initialGzip > result.initialBudget || largestRouteGzip > result.routeBudget || css > result.cssBudget) process.exitCode = 1;

@@ -6,10 +6,12 @@ using be.DTOs.CustomBuilder;
 using be.DTOs.Order;
 using be.Models;
 using be.Services;
+using be.Services.Checkout;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace be.Tests;
 
@@ -97,12 +99,9 @@ public class CustomBuilderCustomBuilderTests
             UserId = user.Id, ItemType = CartItemType.CustomDesign, CustomDesign = design, Quantity = 2, UnitPriceSnapshot = 52m, BuilderConfigurationVersionId = configuration.Id
         });
         await context.SaveChangesAsync();
-        var controller = new OrdersController(context, NullLogger<OrdersController>.Instance, new CustomStickerPricingService()) { ControllerContext = ContextFor("customer-a") };
-
-        var action = await controller.CreateOrder(new CreateOrderRequest { ShippingAddress = "Test", ShippingCity = "Colombo", ShippingCountry = "Sri Lanka" });
-        var created = Assert.IsType<CreatedAtActionResult>(action.Result);
-        var response = Assert.IsType<OrderResponse>(created.Value);
-        var snapshotJson = Assert.Single(response.OrderItems).ConfigurationSnapshotJson;
+        var quote = new CustomStickerPricingService().Quote(configuration, new CustomQuoteRequest { Width = design.Width, Height = design.Height, Quantity = design.Quantity, MaterialCode = design.MaterialCode });
+        var snapshotJson = be.Services.Checkout.CheckoutPricingService.Snapshot(design, configuration, quote);
+        context.OrderItems.Add(new OrderItem { Order = new Order { UserId = user.Id, OrderNumber = "SNAPSHOT-TEST" }, ItemType = OrderItemType.CustomDesign, CustomDesignId = design.Id, ConfigurationSnapshotJson = snapshotJson, Quantity = quote.Quantity, UnitPrice = quote.UnitPrice, Price = quote.UnitPrice, Subtotal = quote.Subtotal });
         configuration.PricePerSquareUnit = 99m;
         await context.SaveChangesAsync();
 
@@ -127,7 +126,7 @@ public class CustomBuilderCustomBuilderTests
     private static ApplicationDbContext Context() => new(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
     private static User User(string id) => new() { Id = id, UserName = $"{id}@example.test", Email = $"{id}@example.test", Name = id, EmailConfirmed = true };
     private static ControllerContext ContextFor(string userId) => new() { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, userId)], "test")) } };
-    private static CustomDesignsController CustomerController(ApplicationDbContext context, string userId) => new(context, new CustomStickerPricingService(), new FakeStorage()) { ControllerContext = ContextFor(userId) };
+    private static CustomDesignsController CustomerController(ApplicationDbContext context, string userId) => new(context, new CustomStickerPricingService(), new FakeStorage(), Options.Create(new CheckoutOptions())) { ControllerContext = ContextFor(userId) };
 
     private sealed class FakeStorage : IMediaStorageService
     {

@@ -1,0 +1,47 @@
+name: Release quality and disposable SQL rehearsals
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sql-and-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Start disposable SQL Server with an ephemeral generated password
+        shell: bash
+        run: |
+          AMAARA_CI_SQL_PASSWORD="$(openssl rand -base64 32)A!2"
+          echo "::add-mask::$AMAARA_CI_SQL_PASSWORD"
+          printf 'AMAARA_CI_SQL_PASSWORD=%s\n' "$AMAARA_CI_SQL_PASSWORD" >> "$GITHUB_ENV"
+          printf 'AMAARA_TEST_SQL_CONNECTION=Server=localhost,1433;Database=AmaaraPhase6Tests_CI_%s;User ID=sa;Password=%s;Encrypt=false;TrustServerCertificate=true\n' "$GITHUB_RUN_ID" "$AMAARA_CI_SQL_PASSWORD" >> "$GITHUB_ENV"
+          docker run -d --name amaara-release-sql -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$AMAARA_CI_SQL_PASSWORD" -p 127.0.0.1:1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+          for attempt in $(seq 1 60); do
+            if docker exec amaara-release-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$AMAARA_CI_SQL_PASSWORD" -C -Q 'SELECT 1' >/dev/null 2>&1; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - run: dotnet restore tests/be.Tests/be.Tests.csproj
+      - run: dotnet build tests/be.Tests/be.Tests.csproj --configuration Release --no-restore
+      - run: dotnet test tests/be.Tests/be.Tests.csproj --configuration Release --no-build --logger trx --results-directory .runtime/test-results
+      - run: python scripts/check-nuget-audit.py
+      - run: dotnet publish be/be.csproj --configuration Release --no-restore --output .runtime/release/api
+      - run: python scripts/check-release-artifacts.py .runtime/release/api
+      - run: python scripts/scan-secrets.py
+      - name: Verify the unapproved production gate remains closed
+        run: |
+          if python scripts/check-cutover-gate.py deploy/cutover-gate.example.json; then
+            echo 'Unapproved gate must remain blocked'; exit 1
+          else
+            test "$?" -eq 2
+          fi
+      - name: Remove disposable SQL container
+        if: always()
+        run: docker rm -f amaara-release-sql || true
