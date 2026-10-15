@@ -1,0 +1,20 @@
+[Unit]
+Description=Amaara API and durable commerce maintenance worker
+After=network-online.target
+Wants=network-online.target
+[Service]
+User={{SERVICE_USER}}
+Group={{SERVICE_GROUP}}
+WorkingDirectory={{API_DIRECTORY}}
+ExecStart={{DOTNET_EXECUTABLE}} {{API_DIRECTORY}}/be.dll
+Environment=ASPNETCORE_ENVIRONMENT=Production
+EnvironmentFile={{PRIVATE_ENVIRONMENT_FILE}}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths={{PUBLIC_MEDIA_DIRECTORY}} {{PRIVATE_ARTWORK_DIRECTORY}} {{KEY_DIRECTORY}}
+UMask=0077
+[Install]
+WantedBy=multi-user.target
