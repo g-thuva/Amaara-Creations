@@ -23,6 +23,8 @@ namespace be.Models
         public string Reason { get; set; } = string.Empty;
 
         public string? PerformedByUserId { get; set; }
+        [StringLength(40)] public string MovementType { get; set; } = "Adjustment";
+        public int? OrderId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

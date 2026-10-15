@@ -7,6 +7,7 @@ namespace be.DTOs.Product
         public string Slug { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public decimal BasePrice { get; set; }
+        public string Currency { get; set; } = "LKR";
         public string Description { get; set; } = string.Empty;
         public string? ShortDescription { get; set; }
         public string ImageUrl { get; set; } = string.Empty;

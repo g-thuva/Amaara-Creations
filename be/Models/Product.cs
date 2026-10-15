@@ -28,6 +28,10 @@ namespace be.Models
         public decimal BasePrice { get; set; }
 
         [Required]
+        [StringLength(3)]
+        public string Currency { get; set; } = "LKR";
+
+        [Required]
         [StringLength(500)]
         public string Description { get; set; } = string.Empty;
 
@@ -46,6 +50,7 @@ namespace be.Models
 
         [Required]
         public int Stock { get; set; } = 0;
+        [Range(0, int.MaxValue)] public int LowStockThreshold { get; set; }
 
         public bool IsActive { get; set; } = true;
 
@@ -54,6 +59,9 @@ namespace be.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
         [ForeignKey("CategoryId")]
         public Category? CategoryEntity { get; set; }

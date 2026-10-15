@@ -1,676 +1,76 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using be.Data;
 using be.DTOs.Order;
 using be.Models;
 using be.Security;
-using be.Services;
-using be.DTOs.CustomBuilder;
-using System.Security.Claims;
-using System.Text.Json;
+using be.Services.Checkout;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace be.Controllers
+namespace be.Controllers;
+
+[ApiController, Route("api/v1/orders"), Authorize]
+public sealed class OrdersController(ApplicationDbContext db, OrderLifecycleService lifecycle) : ControllerBase
 {
-    [ApiController]
-    [Route("api/v1/orders")]
-    [Authorize] // All order endpoints require authentication
-    public class OrdersController : ControllerBase
+    [HttpGet]
+    public async Task<ActionResult<List<OrderResponse>>> GetUserOrders(CancellationToken ct)
+        => Ok((await Query().Where(o => o.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier)).OrderByDescending(o => o.Id).ToListAsync(ct)).Select(Map).ToList());
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<OrderResponse>> GetOrder(int id, CancellationToken ct)
     {
-        private readonly ApplicationDbContext _context;
-        private readonly ILogger<OrdersController> _logger;
-        private readonly ICustomStickerPricingService _pricing;
-
-        public OrdersController(ApplicationDbContext context, ILogger<OrdersController> logger, ICustomStickerPricingService pricing)
+        var order = await Query().SingleOrDefaultAsync(o => o.Id == id && o.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier), ct);
+        return order == null ? NotFound() : Ok(Map(order));
+    }
+    [HttpPost]
+    public IActionResult CreateOrder() => Problem(statusCode: 410, title: "Use the authoritative checkout quote and payment session endpoints.");
+    [HttpGet("/api/v1/admin/orders")]
+    [Authorize(Policy = AppPolicies.ViewOrders)]
+    public async Task<IActionResult> GetAllOrders(string? status = null, string? search = null, int pageNumber = 1, int pageSize = 20, CancellationToken ct = default)
+    {
+        var query = Query();
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<OrderStatus>(status, out var parsed)) query = query.Where(o => o.Status == parsed);
+        if (!string.IsNullOrWhiteSpace(search)) query = query.Where(o => o.OrderNumber.Contains(search) || o.User!.Name.Contains(search) || o.User.Email!.Contains(search));
+        pageNumber = Math.Max(1, pageNumber); pageSize = Math.Clamp(pageSize, 1, 100);
+        var count = await query.CountAsync(ct);
+        var orders = (await query.OrderByDescending(o => o.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct)).Select(Map).ToList();
+        return Ok(new { Orders = orders, TotalCount = count, PageNumber = pageNumber, PageSize = pageSize, TotalPages = (int)Math.Ceiling((decimal)count / pageSize) });
+    }
+    [HttpGet("/api/v1/admin/orders/{id:int}")]
+    [Authorize(Policy = AppPolicies.ViewOrders)]
+    public async Task<ActionResult<OrderResponse>> GetAdminOrder(int id, CancellationToken ct)
+    {
+        var order = await Query().SingleOrDefaultAsync(o => o.Id == id, ct);
+        return order == null ? NotFound() : Ok(Map(order));
+    }
+    [HttpPut("/api/v1/admin/orders/{id:int}/status")]
+    [Authorize(Policy = AppPolicies.ManageOrders)]
+    public async Task<ActionResult<OrderResponse>> UpdateOrderStatus(int id, UpdateOrderStatusRequest request, CancellationToken ct)
+    {
+        if (!Enum.TryParse<OrderStatus>(request.Status, false, out var target) || !Enum.IsDefined(target)) throw new CommerceException("INVALID_ORDER_TRANSITION", "Invalid order status.");
+        await lifecycle.TransitionAsync(id, target, User.FindFirstValue(ClaimTypes.NameIdentifier)!, request.Reason, ct);
+        return await GetAdminOrder(id, ct);
+    }
+    private IQueryable<Order> Query() => db.Orders.AsNoTracking().Include(o => o.User).Include(o => o.OrderItems).Include(o => o.Payments).Include(o => o.Shipments).Include(o => o.StatusHistory).AsSplitQuery();
+    public static OrderResponse Map(Order o)
+    {
+        var payments = o.Payments.OrderByDescending(p => p.Id).ToList();
+        var payment = payments.FirstOrDefault(p => p.Status is PaymentStatus.Paid or PaymentStatus.PartiallyRefunded or PaymentStatus.Refunded) ?? payments.FirstOrDefault();
+        var shipment = o.Shipments.OrderByDescending(s => s.Id).FirstOrDefault();
+        return new OrderResponse
         {
-            _context = context;
-            _logger = logger;
-            _pricing = pricing;
-        }
-
-        // GET: api/orders - Get user's orders
-        [HttpGet]
-        public async Task<ActionResult<List<OrderResponse>>> GetUserOrders()
-        {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                var orders = await _context.Orders
-                    .Include(o => o.OrderItems)
-                        .ThenInclude(oi => oi.Product)
-                    .Include(o => o.User)
-                    .Where(o => o.UserId == userId)
-                    .OrderByDescending(o => o.OrderDate)
-                    .Select(o => new OrderResponse
-                    {
-                        Id = o.Id,
-                        OrderNumber = o.OrderNumber,
-                        UserId = o.UserId,
-                        UserName = o.User!.Name,
-                        UserEmail = o.User.Email ?? string.Empty,
-                        OrderDate = o.OrderDate,
-                        Total = o.Total,
-                        Status = o.Status.ToString(),
-                        ShippingAddress = o.ShippingAddress,
-                        ShippingCity = o.ShippingCity,
-                        ShippingPostalCode = o.ShippingPostalCode,
-                        ShippingCountry = o.ShippingCountry,
-                        Notes = o.Notes,
-                        OrderItems = o.OrderItems.Select(oi => new OrderItemResponse
-                        {
-                            Id = oi.Id,
-                            ProductId = oi.ProductId ?? 0,
-                            ProductVariantId = oi.ProductVariantId,
-                            CustomDesignId = oi.CustomDesignId,
-                            ItemType = oi.ItemType.ToString(),
-                            ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
-                            ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
-                            Quantity = oi.Quantity,
-                            Price = oi.Price,
-                            Subtotal = oi.Subtotal,
-                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
-                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
-                        }).ToList(),
-                        CreatedAt = o.CreatedAt,
-                        UpdatedAt = o.UpdatedAt
-                    })
-                    .ToListAsync();
-
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting user orders");
-                return StatusCode(500, new { message = "An error occurred while retrieving orders" });
-            }
-        }
-
-        // GET: api/orders/{id} - Get order details
-        [HttpGet("{id}")]
-        public async Task<ActionResult<OrderResponse>> GetOrder(int id)
-        {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                var query = _context.Orders
-                    .Include(o => o.OrderItems)
-                        .ThenInclude(oi => oi.Product)
-                    .Include(o => o.User)
-                    .Where(o => o.UserId == userId)
-                    .AsQueryable();
-
-                var order = await query
-                    .Where(o => o.Id == id)
-                    .Select(o => new OrderResponse
-                    {
-                        Id = o.Id,
-                        OrderNumber = o.OrderNumber,
-                        UserId = o.UserId,
-                        UserName = o.User!.Name,
-                        UserEmail = o.User.Email ?? string.Empty,
-                        OrderDate = o.OrderDate,
-                        Total = o.Total,
-                        Status = o.Status.ToString(),
-                        ShippingAddress = o.ShippingAddress,
-                        ShippingCity = o.ShippingCity,
-                        ShippingPostalCode = o.ShippingPostalCode,
-                        ShippingCountry = o.ShippingCountry,
-                        Notes = o.Notes,
-                        OrderItems = o.OrderItems.Select(oi => new OrderItemResponse
-                        {
-                            Id = oi.Id,
-                            ProductId = oi.ProductId ?? 0,
-                            ProductVariantId = oi.ProductVariantId,
-                            CustomDesignId = oi.CustomDesignId,
-                            ItemType = oi.ItemType.ToString(),
-                            ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
-                            ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
-                            Quantity = oi.Quantity,
-                            Price = oi.Price,
-                            Subtotal = oi.Subtotal,
-                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
-                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
-                        }).ToList(),
-                        CreatedAt = o.CreatedAt,
-                        UpdatedAt = o.UpdatedAt
-                    })
-                    .FirstOrDefaultAsync();
-
-                if (order == null)
-                {
-                    return NotFound(new { message = "Order not found" });
-                }
-
-                return Ok(order);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting order {OrderId}", id);
-                return StatusCode(500, new { message = "An error occurred while retrieving the order" });
-            }
-        }
-
-        // POST: api/orders - Create order (checkout from cart)
-        [HttpPost]
-        public async Task<ActionResult<OrderResponse>> CreateOrder([FromBody] CreateOrderRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                // Get user's cart items
-                var cartItems = await _context.CartItems
-                    .Include(c => c.Product)
-                    .Include(c => c.CustomDesign)!.ThenInclude(design => design!.BuilderConfigurationVersion)!.ThenInclude(version => version!.Options)
-                    .Include(c => c.CustomDesign)!.ThenInclude(design => design!.Assets)
-                    .Where(c => c.UserId == userId)
-                    .ToListAsync();
-
-                if (cartItems.Count == 0)
-                {
-                    return BadRequest(new { message = "Cart is empty. Please add items to cart before checkout." });
-                }
-
-                // Validate stock and calculate total
-                decimal total = 0;
-                var orderItems = new List<OrderItem>();
-                var errors = new List<string>();
-                var activeConfiguration = await _context.CustomBuilderConfigurationVersions.Include(version => version.Options)
-                    .Where(version => version.Status == BuilderVersionStatus.Published)
-                    .OrderByDescending(version => version.PublishedAt).ThenByDescending(version => version.VersionNumber)
-                    .FirstOrDefaultAsync();
-
-                foreach (var cartItem in cartItems)
-                {
-                    if (cartItem.ItemType == CartItemType.CustomDesign)
-                    {
-                        var design = cartItem.CustomDesign;
-                        if (design == null || design.UserId != userId || design.Status != CustomDesignStatus.InCart)
-                        {
-                            errors.Add("A custom design in the cart is no longer available.");
-                            continue;
-                        }
-                        if (activeConfiguration == null)
-                        {
-                            errors.Add("The custom builder is not currently configured.");
-                            continue;
-                        }
-                        if (activeConfiguration.ArtworkRequired && !design.Assets.Any(asset => asset.AssetType == "artwork"))
-                        {
-                            errors.Add($"Artwork is required for {design.Name}.");
-                            continue;
-                        }
-                        try
-                        {
-                            var quoteRequest = new CustomQuoteRequest
-                            {
-                                Width = design.Width, Height = design.Height, Quantity = design.Quantity, ShapeCode = design.ShapeCode,
-                                MaterialCode = design.MaterialCode, FinishCode = design.FinishCode, FontCode = design.FontCode,
-                                ColourCode = design.ColourCode, CustomText = design.CustomText, TextAlignment = design.TextAlignment
-                            };
-                            var quote = _pricing.Quote(activeConfiguration, quoteRequest);
-                            var snapshot = CreateCustomSnapshot(design, activeConfiguration, quote);
-                            total += quote.Subtotal;
-                            orderItems.Add(new OrderItem
-                            {
-                                ItemType = OrderItemType.CustomDesign, CustomDesignId = design.Id, ProductNameSnapshot = design.Name,
-                                SkuSnapshot = $"CUSTOM-{design.Id}", Quantity = quote.Quantity, Price = quote.UnitPrice, UnitPrice = quote.UnitPrice,
-                                Subtotal = quote.Subtotal, ConfigurationSnapshotJson = JsonSerializer.Serialize(snapshot), CustomDesignSnapshotVersion = 1
-                            });
-                            design.BuilderConfigurationVersionId = activeConfiguration.Id; design.UnitPrice = quote.UnitPrice;
-                            design.CalculatedPrice = quote.Subtotal; design.PricingRuleVersion = quote.PricingVersion; design.QuotedAt = quote.QuotedAt;
-                            design.Status = CustomDesignStatus.Ordered; design.ProofStatus = activeConfiguration.ProofRequired ? ProofStatus.Preparing : ProofStatus.NotRequired;
-                            design.ProductionStatus = ProductionStatus.NotStarted; design.UpdatedAt = DateTime.UtcNow;
-                        }
-                        catch (CustomBuilderValidationException exception)
-                        {
-                            errors.AddRange(exception.Errors.Select(error => $"{design.Name}: {error}"));
-                        }
-                        continue;
-                    }
-
-                    var product = cartItem.Product;
-                    if (product == null || !product.IsActive)
-                    {
-                        errors.Add($"Product {cartItem.ProductId} is no longer available");
-                        continue;
-                    }
-
-                    if (product.Stock < cartItem.Quantity)
-                    {
-                        errors.Add($"Insufficient stock for {product.Name}. Available: {product.Stock}, Requested: {cartItem.Quantity}");
-                        continue;
-                    }
-
-                    var subtotal = product.Price * cartItem.Quantity;
-                    total += subtotal;
-
-                    orderItems.Add(new OrderItem
-                    {
-                        ProductId = product.Id,
-                        ItemType = OrderItemType.Product,
-                        ProductNameSnapshot = product.Name,
-                        SkuSnapshot = product.BaseSku,
-                        ImageSnapshot = product.ImageUrl,
-                        Quantity = cartItem.Quantity,
-                        Price = product.Price, // Store price at time of order
-                        UnitPrice = product.Price,
-                        Subtotal = subtotal
-                    });
-
-                    // Reduce stock
-                    product.Stock -= cartItem.Quantity;
-                    product.UpdatedAt = DateTime.UtcNow;
-                }
-
-                if (errors.Any())
-                {
-                    return BadRequest(new { message = "Some items are not available", errors });
-                }
-
-                // Generate unique order number
-                var orderNumber = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
-
-                // Create order
-                var order = new Order
-                {
-                    OrderNumber = orderNumber,
-                    UserId = userId,
-                    OrderDate = DateTime.UtcNow,
-                    Total = total,
-                    Status = OrderStatus.Pending,
-                    ShippingAddress = request.ShippingAddress,
-                    ShippingCity = request.ShippingCity,
-                    ShippingPostalCode = request.ShippingPostalCode,
-                    ShippingCountry = request.ShippingCountry,
-                    Notes = request.Notes,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    OrderItems = orderItems
-                };
-
-                _context.Orders.Add(order);
-
-                // Clear cart after order is created
-                _context.CartItems.RemoveRange(cartItems);
-
-                await _context.SaveChangesAsync();
-
-                // Reload order with related data
-                await _context.Entry(order)
-                    .Collection(o => o.OrderItems)
-                    .Query()
-                    .Include(oi => oi.Product)
-                    .LoadAsync();
-
-                await _context.Entry(order)
-                    .Reference(o => o.User)
-                    .LoadAsync();
-
-                var response = new OrderResponse
-                {
-                    Id = order.Id,
-                    OrderNumber = order.OrderNumber,
-                    UserId = order.UserId,
-                    UserName = order.User!.Name,
-                    UserEmail = order.User.Email ?? string.Empty,
-                    OrderDate = order.OrderDate,
-                    Total = order.Total,
-                    Status = order.Status.ToString(),
-                    ShippingAddress = order.ShippingAddress,
-                    ShippingCity = order.ShippingCity,
-                    ShippingPostalCode = order.ShippingPostalCode,
-                    ShippingCountry = order.ShippingCountry,
-                    Notes = order.Notes,
-                    OrderItems = order.OrderItems.Select(oi => new OrderItemResponse
-                    {
-                        Id = oi.Id,
-                        ProductId = oi.ProductId ?? 0,
-                        ProductVariantId = oi.ProductVariantId,
-                        CustomDesignId = oi.CustomDesignId,
-                        ItemType = oi.ItemType.ToString(),
-                        ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
-                        ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
-                        Quantity = oi.Quantity,
-                        Price = oi.Price,
-                        Subtotal = oi.Subtotal,
-                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
-                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
-                    }).ToList(),
-                    CreatedAt = order.CreatedAt,
-                    UpdatedAt = order.UpdatedAt
-                };
-
-                return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating order");
-                return StatusCode(500, new { message = "An error occurred while creating the order" });
-            }
-        }
-
-        private static object CreateCustomSnapshot(CustomDesign design, CustomBuilderConfigurationVersion configuration, CustomQuoteResponse quote)
-        {
-            string? Label(BuilderOptionGroup group, string? code) => configuration.Options.FirstOrDefault(option => option.Group == group && option.Code == code)?.Label;
-            return new
-            {
-                SnapshotVersion = 1, DesignSchemaVersion = design.DesignSchemaVersion, DesignName = design.Name,
-                ConfigurationVersionId = configuration.Id, ConfigurationVersion = configuration.VersionNumber, quote.PricingVersion,
-                configuration.MeasurementUnit, quote.Width, quote.Height, quote.Quantity,
-                Shape = new { Code = design.ShapeCode, Label = Label(BuilderOptionGroup.Shape, design.ShapeCode) },
-                Material = new { Code = design.MaterialCode, Label = Label(BuilderOptionGroup.Material, design.MaterialCode) },
-                Finish = new { Code = design.FinishCode, Label = Label(BuilderOptionGroup.Finish, design.FinishCode) },
-                Font = new { Code = design.FontCode, Label = Label(BuilderOptionGroup.Font, design.FontCode) },
-                Colour = new { Code = design.ColourCode, Label = Label(BuilderOptionGroup.Colour, design.ColourCode) },
-                design.CustomText, design.TextAlignment, quote.Currency, quote.UnitPrice, quote.Subtotal,
-                ArtworkAssetIds = design.Assets.Where(asset => asset.AssetType == "artwork").Select(asset => asset.Id).ToArray(),
-                CapturedAt = DateTime.UtcNow
-            };
-        }
-
-        // PUT: api/v1/admin/orders/{id}/status - Update order status (Admin only)
-        [HttpPut("/api/v1/admin/orders/{id:int}/status")]
-        [Authorize(Policy = AppPolicies.ManageOrders)]
-        public async Task<ActionResult<OrderResponse>> UpdateOrderStatus(int id, [FromBody] UpdateOrderStatusRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var order = await _context.Orders
-                    .Include(o => o.OrderItems)
-                        .ThenInclude(oi => oi.Product)
-                    .Include(o => o.User)
-                    .FirstOrDefaultAsync(o => o.Id == id);
-
-                if (order == null)
-                {
-                    return NotFound(new { message = "Order not found" });
-                }
-
-                // Parse status string to enum
-                if (!Enum.TryParse<OrderStatus>(request.Status, true, out var newStatus))
-                {
-                    return BadRequest(new { message = "Invalid status. Must be one of: Pending, Processing, Shipped, Delivered, Cancelled" });
-                }
-
-                var previousStatus = order.Status;
-
-                // If cancelling order, restore stock
-                if (newStatus == OrderStatus.Cancelled && order.Status != OrderStatus.Cancelled)
-                {
-                    foreach (var orderItem in order.OrderItems)
-                    {
-                        if (!orderItem.ProductId.HasValue)
-                        {
-                            continue;
-                        }
-
-                        var product = await _context.Products.FindAsync(orderItem.ProductId.Value);
-                        if (product != null)
-                        {
-                            product.Stock += orderItem.Quantity;
-                            product.UpdatedAt = DateTime.UtcNow;
-                        }
-                    }
-                }
-                // If cancelling a cancelled order, reduce stock again
-                else if (order.Status == OrderStatus.Cancelled && newStatus != OrderStatus.Cancelled)
-                {
-                    foreach (var orderItem in order.OrderItems)
-                    {
-                        if (!orderItem.ProductId.HasValue)
-                        {
-                            continue;
-                        }
-
-                        var product = await _context.Products.FindAsync(orderItem.ProductId.Value);
-                        if (product != null && product.Stock < orderItem.Quantity)
-                        {
-                            return BadRequest(new { message = $"Cannot change status. Insufficient stock for {product.Name}" });
-                        }
-                        if (product != null)
-                        {
-                            product.Stock -= orderItem.Quantity;
-                            product.UpdatedAt = DateTime.UtcNow;
-                        }
-                    }
-                }
-
-                order.Status = newStatus;
-                order.UpdatedAt = DateTime.UtcNow;
-                _context.OrderStatusHistories.Add(new OrderStatusHistory
-                {
-                    OrderId = order.Id,
-                    PreviousStatus = previousStatus.ToString(),
-                    NewStatus = newStatus.ToString(),
-                    ChangedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier),
-                    Reason = request.Reason,
-                    CreatedAt = DateTime.UtcNow
-                });
-
-                await _context.SaveChangesAsync();
-
-                var response = new OrderResponse
-                {
-                    Id = order.Id,
-                    OrderNumber = order.OrderNumber,
-                    UserId = order.UserId,
-                    UserName = order.User!.Name,
-                    UserEmail = order.User.Email ?? string.Empty,
-                    OrderDate = order.OrderDate,
-                    Total = order.Total,
-                    Status = order.Status.ToString(),
-                    ShippingAddress = order.ShippingAddress,
-                    ShippingCity = order.ShippingCity,
-                    ShippingPostalCode = order.ShippingPostalCode,
-                    ShippingCountry = order.ShippingCountry,
-                    Notes = order.Notes,
-                    OrderItems = order.OrderItems.Select(oi => new OrderItemResponse
-                    {
-                        Id = oi.Id,
-                        ProductId = oi.ProductId ?? 0,
-                        ProductVariantId = oi.ProductVariantId,
-                        CustomDesignId = oi.CustomDesignId,
-                        ItemType = oi.ItemType.ToString(),
-                        ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
-                        ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
-                        Quantity = oi.Quantity,
-                        Price = oi.Price,
-                        Subtotal = oi.Subtotal,
-                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
-                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
-                    }).ToList(),
-                    CreatedAt = order.CreatedAt,
-                    UpdatedAt = order.UpdatedAt
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating order status {OrderId}", id);
-                return StatusCode(500, new { message = "An error occurred while updating order status" });
-            }
-        }
-
-        // GET: api/v1/admin/orders - Get all orders (Admin only)
-        [HttpGet("/api/v1/admin/orders")]
-        [Authorize(Policy = AppPolicies.ManageOrders)]
-        public async Task<ActionResult<List<OrderResponse>>> GetAllOrders(
-            [FromQuery] string? status = null,
-            [FromQuery] string? search = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20)
-        {
-            try
-            {
-                var query = _context.Orders
-                    .Include(o => o.OrderItems)
-                        .ThenInclude(oi => oi.Product)
-                    .Include(o => o.User)
-                    .AsQueryable();
-
-                // Filter by status
-                if (!string.IsNullOrEmpty(status))
-                {
-                    if (Enum.TryParse<OrderStatus>(status, true, out var orderStatus))
-                    {
-                        query = query.Where(o => o.Status == orderStatus);
-                    }
-                }
-
-                // Search by order number or user name/email
-                if (!string.IsNullOrEmpty(search))
-                {
-                    query = query.Where(o =>
-                        o.OrderNumber.Contains(search) ||
-                        o.User!.Name.Contains(search) ||
-                        o.User!.Email!.Contains(search));
-                }
-
-                // Get total count before pagination
-                var totalCount = await query.CountAsync();
-
-                // Apply pagination
-                var orders = await query
-                    .OrderByDescending(o => o.OrderDate)
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(o => new OrderResponse
-                    {
-                        Id = o.Id,
-                        OrderNumber = o.OrderNumber,
-                        UserId = o.UserId,
-                        UserName = o.User!.Name,
-                        UserEmail = o.User.Email ?? string.Empty,
-                        OrderDate = o.OrderDate,
-                        Total = o.Total,
-                        Status = o.Status.ToString(),
-                        ShippingAddress = o.ShippingAddress,
-                        ShippingCity = o.ShippingCity,
-                        ShippingPostalCode = o.ShippingPostalCode,
-                        ShippingCountry = o.ShippingCountry,
-                        Notes = o.Notes,
-                        OrderItems = o.OrderItems.Select(oi => new OrderItemResponse
-                        {
-                            Id = oi.Id,
-                            ProductId = oi.ProductId ?? 0,
-                            ProductVariantId = oi.ProductVariantId,
-                            CustomDesignId = oi.CustomDesignId,
-                            ItemType = oi.ItemType.ToString(),
-                            ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
-                            ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
-                            Quantity = oi.Quantity,
-                            Price = oi.Price,
-                            Subtotal = oi.Subtotal,
-                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
-                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
-                        }).ToList(),
-                        CreatedAt = o.CreatedAt,
-                        UpdatedAt = o.UpdatedAt
-                    })
-                    .ToListAsync();
-
-                return Ok(new
-                {
-                    Orders = orders,
-                    TotalCount = totalCount,
-                    PageNumber = pageNumber,
-                    PageSize = pageSize,
-                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting all orders");
-                return StatusCode(500, new { message = "An error occurred while retrieving orders" });
-            }
-        }
-
-        // GET: api/v1/admin/orders/{id} - Get order details (Admin only)
-        [HttpGet("/api/v1/admin/orders/{id:int}")]
-        [Authorize(Policy = AppPolicies.ManageOrders)]
-        public async Task<ActionResult<OrderResponse>> GetAdminOrder(int id)
-        {
-            try
-            {
-                var order = await _context.Orders
-                    .Include(o => o.OrderItems)
-                        .ThenInclude(oi => oi.Product)
-                    .Include(o => o.User)
-                    .Where(o => o.Id == id)
-                    .Select(o => new OrderResponse
-                    {
-                        Id = o.Id,
-                        OrderNumber = o.OrderNumber,
-                        UserId = o.UserId,
-                        UserName = o.User!.Name,
-                        UserEmail = o.User.Email ?? string.Empty,
-                        OrderDate = o.OrderDate,
-                        Total = o.Total,
-                        Status = o.Status.ToString(),
-                        ShippingAddress = o.ShippingAddress,
-                        ShippingCity = o.ShippingCity,
-                        ShippingPostalCode = o.ShippingPostalCode,
-                        ShippingCountry = o.ShippingCountry,
-                        Notes = o.Notes,
-                        OrderItems = o.OrderItems.Select(oi => new OrderItemResponse
-                        {
-                            Id = oi.Id,
-                            ProductId = oi.ProductId ?? 0,
-                            ProductVariantId = oi.ProductVariantId,
-                            CustomDesignId = oi.CustomDesignId,
-                            ItemType = oi.ItemType.ToString(),
-                            ProductName = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty),
-                            ProductImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty),
-                            Quantity = oi.Quantity,
-                            Price = oi.Price,
-                            Subtotal = oi.Subtotal,
-                            CustomDesignSnapshotVersion = oi.CustomDesignSnapshotVersion,
-                            ConfigurationSnapshotJson = oi.ConfigurationSnapshotJson
-                        }).ToList(),
-                        CreatedAt = o.CreatedAt,
-                        UpdatedAt = o.UpdatedAt
-                    })
-                    .FirstOrDefaultAsync();
-
-                if (order == null)
-                {
-                    return NotFound(new { message = "Order not found" });
-                }
-
-                return Ok(order);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting admin order {OrderId}", id);
-                return StatusCode(500, new { message = "An error occurred while retrieving the order" });
-            }
-        }
+            Id = o.Id, OrderNumber = o.OrderNumber, UserId = o.UserId, UserName = o.User?.Name ?? string.Empty, UserEmail = o.User?.Email ?? string.Empty,
+            OrderDate = o.OrderDate, Total = o.Total, Subtotal = o.Subtotal, DiscountTotal = o.DiscountTotal, ShippingTotal = o.ShippingTotal, TaxTotal = o.TaxTotal, PaymentFee = o.PaymentFee, Currency = o.Currency, PricesIncludeTax = o.PricesIncludeTaxSnapshot,
+            Status = o.Status.ToString(), PaymentStatus = payment?.Status.ToString() ?? "Unpaid", FulfilmentStatus = shipment?.Status.ToString() ?? "NotReady",
+            ShippingAddress = o.ShippingAddress, ShippingCity = o.ShippingCity, ShippingCountry = o.ShippingCountry, ShippingPostalCode = o.ShippingPostalCode, ShippingRecipientName = o.ShippingRecipientName, ShippingPhone = o.ShippingPhone, ShippingRegion = o.ShippingRegion, CouponCode = o.CouponCode,
+            ShippingMethodName = o.ShippingMethodName, IsPickup = o.IsPickup, PickupLocation = o.PickupLocationSnapshot, Notes = o.Notes, CreatedAt = o.CreatedAt, UpdatedAt = o.UpdatedAt,
+            OrderItems = o.OrderItems.Select(i => new OrderItemResponse { Id = i.Id, ItemType = i.ItemType.ToString(), ProductId = i.ProductId ?? 0, ProductVariantId = i.ProductVariantId, CustomDesignId = i.CustomDesignId,
+                ProductName = i.ProductNameSnapshot, Sku = i.SkuSnapshot, ProductImageUrl = i.ImageSnapshot ?? string.Empty, Price = i.Price, Quantity = i.Quantity, Subtotal = i.Subtotal, ConfigurationSnapshotJson = i.ConfigurationSnapshotJson, CustomDesignSnapshotVersion = i.CustomDesignSnapshotVersion }).ToList(),
+            Payments = payments.Select(p => new PaymentSummaryDto(p.Id, p.Status.ToString(), p.Amount, p.Currency, p.Provider, p.ProviderReference, p.ProviderTransactionId, p.PaidAt)).ToList(),
+            Shipments = o.Shipments.Select(s => new ShipmentSummaryDto(s.Id, s.Status.ToString(), s.Courier, s.TrackingNumber, s.TrackingUrl, s.ShippedAt, s.DeliveredAt)).ToList(),
+            History = o.StatusHistory.OrderBy(h => h.Id).Select(h => new OrderHistoryDto(h.PreviousStatus, h.NewStatus, h.Reason, h.CreatedAt)).ToList(),
+            AvailableTransitions = Enum.GetValues<OrderStatus>().Where(s => OrderLifecycleService.Legal(o.Status, s) && (s != OrderStatus.Cancelled || !payments.Any(p => p.Status is PaymentStatus.Pending or PaymentStatus.Authorized or PaymentStatus.Paid or PaymentStatus.PartiallyRefunded))).Select(s => s.ToString()).ToList()
+        };
     }
 }
 

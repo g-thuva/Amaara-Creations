@@ -16,7 +16,8 @@ namespace be.Models
         Paid = 2,
         Failed = 3,
         Refunded = 4,
-        Cancelled = 5
+        Cancelled = 5,
+        PartiallyRefunded = 6
     }
 
     public enum ShipmentStatus
@@ -26,7 +27,10 @@ namespace be.Models
         Shipped = 2,
         Delivered = 3,
         Failed = 4,
-        Cancelled = 5
+        Cancelled = 5,
+        ReadyForPickup = 6,
+        Packed = 7,
+        Returned = 8
     }
 
     public enum DiscountType
@@ -63,7 +67,7 @@ namespace be.Models
         public User? ChangedByUser { get; set; }
     }
 
-    public class Payment
+    public partial class Payment
     {
         [Key]
         public long Id { get; set; }
@@ -82,6 +86,15 @@ namespace be.Models
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal AuthorizedAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal SettledAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal RefundedAmount { get; set; }
 
         [Required]
         [StringLength(3)]
@@ -106,7 +119,7 @@ namespace be.Models
         public Order? Order { get; set; }
     }
 
-    public class ShippingZone
+    public partial class ShippingZone
     {
         [Key]
         public int Id { get; set; }
@@ -120,7 +133,7 @@ namespace be.Models
         public ICollection<ShippingMethod> ShippingMethods { get; set; } = new List<ShippingMethod>();
     }
 
-    public class ShippingMethod
+    public partial class ShippingMethod
     {
         [Key]
         public int Id { get; set; }
@@ -143,7 +156,7 @@ namespace be.Models
         public ShippingZone? ShippingZone { get; set; }
     }
 
-    public class Shipment
+    public partial class Shipment
     {
         [Key]
         public long Id { get; set; }
@@ -173,7 +186,7 @@ namespace be.Models
         public Order? Order { get; set; }
     }
 
-    public class Promotion
+    public partial class Promotion
     {
         [Key]
         public int Id { get; set; }

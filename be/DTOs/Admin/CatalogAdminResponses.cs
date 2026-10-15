@@ -2,6 +2,8 @@ namespace be.DTOs.Admin
 {
     public class AdminProductResponse
     {
+        public string Currency { get; set; } = "LKR";
+        public string RowVersion { get; set; } = string.Empty;
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;

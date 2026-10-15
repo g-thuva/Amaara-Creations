@@ -4,9 +4,11 @@ using be.DTOs.Cart;
 using be.DTOs.CustomBuilder;
 using be.Models;
 using be.Services;
+using be.Services.Checkout;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace be.Controllers;
 
@@ -17,11 +19,13 @@ public class CartController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ICustomStickerPricingService _pricing;
+    private readonly IOptions<CheckoutOptions> _checkoutOptions;
 
-    public CartController(ApplicationDbContext context, ICustomStickerPricingService pricing)
+    public CartController(ApplicationDbContext context, ICustomStickerPricingService pricing, IOptions<CheckoutOptions> checkoutOptions)
     {
         _context = context;
         _pricing = pricing;
+        _checkoutOptions = checkoutOptions;
     }
 
     [HttpGet]
@@ -40,6 +44,11 @@ public class CartController : ControllerBase
         if (userId == null) return Unauthorized();
         var product = await _context.Products.FirstOrDefaultAsync(item => item.Id == request.ProductId && item.IsActive, cancellationToken);
         if (product == null) return NotFound(new { message = "Product not found" });
+        if (product.Currency != _checkoutOptions.Value.Currency)
+            return Conflict(new ProblemDetails { Title = "This product is priced in another currency and cannot be added to this checkout.", Status = 409 });
+        var cart = await CartQuery().Where(item => item.UserId == userId).AsNoTracking().ToListAsync(cancellationToken);
+        if (cart.Any(item => ItemCurrency(item) != product.Currency))
+            return Conflict(new ProblemDetails { Title = "Remove items priced in another currency before adding this product.", Status = 409 });
         var existing = await _context.CartItems.FirstOrDefaultAsync(item => item.UserId == userId && item.ProductId == request.ProductId, cancellationToken);
         var quantity = (existing?.Quantity ?? 0) + request.Quantity;
         if (product.Stock < quantity) return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]> { ["quantity"] = [$"Only {product.Stock} items are available."] }));
@@ -58,6 +67,8 @@ public class CartController : ControllerBase
         if (userId == null) return Unauthorized();
         var item = await CartQuery().FirstOrDefaultAsync(value => value.Id == itemId && value.UserId == userId, cancellationToken);
         if (item == null) return NotFound();
+        if (ItemCurrency(item) != _checkoutOptions.Value.Currency)
+            return Conflict(new ProblemDetails { Title = "This cart item is priced in another currency. Remove it before checkout.", Status = 409 });
         if (item.ItemType == CartItemType.Product)
         {
             if (item.Product == null || item.Product.Stock < request.Quantity) return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]> { ["quantity"] = [$"Only {item.Product?.Stock ?? 0} items are available."] }));
@@ -66,8 +77,11 @@ public class CartController : ControllerBase
         else
         {
             if (item.CustomDesign == null) return Conflict(new ProblemDetails { Title = "Custom design is unavailable", Status = 409 });
+            if (item.CustomDesign.Status == CustomDesignStatus.Ordered) return Conflict(new ProblemDetails { Title = "This design is reserved for an unpaid order. Resolve its payment before editing.", Status = 409 });
             var configuration = await ActiveConfiguration(cancellationToken);
             if (configuration == null) return Problem(statusCode: 503, title: "Custom builder is not configured");
+            if (configuration.Currency != _checkoutOptions.Value.Currency)
+                return Conflict(new ProblemDetails { Title = "The custom builder is priced in another currency.", Status = 409 });
             var requestQuote = QuoteRequest(item.CustomDesign, request.Quantity);
             try
             {
@@ -116,7 +130,7 @@ public class CartController : ControllerBase
         .Include(item => item.CustomDesign)!.ThenInclude(design => design!.BuilderConfigurationVersion)!.ThenInclude(version => version!.Options);
 
     private async Task<CustomBuilderConfigurationVersion?> ActiveConfiguration(CancellationToken cancellationToken) => await _context.CustomBuilderConfigurationVersions
-        .Include(version => version.Options).Where(version => version.Status == BuilderVersionStatus.Published)
+        .Include(version => version.Options).Where(version => version.Status == BuilderVersionStatus.Published && version.Currency == _checkoutOptions.Value.Currency)
         .OrderByDescending(version => version.PublishedAt).ThenByDescending(version => version.VersionNumber).FirstOrDefaultAsync(cancellationToken);
 
     private static CustomQuoteRequest QuoteRequest(CustomDesign design, int quantity) => new()
@@ -125,11 +139,19 @@ public class CartController : ControllerBase
         FinishCode = design.FinishCode, FontCode = design.FontCode, ColourCode = design.ColourCode, CustomText = design.CustomText, TextAlignment = design.TextAlignment
     };
 
-    private static CartResponse ToCart(IEnumerable<CartItem> items)
+    private CartResponse ToCart(IEnumerable<CartItem> items)
     {
         var mapped = items.Select(ToItem).ToList();
-        return new CartResponse { Items = mapped, Total = mapped.Sum(item => item.Subtotal), TotalItems = mapped.Sum(item => item.Quantity) };
+        var currencies = mapped.Select(item => item.Currency).Distinct(StringComparer.Ordinal).ToArray();
+        var currency = currencies.Length == 1 ? currencies[0] : null;
+        return new CartResponse { Items = mapped, Currency = currency, HasMixedCurrencies = currencies.Length > 1,
+            CanCheckout = currency != null && currency == _checkoutOptions.Value.Currency,
+            Total = currency == null ? 0 : mapped.Sum(item => item.Subtotal), TotalItems = mapped.Sum(item => item.Quantity) };
     }
+
+    private static string ItemCurrency(CartItem item) => item.ItemType == CartItemType.CustomDesign
+        ? item.CustomDesign?.BuilderConfigurationVersion?.Currency ?? "LKR"
+        : item.Product?.Currency ?? "LKR";
 
     private static CartItemResponse ToItem(CartItem item)
     {
@@ -141,6 +163,7 @@ public class CartController : ControllerBase
             {
                 Id = item.Id, ItemType = "CustomDesign", CustomDesignId = design.Id, ProductName = design.Name, DesignName = design.Name,
                 ProductPrice = item.UnitPriceSnapshot, Quantity = design.Quantity, Subtotal = item.UnitPriceSnapshot * design.Quantity,
+                Currency = ItemCurrency(item),
                 Width = design.Width, Height = design.Height, MeasurementUnit = design.BuilderConfigurationVersion?.MeasurementUnit,
                 Shape = Label(BuilderOptionGroup.Shape, design.ShapeCode), Material = Label(BuilderOptionGroup.Material, design.MaterialCode),
                 Finish = Label(BuilderOptionGroup.Finish, design.FinishCode), CustomText = design.CustomText, EditUrl = $"/custom/{design.Id}",
@@ -152,6 +175,7 @@ public class CartController : ControllerBase
         {
             Id = item.Id, ItemType = "Product", ProductId = item.ProductId, ProductName = product?.Name ?? "Unavailable product",
             ProductPrice = product?.Price ?? item.UnitPriceSnapshot, ProductImageUrl = product?.ImageUrl ?? string.Empty, Quantity = item.Quantity,
+            Currency = ItemCurrency(item),
             Subtotal = (product?.Price ?? item.UnitPriceSnapshot) * item.Quantity, IsOutOfStock = product == null || product.Stock == 0,
             ProductStock = product?.Stock ?? 0, CreatedAt = item.CreatedAt, UpdatedAt = item.UpdatedAt
         };

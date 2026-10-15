@@ -101,6 +101,7 @@ namespace be.Models
         public decimal? PriceOverride { get; set; }
 
         public int StockQuantity { get; set; }
+        [Range(0, int.MaxValue)] public int LowStockThreshold { get; set; }
 
         public bool IsActive { get; set; } = true;
 

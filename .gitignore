@@ -9,6 +9,7 @@ be/*.user
 be/*.suo
 be/*.cache
 be/Properties/launchSettings.json
+!be/Properties/launchSettings.json
 be/wwwroot/uploads/
 be/*.db
 be/*.db-shm
@@ -21,6 +22,7 @@ be/**/*.pdb
 be/**/*.dll
 be/**/*.exe
 be/appsettings.Development.Local.json
+be/appsettings.*.Local.json
 be/appsettings.Development.json
 # Tests
 tests/**/bin/
@@ -119,3 +121,6 @@ be/be/
 
 
 docs/implementation/
+
+# Local verification logs and preserved pre-existing work
+.runtime/

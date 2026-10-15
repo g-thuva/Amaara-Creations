@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace be.Models
 {
-    public class OrderItem
+    public partial class OrderItem
     {
         [Key]
         public int Id { get; set; }

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using be.Data;
 using be.DTOs.Product;
+using be.Services.Checkout;
+using Microsoft.Extensions.Options;
 
 namespace be.Controllers
 {
@@ -11,11 +13,13 @@ namespace be.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ProductsController> _logger;
+        private readonly IOptions<CheckoutOptions> _checkoutOptions;
 
-        public ProductsController(ApplicationDbContext context, ILogger<ProductsController> logger)
+        public ProductsController(ApplicationDbContext context, ILogger<ProductsController> logger, IOptions<CheckoutOptions> checkoutOptions)
         {
             _context = context;
             _logger = logger;
+            _checkoutOptions = checkoutOptions;
         }
 
         // GET: api/v1/products
@@ -40,7 +44,8 @@ namespace be.Controllers
                     return BadRequest(new { message = "Invalid pagination or price range." });
                 if (!new[] { "newest", "price-asc", "price-desc", "name", "featured" }.Contains(sort))
                     return BadRequest(new { message = "Unsupported sort order." });
-                var query = _context.Products.AsNoTracking().Where(p => p.IsActive);
+                var currency = _checkoutOptions.Value.Currency;
+                var query = _context.Products.AsNoTracking().Where(p => p.IsActive && p.Currency == currency);
                 if (categoryId.HasValue) query = query.Where(p => p.CategoryId == categoryId && p.CategoryEntity!.IsActive);
                 if (collectionId.HasValue) query = query.Where(p => p.ProductCollections.Any(c => c.CollectionId == collectionId && c.Collection!.IsActive));
                 if (minPrice.HasValue) query = query.Where(p => p.Price >= minPrice);
@@ -84,6 +89,7 @@ namespace be.Controllers
                         Slug = p.Slug,
                         Price = p.Price,
                         BasePrice = p.BasePrice,
+                        Currency = p.Currency,
                         Description = p.Description,
                         ShortDescription = p.ShortDescription,
                         ImageUrl = p.ImageUrl,
@@ -101,6 +107,7 @@ namespace be.Controllers
                 var response = new ProductListResponse
                 {
                     Products = products,
+                    Currency = currency,
                     TotalCount = totalCount,
                     PageNumber = pageNumber,
                     PageSize = pageSize,
@@ -122,9 +129,10 @@ namespace be.Controllers
         {
             try
             {
+                var currency = _checkoutOptions.Value.Currency;
                 var product = await _context.Products
                     .AsNoTracking()
-                    .Where(p => p.Id == id && p.IsActive)
+                    .Where(p => p.Id == id && p.IsActive && p.Currency == currency)
                     .Select(p => new ProductResponse
                     {
                         Id = p.Id,
@@ -132,6 +140,7 @@ namespace be.Controllers
                         Slug = p.Slug,
                         Price = p.Price,
                         BasePrice = p.BasePrice,
+                        Currency = p.Currency,
                         Description = p.Description,
                         ShortDescription = p.ShortDescription,
                         ImageUrl = p.ImageUrl,

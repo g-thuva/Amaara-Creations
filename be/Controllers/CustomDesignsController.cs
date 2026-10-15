@@ -5,10 +5,12 @@ using be.DTOs.CustomBuilder;
 using be.Models;
 using be.Security;
 using be.Services;
+using be.Services.Checkout;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace be.Controllers;
 
@@ -20,12 +22,14 @@ public class CustomDesignsController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ICustomStickerPricingService _pricing;
     private readonly IMediaStorageService _storage;
+    private readonly IOptions<CheckoutOptions> _checkoutOptions;
 
-    public CustomDesignsController(ApplicationDbContext context, ICustomStickerPricingService pricing, IMediaStorageService storage)
+    public CustomDesignsController(ApplicationDbContext context, ICustomStickerPricingService pricing, IMediaStorageService storage, IOptions<CheckoutOptions> checkoutOptions)
     {
         _context = context;
         _pricing = pricing;
         _storage = storage;
+        _checkoutOptions = checkoutOptions;
     }
 
     [HttpGet]
@@ -244,6 +248,7 @@ public class CustomDesignsController : ControllerBase
 
     private async Task<ActionResult<CustomDesignDto>> RespondToProof(int id, ProofResponseRequest request, bool approve, CancellationToken cancellationToken)
     {
+        await using var transaction = await be.Services.Checkout.CommerceTransaction.BeginAsync(_context, cancellationToken);
         var design = await OwnDesign(id, true, cancellationToken);
         if (design == null) return NotFound();
         var latest = design.ProofRevisions.OrderByDescending(proof => proof.RevisionNumber).FirstOrDefault();
@@ -254,14 +259,18 @@ public class CustomDesignsController : ControllerBase
         latest.Status = approve ? ProofRevisionStatus.Approved : ProofRevisionStatus.ChangesRequested;
         latest.CustomerResponse = approve ? request.Comment?.Trim() : request.Comment!.Trim();
         latest.CustomerResponseAt = DateTime.UtcNow;
+        _context.AuditLogs.Add(new AuditLog { ActorUserId = UserId(), Action = approve ? "ProofApprovedByCustomer" : "ProofRevisionRequested", EntityType = nameof(CustomDesign), EntityId = id.ToString(), NewValuesJson = System.Text.Json.JsonSerializer.Serialize(new { request.RevisionNumber, request.Comment }) });
         design.ProofStatus = approve ? ProofStatus.Approved : ProofStatus.ChangesRequested;
+        var proofOrder = await _context.OrderItems.Where(i => i.CustomDesignId == id).Select(i => i.Order).FirstOrDefaultAsync(cancellationToken);
+        if (proofOrder != null) be.Services.Payments.CommerceNotifications.Enqueue(_context, proofOrder, $"proof-response:{id}:{request.RevisionNumber}", approve ? "Production proof approved" : "Proof revision requested", $"Your proof response for order {proofOrder.OrderNumber} was recorded.");
         design.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
+        if (transaction != null) await transaction.CommitAsync(cancellationToken);
         return Ok(design.ToDto());
     }
 
     private string? UserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
-    private bool CanAccess(string? ownerId) => ownerId == UserId() || User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.SuperAdmin);
+    private bool CanAccess(string? ownerId) => ownerId == UserId() || User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.SuperAdmin) || User.IsInRole(AppRoles.ProductionStaff);
 
     private IQueryable<CustomDesign> IncludeDesign(IQueryable<CustomDesign> query, bool includeProofs = false)
     {
@@ -279,7 +288,7 @@ public class CustomDesignsController : ControllerBase
     private async Task<CustomBuilderConfigurationVersion?> ActiveConfiguration(CancellationToken cancellationToken)
     {
         return await _context.CustomBuilderConfigurationVersions.Include(version => version.Options)
-            .Where(version => version.Status == BuilderVersionStatus.Published).OrderByDescending(version => version.PublishedAt).ThenByDescending(version => version.VersionNumber)
+            .Where(version => version.Status == BuilderVersionStatus.Published && version.Currency == _checkoutOptions.Value.Currency).OrderByDescending(version => version.PublishedAt).ThenByDescending(version => version.VersionNumber)
             .FirstOrDefaultAsync(cancellationToken);
     }
 

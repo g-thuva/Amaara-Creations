@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -13,16 +14,18 @@ using be.Infrastructure;
 using be.Models;
 using be.Security;
 using be.Services;
+using be.Services.Checkout;
+using be.Services.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
 
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 builder.Logging.AddDebug();
 
-var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"] ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
 builder.Services.AddDataProtection()
     .SetApplicationName("AmaaraCreations")
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
@@ -85,17 +88,31 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
     {
+        OnTokenValidated = async context =>
+        {
+            // Privileged requests use current database roles, so demotion takes effect
+            // immediately even for an unexpired access token.
+            if (context.Principal?.Identity?.IsAuthenticated == true)
+            {
+                var manager = context.HttpContext.RequestServices.GetRequiredService<UserManager<User>>();
+                var id = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var user = id == null ? null : await manager.FindByIdAsync(id);
+                if (user == null || await manager.IsLockedOutAsync(user)) { context.Fail("Account unavailable"); return; }
+                var identity = (System.Security.Claims.ClaimsIdentity)context.Principal!.Identity!;
+                foreach (var claim in identity.FindAll(identity.RoleClaimType).ToArray()) identity.RemoveClaim(claim);
+                foreach (var role in await manager.GetRolesAsync(user)) identity.AddClaim(new System.Security.Claims.Claim(identity.RoleClaimType, role));
+            }
+        },
         OnAuthenticationFailed = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogError(context.Exception, "JWT Authentication failed: {Message}", context.Exception.Message);
+            logger.LogWarning("JWT authentication failed: {ExceptionType}", context.Exception.GetType().Name);
             return Task.CompletedTask;
         },
         OnChallenge = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning("JWT Challenge triggered - Error: {Error}, Description: {ErrorDescription}", 
-                context.Error, context.ErrorDescription);
+            logger.LogWarning("JWT challenge: {Error}", context.Error);
             return Task.CompletedTask;
         }
     };
@@ -103,45 +120,63 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy(AppPolicies.AdminAccess, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
-    options.AddPolicy(AppPolicies.ManageCustomers, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
-    options.AddPolicy(AppPolicies.ManageOrders, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
-    options.AddPolicy(AppPolicies.ManageCatalog, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
-    options.AddPolicy(AppPolicies.ManageContent, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
-    options.AddPolicy(AppPolicies.ManageReviews, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
-    options.AddPolicy(AppPolicies.ViewReports, policy => policy.RequireRole(AppRoles.Admin, AppRoles.SuperAdmin));
+    foreach (var entry in AppPolicies.Roles)
+        options.AddPolicy(entry.Key, policy => policy.RequireRole(entry.Value));
 });
 
 // Register TokenService
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();
-builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+if (builder.Configuration["Email:Provider"] == "DevelopmentCapture")
+{
+    if (!builder.Environment.IsDevelopment()) throw new InvalidOperationException("Development email capture cannot run outside Development.");
+    builder.Services.AddScoped<IEmailService, DevelopmentEmailService>();
+}
+else builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<InventoryOperations>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
 builder.Services.AddScoped<ICustomStickerPricingService, CustomStickerPricingService>();
+builder.Services.Configure<CheckoutOptions>(builder.Configuration.GetSection("Checkout"));
+builder.Services.Configure<DatatransOptions>(builder.Configuration.GetSection("Datatrans"));
+builder.Services.Configure<ZahlsOptions>(builder.Configuration.GetSection("Zahls"));
+builder.Services.AddScoped<CheckoutPricingService>();
+builder.Services.AddScoped<PromotionService>();
+builder.Services.AddScoped<InventoryReservationService>();
+builder.Services.AddScoped<CheckoutService>();
+builder.Services.AddScoped<OrderLifecycleService>();
+builder.Services.AddScoped<PaymentReconciliationService>();
+builder.Services.AddScoped<RefundService>();
+builder.Services.AddScoped<DatatransWebhookVerifier>();
+builder.Services.AddScoped<ZahlsWebhookVerifier>();
+builder.Services.AddScoped<IPaymentGatewayRouter, PaymentGatewayRouter>();
+builder.Services.AddHttpClient<DatatransPaymentGateway>(client =>
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(builder.Configuration.GetValue<int?>("Datatrans:TimeoutSeconds") ?? 15, 5, 60)))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<ZahlsPaymentGateway>(client =>
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(builder.Configuration.GetValue<int?>("Zahls:TimeoutSeconds") ?? 15, 2, 60)))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+// The final registration is the active checkout provider. Both adapters remain
+// available for provider-qualified historical reconciliation and refunds.
+builder.Services.AddTransient<IPaymentGateway>(services => services.GetRequiredService<DatatransPaymentGateway>());
+builder.Services.AddTransient<IPaymentGateway>(services => services.GetRequiredService<ZahlsPaymentGateway>());
+builder.Services.AddHostedService<CommerceMaintenanceService>();
 
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddFixedWindowLimiter("auth-sensitive", limiter =>
+    string Partition(HttpContext context) => context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+        ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    options.AddPolicy("auth-sensitive", context => RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
     {
-        limiter.PermitLimit = builder.Configuration.GetValue<int?>("Authentication:RateLimitPermitLimit") ?? 10;
-        limiter.Window = TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Authentication:RateLimitWindowMinutes") ?? 1);
-        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiter.QueueLimit = 0;
-    });
-    options.AddFixedWindowLimiter("custom-quote", limiter =>
-    {
-        limiter.PermitLimit = 30;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 0;
-    });
-    options.AddFixedWindowLimiter("custom-upload", limiter =>
-    {
-        limiter.PermitLimit = 10;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 0;
-    });
+        PermitLimit = builder.Configuration.GetValue<int?>("Authentication:RateLimitPermitLimit") ?? 10,
+        Window = TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Authentication:RateLimitWindowMinutes") ?? 1), QueueLimit = 0
+    }));
+    options.AddPolicy("custom-quote", context => RateLimitPartition.GetFixedWindowLimiter(Partition(context), _ => new FixedWindowRateLimiterOptions
+    { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.AddPolicy("custom-upload", context => RateLimitPartition.GetFixedWindowLimiter(Partition(context), _ => new FixedWindowRateLimiterOptions
+    { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 
 // Enable CORS for React frontend
@@ -167,6 +202,14 @@ builder.Services.AddProblemDetails(options =>
             context.ProblemDetails.Extensions["correlationId"] = correlationId;
         }
     };
+});
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    var proxies = builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [];
+    options.KnownNetworks.Clear(); options.KnownProxies.Clear(); options.ForwardLimit = 1;
+    foreach (var proxy in proxies) options.KnownProxies.Add(System.Net.IPAddress.Parse(proxy));
+    if (proxies.Length > 0) options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
 });
 
 builder.Services.AddControllers()
@@ -200,6 +243,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
+    c.OperationFilter<AnonymousSwaggerOperationFilter>();
     c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "Amaara Creations API",
@@ -236,7 +280,11 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ReleaseTelemetryMiddleware>();
 app.UseExceptionHandler();
+app.UseMiddleware<CommerceExceptionMiddleware>();
 app.UseStatusCodePages();
 
 // Configure the HTTP request pipeline.
@@ -246,9 +294,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+if (!app.Environment.IsDevelopment()) app.UseHsts();
 app.UseHttpsRedirection();
-
-app.UseMiddleware<CorrelationIdMiddleware>();
 
 Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads"));
 Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "App_Data", "private-media"));
@@ -259,10 +306,9 @@ app.UseStaticFiles();
 // Enable CORS (must be before UseAuthentication and UseAuthorization)
 app.UseCors("AllowReactApp");
 
-app.UseRateLimiter();
-
 // Authentication & Authorization (order matters!)
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new
@@ -273,6 +319,18 @@ app.MapGet("/health", () => Results.Ok(new
 }));
 
 app.MapControllers();
+app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health/ready", async (ApplicationDbContext db, CancellationToken ct) =>
+{
+    try
+    {
+        if (!await db.Database.CanConnectAsync(ct)) return Results.Json(new { status = "not_ready" }, statusCode: 503);
+        if (db.Database.IsRelational() && (await db.Database.GetPendingMigrationsAsync(ct)).Any())
+            return Results.Json(new { status = "not_ready" }, statusCode: 503);
+        return Results.Ok(new { status = "ready" });
+    }
+    catch (Exception) when (!ct.IsCancellationRequested) { return Results.Json(new { status = "not_ready" }, statusCode: 503); }
+});
 
 // Seed roles on startup. In Development, allow the app to start so /health can
 // be used even before SQL Server is configured.
@@ -281,7 +339,7 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var roles = new[] { AppRoles.Admin, AppRoles.Customer, AppRoles.SuperAdmin };
+        var roles = AppRoles.AdministrativeRoles.Append(AppRoles.Customer);
 
         foreach (var role in roles)
         {
@@ -429,3 +487,5 @@ static string[] GetAllowedOrigins(WebApplicationBuilder builder)
 
     return origins;
 }
+
+public partial class Program { }

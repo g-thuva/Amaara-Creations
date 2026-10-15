@@ -1,458 +1,106 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using be.Data;
+﻿using be.Data;
 using be.DTOs.Review;
 using be.Models;
 using be.Security;
+using be.Services;
+using be.Services.Checkout;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
-namespace be.Controllers
+namespace be.Controllers;
+
+[ApiController, Route("api/v1/reviews")]
+public sealed class ReviewsController(ApplicationDbContext db, IAuditService audit) : ControllerBase
 {
-    [ApiController]
-    [Route("api/v1/reviews")]
-    public class ReviewsController : ControllerBase
+    [HttpGet("/api/v1/products/{productId:int}/reviews")]
+    public async Task<IActionResult> Public(int productId, int page = 1, CancellationToken ct = default)
     {
-        private readonly ApplicationDbContext _context;
-        private readonly ILogger<ReviewsController> _logger;
-
-        public ReviewsController(ApplicationDbContext context, ILogger<ReviewsController> logger)
-        {
-            _context = context;
-            _logger = logger;
-        }
-
-        // GET: api/v1/products/{productId}/reviews - Get product reviews
-        [HttpGet("/api/v1/products/{productId:int}/reviews")]
-        public async Task<ActionResult<ProductReviewsResponse>> GetProductReviews(int productId)
-        {
-            try
-            {
-                // Check if product exists
-                var product = await _context.Products.FindAsync(productId);
-                if (product == null)
-                {
-                    return NotFound(new { message = "Product not found" });
-                }
-
-                var reviews = await _context.Reviews
-                    .Include(r => r.User)
-                    .Where(r => r.ProductId == productId)
-                    .OrderByDescending(r => r.CreatedAt)
-                    .Select(r => new ReviewResponse
-                    {
-                        Id = r.Id,
-                        ProductId = r.ProductId,
-                        ProductName = product.Name,
-                        UserId = r.UserId,
-                        UserName = r.User!.Name,
-                        UserEmail = r.User.Email,
-                        UserAvatarUrl = r.User.AvatarUrl,
-                        Rating = r.Rating,
-                        Comment = r.Comment,
-                        CreatedAt = r.CreatedAt,
-                        UpdatedAt = r.UpdatedAt
-                    })
-                    .ToListAsync();
-
-                var totalCount = reviews.Count;
-                var averageRating = totalCount > 0 ? reviews.Average(r => r.Rating) : 0.0;
-                
-                // Calculate rating distribution
-                var ratingDistribution1 = reviews.Count(r => r.Rating == 1);
-                var ratingDistribution2 = reviews.Count(r => r.Rating == 2);
-                var ratingDistribution3 = reviews.Count(r => r.Rating == 3);
-                var ratingDistribution4 = reviews.Count(r => r.Rating == 4);
-                var ratingDistribution5 = reviews.Count(r => r.Rating == 5);
-
-                var response = new ProductReviewsResponse
-                {
-                    Reviews = reviews,
-                    TotalCount = totalCount,
-                    AverageRating = Math.Round(averageRating, 2),
-                    RatingDistribution1 = ratingDistribution1,
-                    RatingDistribution2 = ratingDistribution2,
-                    RatingDistribution3 = ratingDistribution3,
-                    RatingDistribution4 = ratingDistribution4,
-                    RatingDistribution5 = ratingDistribution5
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting product reviews for product {ProductId}", productId);
-                return StatusCode(500, new { message = "An error occurred while retrieving reviews" });
-            }
-        }
-
-        // POST: api/v1/products/{productId}/reviews - Add review (authenticated)
-        [HttpPost("/api/v1/products/{productId:int}/reviews")]
-        [Authorize]
-        public async Task<ActionResult<ReviewResponse>> CreateReview(int productId, [FromBody] CreateReviewRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                // Check if product exists and is active
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Id == productId && p.IsActive);
-
-                if (product == null)
-                {
-                    return NotFound(new { message = "Product not found" });
-                }
-
-                // Check if user already reviewed this product
-                var existingReview = await _context.Reviews
-                    .FirstOrDefaultAsync(r => r.UserId == userId && r.ProductId == productId);
-
-                if (existingReview != null)
-                {
-                    return Conflict(new { message = "You have already reviewed this product. Use PUT to update your review." });
-                }
-
-                // Create new review
-                var review = new Review
-                {
-                    ProductId = productId,
-                    UserId = userId,
-                    Rating = request.Rating,
-                    Comment = request.Comment,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                _context.Reviews.Add(review);
-                await _context.SaveChangesAsync();
-
-                // Reload with related data
-                await _context.Entry(review)
-                    .Reference(r => r.User)
-                    .LoadAsync();
-
-                var response = new ReviewResponse
-                {
-                    Id = review.Id,
-                    ProductId = review.ProductId,
-                    ProductName = product.Name,
-                    UserId = review.UserId,
-                    UserName = review.User!.Name,
-                    UserEmail = review.User.Email,
-                    UserAvatarUrl = review.User.AvatarUrl,
-                    Rating = review.Rating,
-                    Comment = review.Comment,
-                    CreatedAt = review.CreatedAt,
-                    UpdatedAt = review.UpdatedAt
-                };
-
-                return CreatedAtAction(nameof(GetProductReviews), new { productId = review.ProductId }, response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating review for product {ProductId}", productId);
-                return StatusCode(500, new { message = "An error occurred while creating the review" });
-            }
-        }
-
-        // PUT: api/v1/reviews/{id} - Update review (owner only)
-        [HttpPut("{id:int}")]
-        [Authorize]
-        public async Task<ActionResult<ReviewResponse>> UpdateReview(int id, [FromBody] UpdateReviewRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                var review = await _context.Reviews
-                    .Include(r => r.User)
-                    .Include(r => r.Product)
-                    .FirstOrDefaultAsync(r => r.Id == id);
-
-                if (review == null)
-                {
-                    return NotFound(new { message = "Review not found" });
-                }
-
-                // Check if user owns the review
-                if (review.UserId != userId)
-                {
-                    return StatusCode(403, new { message = "You can only update your own reviews" });
-                }
-
-                // Update review
-                review.Rating = request.Rating;
-                review.Comment = request.Comment;
-                review.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                var response = new ReviewResponse
-                {
-                    Id = review.Id,
-                    ProductId = review.ProductId,
-                    ProductName = review.Product!.Name,
-                    UserId = review.UserId,
-                    UserName = review.User!.Name,
-                    UserEmail = review.User.Email,
-                    UserAvatarUrl = review.User.AvatarUrl,
-                    Rating = review.Rating,
-                    Comment = review.Comment,
-                    CreatedAt = review.CreatedAt,
-                    UpdatedAt = review.UpdatedAt
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating review {ReviewId}", id);
-                return StatusCode(500, new { message = "An error occurred while updating the review" });
-            }
-        }
-
-        // DELETE: api/v1/reviews/{id} - Delete review (owner/admin)
-        [HttpDelete("{id:int}")]
-        [Authorize]
-        public async Task<IActionResult> DeleteReview(int id)
-        {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (userId == null)
-                {
-                    return Unauthorized(new { message = "User not found" });
-                }
-
-                var isAdmin = User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.SuperAdmin);
-
-                var review = await _context.Reviews
-                    .FirstOrDefaultAsync(r => r.Id == id);
-
-                if (review == null)
-                {
-                    return NotFound(new { message = "Review not found" });
-                }
-
-                // Check if user owns the review or is admin
-                if (review.UserId != userId && !isAdmin)
-                {
-                    return StatusCode(403, new { message = "You can only delete your own reviews" });
-                }
-
-                _context.Reviews.Remove(review);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Review deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting review {ReviewId}", id);
-                return StatusCode(500, new { message = "An error occurred while deleting the review" });
-            }
-        }
-
-        // GET: api/v1/admin/reviews - Get all reviews (Admin only)
-        [HttpGet("/api/v1/admin/reviews")]
-        [Authorize(Policy = AppPolicies.ManageReviews)]
-        public async Task<ActionResult<List<ReviewResponse>>> GetAllReviews(
-            [FromQuery] int? productId = null,
-            [FromQuery] int? rating = null,
-            [FromQuery] string? search = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20)
-        {
-            try
-            {
-                var query = _context.Reviews
-                    .Include(r => r.User)
-                    .Include(r => r.Product)
-                    .AsQueryable();
-
-                // Filter by product
-                if (productId.HasValue)
-                {
-                    query = query.Where(r => r.ProductId == productId.Value);
-                }
-
-                // Filter by rating
-                if (rating.HasValue)
-                {
-                    query = query.Where(r => r.Rating == rating.Value);
-                }
-
-                // Search by user name, email, or comment
-                if (!string.IsNullOrEmpty(search))
-                {
-                    query = query.Where(r =>
-                        r.User!.Name.Contains(search) ||
-                        r.User!.Email!.Contains(search) ||
-                        (r.Comment != null && r.Comment.Contains(search)));
-                }
-
-                // Get total count before pagination
-                var totalCount = await query.CountAsync();
-
-                // Apply pagination
-                var reviews = await query
-                    .OrderByDescending(r => r.CreatedAt)
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(r => new ReviewResponse
-                    {
-                        Id = r.Id,
-                        ProductId = r.ProductId,
-                        ProductName = r.Product!.Name,
-                        UserId = r.UserId,
-                        UserName = r.User!.Name,
-                        UserEmail = r.User.Email,
-                        UserAvatarUrl = r.User.AvatarUrl,
-                        Rating = r.Rating,
-                        Comment = r.Comment,
-                        CreatedAt = r.CreatedAt,
-                        UpdatedAt = r.UpdatedAt
-                    })
-                    .ToListAsync();
-
-                return Ok(new
-                {
-                    Reviews = reviews,
-                    TotalCount = totalCount,
-                    PageNumber = pageNumber,
-                    PageSize = pageSize,
-                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting all reviews");
-                return StatusCode(500, new { message = "An error occurred while retrieving reviews" });
-            }
-        }
-
-        // DELETE: api/v1/admin/reviews/{id} - Delete review (Admin only)
-        [HttpDelete("/api/v1/admin/reviews/{id:int}")]
-        [Authorize(Policy = AppPolicies.ManageReviews)]
-        public async Task<IActionResult> DeleteReviewAdmin(int id)
-        {
-            try
-            {
-                var review = await _context.Reviews
-                    .FirstOrDefaultAsync(r => r.Id == id);
-
-                if (review == null)
-                {
-                    return NotFound(new { message = "Review not found" });
-                }
-
-                _context.Reviews.Remove(review);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Review deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting review {ReviewId} (Admin)", id);
-                return StatusCode(500, new { message = "An error occurred while deleting the review" });
-            }
-        }
-
-        // GET: api/v1/admin/reviews/stats - Get review statistics (Admin only)
-        [HttpGet("/api/v1/admin/reviews/stats")]
-        [Authorize(Policy = AppPolicies.ManageReviews)]
-        public async Task<ActionResult<ReviewStatsResponse>> GetReviewStats()
-        {
-            try
-            {
-                var thisMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-                var thisYear = new DateTime(DateTime.UtcNow.Year, 1, 1);
-
-                // Total Reviews
-                var totalReviews = await _context.Reviews.CountAsync();
-
-                // Average Rating
-                var averageRating = await _context.Reviews
-                    .Select(r => (double?)r.Rating)
-                    .AverageAsync() ?? 0.0;
-
-                // Rating Distribution
-                var rating1Count = await _context.Reviews
-                    .Where(r => r.Rating == 1)
-                    .CountAsync();
-
-                var rating2Count = await _context.Reviews
-                    .Where(r => r.Rating == 2)
-                    .CountAsync();
-
-                var rating3Count = await _context.Reviews
-                    .Where(r => r.Rating == 3)
-                    .CountAsync();
-
-                var rating4Count = await _context.Reviews
-                    .Where(r => r.Rating == 4)
-                    .CountAsync();
-
-                var rating5Count = await _context.Reviews
-                    .Where(r => r.Rating == 5)
-                    .CountAsync();
-
-                // Reviews This Month
-                var reviewsThisMonth = await _context.Reviews
-                    .Where(r => r.CreatedAt >= thisMonth)
-                    .CountAsync();
-
-                // Reviews This Year
-                var reviewsThisYear = await _context.Reviews
-                    .Where(r => r.CreatedAt >= thisYear)
-                    .CountAsync();
-
-                // Products With Reviews
-                var productsWithReviews = await _context.Reviews
-                    .Select(r => r.ProductId)
-                    .Distinct()
-                    .CountAsync();
-
-                var response = new ReviewStatsResponse
-                {
-                    TotalReviews = totalReviews,
-                    AverageRating = Math.Round(averageRating, 2),
-                    Rating1Count = rating1Count,
-                    Rating2Count = rating2Count,
-                    Rating3Count = rating3Count,
-                    Rating4Count = rating4Count,
-                    Rating5Count = rating5Count,
-                    ReviewsThisMonth = reviewsThisMonth,
-                    ReviewsThisYear = reviewsThisYear,
-                    ProductsWithReviews = productsWithReviews
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting review statistics");
-                return StatusCode(500, new { message = "An error occurred while retrieving review statistics" });
-            }
-        }
+        if (!await db.Products.AnyAsync(p => p.Id == productId && p.IsActive, ct)) return NotFound();
+        var query = db.Reviews.AsNoTracking().Where(r => r.ProductId == productId && r.ModerationStatus == "Published");
+        var ratings = await query.GroupBy(r => r.Rating).Select(g => new { Rating = g.Key, Count = g.Count() }).ToListAsync(ct);
+        var count = ratings.Sum(r => r.Count);
+        return Ok(new {
+            reviews = await query.OrderByDescending(r => r.Id).Skip((Math.Max(1, page) - 1) * 30).Take(30)
+                .Select(r => new { r.Id, r.ProductId, UserName = r.User!.Name, r.Rating, r.Comment, r.CreatedAt, r.UpdatedAt, VerifiedPurchase = r.OrderItemId != null }).ToListAsync(ct),
+            totalCount = count, averageRating = count == 0 ? 0 : Math.Round(ratings.Sum(r => r.Rating * r.Count) / (double)count, 2),
+            ratingDistribution1 = ratings.Where(r => r.Rating == 1).Sum(r => r.Count), ratingDistribution2 = ratings.Where(r => r.Rating == 2).Sum(r => r.Count),
+            ratingDistribution3 = ratings.Where(r => r.Rating == 3).Sum(r => r.Count), ratingDistribution4 = ratings.Where(r => r.Rating == 4).Sum(r => r.Count), ratingDistribution5 = ratings.Where(r => r.Rating == 5).Sum(r => r.Count)
+        });
     }
-}
 
+    [HttpPost("/api/v1/products/{productId:int}/reviews"), Authorize]
+    public async Task<IActionResult> Create(int productId, CreateReviewRequest request, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        if (!await db.Products.AnyAsync(p => p.Id == productId && p.IsActive, ct)) return NotFound();
+        await using var tx = await CommerceTransaction.BeginAsync(db, ct);
+        var existing = await db.Reviews.SingleOrDefaultAsync(r => r.UserId == userId && r.ProductId == productId, ct);
+        if (existing != null && existing.ModerationStatus != "Deleted") return Conflict(new { message = "You have already reviewed this product. Edit your existing review." });
+        var itemId = await db.OrderItems.Where(i => i.ProductId == productId && i.Order!.UserId == userId
+            && (i.Order.Status == OrderStatus.Completed || i.Order.Status == OrderStatus.Delivered)
+            && i.Order.Payments.Any(p => p.SettledAmount > p.RefundedAmount))
+            .OrderByDescending(i => i.Id).Select(i => (int?)i.Id).FirstOrDefaultAsync(ct);
+        var review = existing ?? new Review { ProductId = productId, UserId = userId };
+        review.Rating = request.Rating; review.Comment = request.Comment?.Trim(); review.OrderItemId = itemId; review.ModerationStatus = "Pending"; review.ModerationReason = null; review.UpdatedAt = DateTime.UtcNow;
+        if (existing == null) db.Reviews.Add(review);
+        await db.SaveChangesAsync(ct);
+        if (tx != null) await tx.CommitAsync(ct);
+        return StatusCode(201, new { review.Id, review.Rating, review.Comment, review.ModerationStatus, VerifiedPurchase = itemId != null });
+    }
+
+    [HttpGet("mine"), Authorize]
+    public async Task<IActionResult> Mine(int? productId, CancellationToken ct) => Ok(await db.Reviews.AsNoTracking().Where(r => r.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier) && r.ModerationStatus != "Deleted" && (!productId.HasValue || r.ProductId == productId))
+        .OrderByDescending(r => r.Id).Take(100).Select(r => new { r.Id, r.ProductId, r.Rating, r.Comment, r.ModerationStatus, VerifiedPurchase = r.OrderItemId != null }).ToListAsync(ct));
+
+    [HttpPut("{id:int}"), Authorize]
+    public async Task<IActionResult> Edit(int id, UpdateReviewRequest request, CancellationToken ct)
+    {
+        var r = await db.Reviews.SingleOrDefaultAsync(r => r.Id == id && r.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier), ct);
+        if (r == null) return NotFound();
+        r.Rating = request.Rating; r.Comment = request.Comment?.Trim(); r.ModerationStatus = "Pending"; r.ModerationReason = null; r.UpdatedAt = DateTime.UtcNow;
+        await audit.RecordAsync("ReviewEditedByOwner", "Review", id.ToString(), null, new { r.ModerationStatus }, HttpContext, ct);
+        return Ok(new { r.Id, r.Rating, r.Comment, r.ModerationStatus });
+    }
+
+    [HttpDelete("{id:int}"), Authorize]
+    public async Task<IActionResult> DeleteOwn(int id, CancellationToken ct)
+    {
+        var r = await db.Reviews.SingleOrDefaultAsync(r => r.Id == id && r.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier), ct);
+        if (r == null) return NotFound();
+        r.ModerationStatus = "Deleted"; r.Comment = null; r.UpdatedAt = DateTime.UtcNow;
+        await audit.RecordAsync("ReviewDeletedByOwner", "Review", id.ToString(), null, null, HttpContext, ct);
+        return NoContent();
+    }
+
+    [HttpGet("/api/v1/admin/reviews"), Authorize(Policy = AppPolicies.ManageReviews)]
+    public async Task<IActionResult> List(string? status, string? search, int? productId, int? rating, int pageNumber = 1, int pageSize = 20, CancellationToken ct = default)
+    {
+        pageNumber = Math.Max(1, pageNumber); pageSize = Math.Clamp(pageSize, 1, 100);
+        var query = db.Reviews.AsNoTracking().Where(r => (status == null || r.ModerationStatus == status) && (!productId.HasValue || r.ProductId == productId) && (!rating.HasValue || r.Rating == rating));
+        if (!string.IsNullOrWhiteSpace(search)) query = query.Where(r => r.User!.Name.Contains(search) || r.Comment != null && r.Comment.Contains(search));
+        return Ok(new { reviews = await query.OrderByDescending(r => r.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize)
+            .Select(r => new { r.Id, r.ProductId, ProductName = r.Product!.Name, UserName = r.User!.Name, r.Rating, r.Comment, r.ModerationStatus, r.ModerationReason, r.CreatedAt, r.UpdatedAt, VerifiedPurchase = r.OrderItemId != null, r.RowVersion }).ToListAsync(ct), totalCount = await query.CountAsync(ct), pageNumber, pageSize });
+    }
+
+    public sealed record ModerationRequest(string Status, [Required, StringLength(500)] string Reason, [Required(AllowEmptyStrings = true)] string RowVersion);
+    [HttpPut("/api/v1/admin/reviews/{id:int}/moderation"), Authorize(Policy = AppPolicies.ManageReviews)]
+    public async Task<IActionResult> Moderate(int id, ModerationRequest request, CancellationToken ct)
+    {
+        if (request.Status is not ("Published" or "Hidden" or "Deleted") || string.IsNullOrWhiteSpace(request.Reason)) throw new CommerceException("MODERATION_INVALID", "Choose a moderation state and provide a reason.");
+        var r = await db.Reviews.SingleOrDefaultAsync(r => r.Id == id, ct);
+        if (r == null) return NotFound();
+        if (request.RowVersion != Convert.ToBase64String(r.RowVersion)) throw new CommerceException("REVIEW_CHANGED", "Refresh this review before moderating.", 409);
+        var previous = r.ModerationStatus; r.ModerationStatus = request.Status; r.ModerationReason = request.Reason.Trim(); r.UpdatedAt = DateTime.UtcNow;
+        await audit.RecordAsync("ReviewModerated", "Review", id.ToString(), new { Status = previous }, new { request.Status, request.Reason }, HttpContext, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("/api/v1/admin/reviews/{id:int}"), Authorize(Policy = AppPolicies.ManageReviews)]
+    public Task<IActionResult> DeleteAdmin(int id, [FromBody] ModerationRequest request, CancellationToken ct) => Moderate(id, request with { Status = "Deleted" }, ct);
+
+    [HttpGet("/api/v1/admin/reviews/stats"), Authorize(Policy = AppPolicies.ManageReviews)]
+    public async Task<IActionResult> Stats(CancellationToken ct) => Ok(new { totalReviews = await db.Reviews.CountAsync(ct), pending = await db.Reviews.CountAsync(r => r.ModerationStatus == "Pending", ct), averageRating = await db.Reviews.Where(r => r.ModerationStatus == "Published").AverageAsync(r => (double?)r.Rating, ct) ?? 0 });
+}

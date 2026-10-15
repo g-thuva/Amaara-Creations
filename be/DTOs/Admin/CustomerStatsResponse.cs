@@ -2,6 +2,7 @@ namespace be.DTOs.Admin
 {
     public class CustomerStatsResponse
     {
+        public string Currency { get; set; } = "LKR";
         public int TotalOrders { get; set; }
         public int PendingOrders { get; set; }
         public int ProcessingOrders { get; set; }

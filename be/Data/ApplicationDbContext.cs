@@ -7,9 +7,11 @@ namespace be.Data
 {
     public partial class ApplicationDbContext : IdentityDbContext<User>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly IHttpContextAccessor? _requestContext;
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor? requestContext = null)
             : base(options)
         {
+            _requestContext = requestContext;
         }
 
         // DbSets for entities
@@ -42,6 +44,12 @@ namespace be.Data
         public DbSet<CmsPage> CmsPages { get; set; }
         public DbSet<CmsSection> CmsSections { get; set; }
         public DbSet<SiteSetting> SiteSettings { get; set; }
+        public DbSet<InventoryReservation> InventoryReservations { get; set; }
+        public DbSet<Refund> Refunds { get; set; }
+        public DbSet<CheckoutAttempt> CheckoutAttempts { get; set; }
+        public DbSet<PromotionRedemption> PromotionRedemptions { get; set; }
+        public DbSet<PaymentWebhookEvent> PaymentWebhookEvents { get; set; }
+        public DbSet<CommerceNotification> CommerceNotifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -65,6 +73,7 @@ namespace be.Data
                 entity.Property(e => e.Slug).IsRequired().HasMaxLength(220);
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.Currency).HasMaxLength(3).HasDefaultValue("LKR").IsRequired();
                 entity.Property(e => e.Description).HasMaxLength(500);
                 entity.Property(e => e.ShortDescription).HasMaxLength(300);
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
@@ -218,10 +227,14 @@ namespace be.Data
 
             ConfigureFoundationFoundation(modelBuilder);
             ConfigureCustomBuilder(modelBuilder);
+            ConfigurePhase6(modelBuilder);
+            ConfigureOperations(modelBuilder);
         }
 
         partial void ConfigureFoundationFoundation(ModelBuilder modelBuilder);
         partial void ConfigureCustomBuilder(ModelBuilder modelBuilder);
+        partial void ConfigurePhase6(ModelBuilder modelBuilder);
+        partial void ConfigureOperations(ModelBuilder modelBuilder);
     }
 }
 

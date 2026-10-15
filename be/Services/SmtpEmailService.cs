@@ -31,6 +31,14 @@ namespace be.Services
             await SendEmailAsync(user.Email!, subject, body, cancellationToken);
         }
 
+        public Task SendTransactionAsync(User user, string subject, string body, CancellationToken cancellationToken = default)
+        {
+            var config = _configuration.GetSection("Email");
+            if (string.IsNullOrWhiteSpace(config["Username"]) || string.IsNullOrWhiteSpace(config["Password"]) || string.IsNullOrWhiteSpace(config["FromEmail"]))
+                throw new InvalidOperationException("Transactional email is not configured.");
+            return SendEmailAsync(user.Email!, subject, body, cancellationToken);
+        }
+
         private async Task SendEmailAsync(string toEmail, string subject, string body, CancellationToken cancellationToken)
         {
             var emailConfig = _configuration.GetSection("Email");
@@ -40,13 +48,12 @@ namespace be.Services
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(fromEmail))
             {
-                _logger.LogWarning("Email configuration is missing. Cannot send email.");
-                return;
+                throw new InvalidOperationException("Email delivery is not configured.");
             }
 
             try
             {
-                using var client = new SmtpClient("smtp.gmail.com", 587)
+                using var client = new SmtpClient(emailConfig["Host"] ?? "smtp.gmail.com", emailConfig.GetValue<int?>("Port") ?? 587)
                 {
                     EnableSsl = true,
                     UseDefaultCredentials = false,
@@ -55,13 +62,13 @@ namespace be.Services
 
                 using var mailMessage = new MailMessage(fromEmail, toEmail, subject, body);
 
-                await client.SendMailAsync(mailMessage);
-                _logger.LogInformation("Email sent to {Email} successfully.", toEmail);
+                await client.SendMailAsync(mailMessage, cancellationToken);
+                _logger.LogInformation("Email delivery completed.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while sending email to {Email}. Error: {Error}", toEmail, ex.Message);
-                throw new InvalidOperationException($"Failed to send email to {toEmail}. Error: {ex.Message}", ex);
+                _logger.LogWarning("Email delivery failed: {ExceptionType}", ex.GetType().Name);
+                throw new InvalidOperationException("Email delivery could not be completed.");
             }
         }
     }

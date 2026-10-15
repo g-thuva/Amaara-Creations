@@ -34,6 +34,7 @@ namespace be.Controllers
 
         // GET: api/admin/dashboard - Get dashboard statistics
         [HttpGet("dashboard")]
+        [Authorize(Policy = AppPolicies.ViewReports)]
         public async Task<ActionResult<DashboardStatsResponse>> GetDashboardStats()
         {
             try
@@ -41,20 +42,22 @@ namespace be.Controllers
                 var today = DateTime.UtcNow.Date;
                 var thisMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
                 var endOfToday = today.AddDays(1);
+                // This legacy dashboard reports LKR only. TEST payments are never business revenue.
+                var revenueOrders = _context.Orders.Where(o => o.Currency == "LKR" && o.Status != OrderStatus.Cancelled
+                    && !o.Payments.Any(p => (p.ProviderMode == "TEST" || p.ProviderMode == "Sandbox")));
 
-                // Total Revenue (excluding cancelled orders)
-                var totalRevenue = await _context.Orders
-                    .Where(o => o.Status != OrderStatus.Cancelled)
+                // Total Revenue (LKR business orders only)
+                var totalRevenue = await revenueOrders
                     .SumAsync(o => (decimal?)o.Total) ?? 0;
 
                 // Revenue Today
-                var revenueToday = await _context.Orders
-                    .Where(o => o.OrderDate >= today && o.OrderDate < endOfToday && o.Status != OrderStatus.Cancelled)
+                var revenueToday = await revenueOrders
+                    .Where(o => o.OrderDate >= today && o.OrderDate < endOfToday)
                     .SumAsync(o => (decimal?)o.Total) ?? 0;
 
                 // Revenue This Month
-                var revenueThisMonth = await _context.Orders
-                    .Where(o => o.OrderDate >= thisMonth && o.Status != OrderStatus.Cancelled)
+                var revenueThisMonth = await revenueOrders
+                    .Where(o => o.OrderDate >= thisMonth)
                     .SumAsync(o => (decimal?)o.Total) ?? 0;
 
                 // Total Orders
@@ -127,6 +130,7 @@ namespace be.Controllers
 
         // GET: api/admin/dashboard/revenue - Get revenue statistics
         [HttpGet("dashboard/revenue")]
+        [Authorize(Policy = AppPolicies.ViewReports)]
         public async Task<ActionResult<RevenueStatsResponse>> GetRevenueStats()
         {
             try
@@ -136,42 +140,44 @@ namespace be.Controllers
                 var thisWeek = today.AddDays(-(int)today.DayOfWeek);
                 var thisMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
                 var thisYear = new DateTime(DateTime.UtcNow.Year, 1, 1);
+                var revenueOrders = _context.Orders.Where(o => o.Currency == "LKR" && o.Status != OrderStatus.Cancelled
+                    && !o.Payments.Any(p => (p.ProviderMode == "TEST" || p.ProviderMode == "Sandbox")));
 
                 // Total Revenue
-                var totalRevenue = await _context.Orders
-                    .Where(o => o.Status != OrderStatus.Cancelled)
+                var totalRevenue = await revenueOrders
                     .SumAsync(o => (decimal?)o.Total) ?? 0;
 
                 // Revenue Today
-                var revenueToday = await _context.Orders
-                    .Where(o => o.OrderDate >= today && o.OrderDate < endOfToday && o.Status != OrderStatus.Cancelled)
+                var revenueToday = await revenueOrders
+                    .Where(o => o.OrderDate >= today && o.OrderDate < endOfToday)
                     .SumAsync(o => (decimal?)o.Total) ?? 0;
 
                 // Revenue This Week
-                var revenueThisWeek = await _context.Orders
-                    .Where(o => o.OrderDate >= thisWeek && o.Status != OrderStatus.Cancelled)
+                var revenueThisWeek = await revenueOrders
+                    .Where(o => o.OrderDate >= thisWeek)
                     .SumAsync(o => (decimal?)o.Total) ?? 0;
 
                 // Revenue This Month
-                var revenueThisMonth = await _context.Orders
-                    .Where(o => o.OrderDate >= thisMonth && o.Status != OrderStatus.Cancelled)
+                var revenueThisMonth = await revenueOrders
+                    .Where(o => o.OrderDate >= thisMonth)
                     .SumAsync(o => (decimal?)o.Total) ?? 0;
 
                 // Revenue This Year
-                var revenueThisYear = await _context.Orders
-                    .Where(o => o.OrderDate >= thisYear && o.Status != OrderStatus.Cancelled)
+                var revenueThisYear = await revenueOrders
+                    .Where(o => o.OrderDate >= thisYear)
                     .SumAsync(o => (decimal?)o.Total) ?? 0;
 
                 // Monthly Revenue for last 12 months
+                var reportStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddMonths(-11);
+                var monthlyAmounts = await revenueOrders.Where(o => o.OrderDate >= reportStart)
+                    .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month }).Select(g => new { g.Key.Year, g.Key.Month, Amount = g.Sum(o => o.Total) }).ToListAsync();
                 var monthlyRevenues = new List<MonthlyRevenue>();
                 for (int i = 11; i >= 0; i--)
                 {
                     var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddMonths(-i);
                     var monthEnd = monthStart.AddMonths(1);
 
-                    var monthRevenue = await _context.Orders
-                        .Where(o => o.OrderDate >= monthStart && o.OrderDate < monthEnd && o.Status != OrderStatus.Cancelled)
-                        .SumAsync(o => (decimal?)o.Total) ?? 0;
+                    var monthRevenue = monthlyAmounts.Where(m => m.Year == monthStart.Year && m.Month == monthStart.Month).Sum(m => m.Amount);
 
                     monthlyRevenues.Add(new MonthlyRevenue
                     {
@@ -202,6 +208,7 @@ namespace be.Controllers
 
         // GET: api/admin/dashboard/orders - Get order statistics
         [HttpGet("dashboard/orders")]
+        [Authorize(Policy = AppPolicies.ViewReports)]
         public async Task<ActionResult<OrderStatsResponse>> GetOrderStats()
         {
             try
@@ -281,6 +288,7 @@ namespace be.Controllers
 
         // GET: api/admin/dashboard/products - Get product statistics
         [HttpGet("dashboard/products")]
+        [Authorize(Policy = AppPolicies.ViewReports)]
         public async Task<ActionResult<ProductStatsResponse>> GetProductStats()
         {
             try
@@ -309,7 +317,7 @@ namespace be.Controllers
                 // Top Selling Products (by quantity sold)
                 var topSellingProducts = await _context.OrderItems
                     .Include(oi => oi.Product)
-                    .Where(oi => oi.Order!.Status != OrderStatus.Cancelled)
+                    .Where(oi => oi.Order!.Currency == "LKR" && oi.Order.Status != OrderStatus.Cancelled && !oi.Order.Payments.Any(p => (p.ProviderMode == "TEST" || p.ProviderMode == "Sandbox")))
                     .GroupBy(oi => new
                     {
                         ProductId = oi.ProductId ?? 0,
@@ -349,6 +357,7 @@ namespace be.Controllers
 
         // GET: api/admin/dashboard/recent-orders - Get recent orders
         [HttpGet("dashboard/recent-orders")]
+        [Authorize(Policy = AppPolicies.ViewReports)]
         public async Task<ActionResult<List<RecentOrderResponse>>> GetRecentOrders([FromQuery] int limit = 10)
         {
             try
@@ -364,6 +373,7 @@ namespace be.Controllers
                         CustomerName = o.User!.Name,
                         CustomerEmail = o.User.Email ?? string.Empty,
                         Total = o.Total,
+                        Currency = o.Currency,
                         Status = o.Status.ToString(),
                         OrderDate = o.OrderDate
                     })
@@ -380,6 +390,7 @@ namespace be.Controllers
 
         // GET: api/admin/customers - Get all customers
         [HttpGet("customers")]
+        [Authorize(Policy = AppPolicies.ManageCustomers)]
         public async Task<ActionResult> GetAllCustomers(
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
@@ -450,6 +461,7 @@ namespace be.Controllers
 
         // GET: api/admin/customers/{id} - Get customer details
         [HttpGet("customers/{id}")]
+        [Authorize(Policy = AppPolicies.ManageCustomers)]
         public async Task<ActionResult<CustomerDetailResponse>> GetCustomerDetails(string id)
         {
             try
@@ -494,6 +506,7 @@ namespace be.Controllers
 
         // GET: api/admin/customers/{id}/orders - Get customer orders
         [HttpGet("customers/{id}/orders")]
+        [Authorize(Policy = AppPolicies.ManageCustomers)]
         public async Task<ActionResult> GetCustomerOrders(string id, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
         {
             try
@@ -547,6 +560,7 @@ namespace be.Controllers
 
         // GET: api/admin/customers/{id}/stats - Get customer statistics
         [HttpGet("customers/{id}/stats")]
+        [Authorize(Policy = AppPolicies.ManageCustomers)]
         public async Task<ActionResult<CustomerStatsResponse>> GetCustomerStats(string id)
         {
             try
@@ -595,7 +609,7 @@ namespace be.Controllers
                 .CountAsync();
 
             var totalSpent = await _context.Orders
-                .Where(o => o.UserId == userId && o.Status != OrderStatus.Cancelled)
+                .Where(o => o.UserId == userId && o.Currency == "LKR" && o.Status != OrderStatus.Cancelled)
                 .SumAsync(o => (decimal?)o.Total) ?? 0;
 
             var totalCartItems = await _context.CartItems

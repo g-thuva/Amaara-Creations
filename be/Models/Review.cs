@@ -24,6 +24,11 @@ namespace be.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        [StringLength(20)] public string ModerationStatus { get; set; } = "Pending";
+        public int? OrderItemId { get; set; }
+        public OrderItem? OrderItem { get; set; }
+        [StringLength(500)] public string? ModerationReason { get; set; }
+        [Timestamp] public byte[] RowVersion { get; set; } = [];
 
         // Navigation properties
         [ForeignKey("ProductId")]

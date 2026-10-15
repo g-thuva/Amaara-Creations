@@ -9,10 +9,14 @@ namespace be.Models
         Processing = 1,
         Shipped = 2,
         Delivered = 3,
-        Cancelled = 4
+        Cancelled = 4,
+        PendingPayment = 5,
+        Confirmed = 6,
+        Completed = 7,
+        PaymentReview = 8
     }
 
-    public class Order
+    public partial class Order
     {
         [Key]
         public int Id { get; set; }
@@ -30,6 +34,34 @@ namespace be.Models
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal Total { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Subtotal { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal DiscountTotal { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal ShippingTotal { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TaxTotal { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal PaymentFee { get; set; }
+
+        [Required]
+        [StringLength(3)]
+        public string Currency { get; set; } = "LKR";
+
+        [StringLength(120)]
+        public string? ShippingMethodName { get; set; }
+
+        [StringLength(50)]
+        public string? ShippingMethodCode { get; set; }
+
+        [StringLength(40)]
+        public string? CouponCode { get; set; }
 
         [Required]
         public OrderStatus Status { get; set; } = OrderStatus.Pending;

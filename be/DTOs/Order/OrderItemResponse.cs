@@ -8,6 +8,7 @@ namespace be.DTOs.Order
         public int? CustomDesignId { get; set; }
         public string ItemType { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
+        public string? Sku { get; set; }
         public string ProductImageUrl { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal Price { get; set; } // Price at time of order

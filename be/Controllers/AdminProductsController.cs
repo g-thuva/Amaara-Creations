@@ -6,6 +6,7 @@ using be.DTOs.Common;
 using be.Models;
 using be.Security;
 using be.Services;
+using be.Services.Checkout;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -97,6 +98,7 @@ namespace be.Controllers
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<AdminProductResponse>> CreateProduct(AdminProductRequest request)
         {
+            await using var transaction = await CommerceTransaction.BeginAsync(_context, default);
             var validation = await ValidateProductRequestAsync(request);
             if (validation != null)
             {
@@ -112,6 +114,7 @@ namespace be.Controllers
                 ShortDescription = request.ShortDescription?.Trim(),
                 Price = request.BasePrice,
                 BasePrice = request.BasePrice,
+                Currency = request.Currency,
                 BaseSku = string.IsNullOrWhiteSpace(request.BaseSku) ? null : request.BaseSku.Trim(),
                 CategoryId = request.CategoryId,
                 Category = await ResolveCategoryLabelAsync(request.CategoryId, request.Category),
@@ -130,9 +133,11 @@ namespace be.Controllers
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
+            _context.InventoryTransactions.Add(new InventoryTransaction { ProductId = product.Id, PreviousQuantity = 0, QuantityDelta = product.Stock, NewQuantity = product.Stock, MovementType = "Opening", Reason = "Initial catalog stock", PerformedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) });
             await _auditService.RecordAsync("create", nameof(Product), product.Id.ToString(), null, ToProductResponse(product), HttpContext);
 
             var savedProduct = await LoadProductAsync(product.Id);
+            if (transaction != null) await transaction.CommitAsync();
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, ToProductResponse(savedProduct!));
         }
 
@@ -141,6 +146,7 @@ namespace be.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<AdminProductResponse>> UpdateProduct(int id, AdminProductRequest request)
         {
+            await using var transaction = await CommerceTransaction.BeginAsync(_context, default);
             var product = await _context.Products.Include(p => p.ProductCollections).FirstOrDefaultAsync(p => p.Id == id);
             if (product == null)
             {
@@ -153,7 +159,9 @@ namespace be.Controllers
                 return validation;
             }
 
-            var oldValues = new { product.Name, product.Slug, product.BasePrice, product.Stock, product.IsActive, product.IsFeatured };
+            if (request.Currency != product.Currency) return Conflict(new ProblemDetails { Title = "Existing prices cannot be relabeled. Create a separately priced product for a new currency.", Status = 409 });
+            if (request.RowVersion == null || request.RowVersion != Convert.ToBase64String(product.RowVersion)) return Conflict(new ProblemDetails { Title = "Refresh this product before editing.", Status = 409 });
+            var oldValues = new { product.Name, product.Slug, product.BasePrice, product.Currency, product.Stock, product.IsActive, product.IsFeatured };
             product.Name = request.Name.Trim();
             product.Slug = await GenerateUniqueSlugAsync(request.Slug ?? request.Name, product.Id);
             product.Description = request.Description.Trim();
@@ -163,7 +171,8 @@ namespace be.Controllers
             product.BaseSku = string.IsNullOrWhiteSpace(request.BaseSku) ? null : request.BaseSku.Trim();
             product.CategoryId = request.CategoryId;
             product.Category = await ResolveCategoryLabelAsync(request.CategoryId, request.Category);
-            product.Stock = request.Stock;
+            if (product.Stock != request.Stock)
+                return Conflict(new ProblemDetails { Title = "Use Inventory to adjust stock with a reason.", Status = 409 });
             product.IsActive = request.IsActive;
             product.IsFeatured = request.IsFeatured;
             product.UpdatedAt = DateTime.UtcNow;
@@ -177,6 +186,7 @@ namespace be.Controllers
             await _context.SaveChangesAsync();
             var savedProduct = await LoadProductAsync(product.Id);
             await _auditService.RecordAsync("update", nameof(Product), product.Id.ToString(), oldValues, ToProductResponse(savedProduct!), HttpContext);
+            if (transaction != null) await transaction.CommitAsync();
             return Ok(ToProductResponse(savedProduct!));
         }
 
@@ -250,6 +260,7 @@ namespace be.Controllers
             };
             _context.ProductVariants.Add(variant);
             await _context.SaveChangesAsync();
+            _context.InventoryTransactions.Add(new InventoryTransaction { ProductId = id, ProductVariantId = variant.Id, PreviousQuantity = 0, QuantityDelta = variant.StockQuantity, NewQuantity = variant.StockQuantity, MovementType = "Opening", Reason = "Initial variant stock", PerformedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) });
             await _auditService.RecordAsync("create", nameof(ProductVariant), variant.Id.ToString(), null, ToVariantResponse(variant), HttpContext);
             return CreatedAtAction(nameof(GetVariants), new { id }, ToVariantResponse(variant));
         }
@@ -277,7 +288,8 @@ namespace be.Controllers
             variant.Sku = request.Sku.Trim();
             variant.Name = request.Name.Trim();
             variant.PriceOverride = request.PriceOverride;
-            variant.StockQuantity = request.StockQuantity;
+            if (variant.StockQuantity != request.StockQuantity)
+                return Conflict(new ProblemDetails { Title = "Use Inventory to adjust stock with a reason.", Status = 409 });
             variant.IsActive = request.IsActive;
             variant.UpdatedAt = DateTime.UtcNow;
 
@@ -327,38 +339,9 @@ namespace be.Controllers
         }
 
         [HttpPost("{id:int}/stock-adjustments")]
-        public async Task<IActionResult> AdjustProductStock(int id, StockAdjustmentRequest request)
-        {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null)
-            {
-                return NotFound();
-            }
-
-            var newQuantity = product.Stock + request.QuantityDelta;
-            if (newQuantity < 0)
-            {
-                ModelState.AddModelError(nameof(request.QuantityDelta), "Stock adjustment cannot make stock negative.");
-                return ValidationProblem(ModelState);
-            }
-
-            var previous = product.Stock;
-            product.Stock = newQuantity;
-            product.UpdatedAt = DateTime.UtcNow;
-            _context.InventoryTransactions.Add(new InventoryTransaction
-            {
-                ProductId = product.Id,
-                PreviousQuantity = previous,
-                QuantityDelta = request.QuantityDelta,
-                NewQuantity = newQuantity,
-                Reason = request.Reason.Trim(),
-                PerformedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier),
-                CreatedAt = DateTime.UtcNow
-            });
-            await _context.SaveChangesAsync();
-            await _auditService.RecordAsync("stock-adjust", nameof(Product), id.ToString(), new { Stock = previous }, new { Stock = newQuantity }, HttpContext);
-            return NoContent();
-        }
+        [Authorize(Policy = AppPolicies.ManageInventory)]
+        public IActionResult AdjustProductStock(int id, StockAdjustmentRequest request)
+            => Problem(statusCode: 410, title: "Use /admin/inventory/{id}/adjustments with expected stock and a reason.");
 
         [HttpGet("{id:int}/media")]
         public async Task<ActionResult<IReadOnlyList<ProductMediaResponse>>> GetProductMedia(int id)
@@ -601,6 +584,7 @@ namespace be.Controllers
                 Description = product.Description,
                 ShortDescription = product.ShortDescription,
                 BasePrice = product.BasePrice,
+                Currency = product.Currency, RowVersion = Convert.ToBase64String(product.RowVersion),
                 Price = product.Price,
                 BaseSku = product.BaseSku,
                 Category = product.Category,

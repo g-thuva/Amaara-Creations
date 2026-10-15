@@ -2,9 +2,11 @@ using be.Data;
 using be.DTOs.CustomBuilder;
 using be.Models;
 using be.Services;
+using be.Services.Checkout;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace be.Controllers;
 
@@ -14,11 +16,13 @@ public class CustomBuilderController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ICustomStickerPricingService _pricing;
+    private readonly IOptions<CheckoutOptions> _checkoutOptions;
 
-    public CustomBuilderController(ApplicationDbContext context, ICustomStickerPricingService pricing)
+    public CustomBuilderController(ApplicationDbContext context, ICustomStickerPricingService pricing, IOptions<CheckoutOptions> checkoutOptions)
     {
         _context = context;
         _pricing = pricing;
+        _checkoutOptions = checkoutOptions;
     }
 
     [HttpGet("config")]
@@ -54,7 +58,7 @@ public class CustomBuilderController : ControllerBase
     {
         return _context.CustomBuilderConfigurationVersions
             .Include(version => version.Options)
-            .Where(version => version.Status == BuilderVersionStatus.Published)
+            .Where(version => version.Status == BuilderVersionStatus.Published && version.Currency == _checkoutOptions.Value.Currency)
             .OrderByDescending(version => version.PublishedAt)
             .ThenByDescending(version => version.VersionNumber);
     }

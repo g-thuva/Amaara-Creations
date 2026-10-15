@@ -11,7 +11,7 @@ namespace be.Controllers
 {
     [ApiController]
     [Route("api/v1/admin/settings")]
-    [Authorize(Policy = AppPolicies.ManageContent)]
+    [Authorize(Policy = AppPolicies.ManageSettings)]
     public class AdminSettingsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

@@ -161,6 +161,7 @@ public class CustomDesignDto
     public string TextAlignment { get; set; } = "center";
     public decimal? UnitPrice { get; set; }
     public decimal? Subtotal { get; set; }
+    public string Currency { get; set; } = "LKR";
     public string? PricingVersion { get; set; }
     public DateTime? QuotedAt { get; set; }
     public string ProofStatus { get; set; } = string.Empty;
@@ -182,4 +183,6 @@ public class ProofResponseRequest
 public class UpdateProductionStatusRequest
 {
     [Required] public string Status { get; set; } = string.Empty;
+    [Required, StringLength(500)] public string Note { get; set; } = string.Empty;
+    public string? RowVersion { get; set; }
 }
