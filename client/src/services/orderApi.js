@@ -13,12 +13,6 @@ export const orderApi = {
     return response.data;
   },
 
-  // Create order (checkout)
-  createOrder: async (orderData) => {
-    const response = await api.post('/orders', orderData);
-    return response.data;
-  },
-
   // Update order status (Admin only)
   updateOrderStatus: async (id, status) => {
     const response = await api.put(`/admin/orders/${id}/status`, { status });
@@ -39,8 +33,8 @@ export const orderApi = {
   },
 
   // Get order details (Admin only)
-  getAdminOrderById: async (id) => {
-    const response = await api.get(`/admin/orders/${id}`);
+  getAdminOrderById: async (id, signal) => {
+    const response = await api.get(`/admin/orders/${id}`, { signal });
     return response.data;
   },
 };

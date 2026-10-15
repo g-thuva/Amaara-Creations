@@ -4,6 +4,8 @@ import { resolveMediaUrl } from '../services/config';
 describe('storefront contracts', () => {
   it('formats server money consistently including zero', () => {
     expect(money(1250)).toBe('Rs. 1,250.00'); expect(money(0)).toBe('Rs. 0.00');
+    expect(money(25.5, 'CHF')).toContain('CHF');
+    expect(money(25.5, 'CHF')).not.toContain('Rs.');
   });
   it('uses the Sri Lankan date at UTC day boundaries', () => { expect(date('2026-10-05T20:00:00Z')).toContain('6'); });
   it.each([0, -1, 1.5, NaN, Infinity, 11])('rejects invalid quantity %s', value => { expect(validQuantity(value, 10)).toBe(false); });

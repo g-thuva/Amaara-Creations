@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../services/authApi';
+import { reportClientError } from '../services/clientTelemetry';
 import { clearAccessToken, setAccessToken, setAuthFailureHandler } from '../services/authSession';
 
 const AuthContext = createContext(null);
@@ -52,7 +53,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await authApi.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      reportClientError('auth.logout', error);
     } finally {
       clearAccessToken();
       setUser(null);

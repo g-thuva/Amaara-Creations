@@ -42,8 +42,8 @@ export function SectionHeading({ title, to, label = 'Explore all', align = 'cent
   );
 }
 
-export function Price({ value }) {
-  return <span className="s-price">{money(value)}</span>;
+export function Price({ value, currency = 'LKR' }) {
+  return <span className="s-price">{money(value, currency)}</span>;
 }
 
 export function Media({ src, alt, eager = false, className = '', width = 800, height = 600, objectPosition }) {

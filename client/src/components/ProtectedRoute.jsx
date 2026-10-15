@@ -1,11 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-
-const hasAdminAccess = (user) => {
-  const roles = user?.roles || (user?.role ? [user.role] : []);
-  return roles.includes('Admin') || roles.includes('SuperAdmin');
-};
+import { can, adminRoutes } from '../utils/permissions';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { authStatus, isAuthenticated, user } = useAuth();
@@ -23,7 +19,8 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
 
-  if (requireAdmin && !hasAdminAccess(user)) {
+  const routePermission = adminRoutes[location.pathname.split('/')[2]];
+  if (requireAdmin && (!can(user, 'AdminAccess') || routePermission && !can(user, routePermission))) {
     return (
       <div style={{ minHeight: '50vh', display: 'grid', placeItems: 'center', padding: '2rem', textAlign: 'center' }}>
         <div>

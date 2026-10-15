@@ -55,7 +55,7 @@ export default function Navbar() {
   const [announcementDismissed, setAnnouncementDismissed] = useState(
     () => typeof sessionStorage !== 'undefined' && dismissalKey && sessionStorage.getItem(dismissalKey) === 'dismissed',
   );
-  const isAdmin = user?.roles?.some((role) => ['Admin', 'SuperAdmin'].includes(role));
+  const isAdmin = user?.roles?.some((role) => ['Admin', 'SuperAdmin', 'CatalogManager', 'ProductionStaff', 'CustomerSupport', 'Marketing', 'Analyst'].includes(role));
 
   useEffect(() => {
     const sentinel = sentinelRef.current;

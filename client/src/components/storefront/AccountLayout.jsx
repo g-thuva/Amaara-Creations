@@ -14,7 +14,7 @@ const links = [
 export default function AccountLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = user?.roles?.some((role) => ['Admin', 'SuperAdmin'].includes(role));
+  const isAdmin = user?.roles?.some((role) => ['Admin', 'SuperAdmin', 'CatalogManager', 'ProductionStaff', 'CustomerSupport', 'Marketing', 'Analyst'].includes(role));
 
   return (
     <div className="s-container s-page">

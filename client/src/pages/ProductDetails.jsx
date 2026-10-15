@@ -5,6 +5,7 @@ import { productApi } from '../services/productApi';
 import { cartApi } from '../services/cartApi';
 import { useStore } from '../contexts/StoreContext';
 import { Button, EmptyState, ErrorState, Icon, Media, Price, Quantity, Skeleton } from '../components/storefront/UI';
+import { ProductSeo } from '../components/Seo';
 import Reviews from '../components/storefront/Reviews';
 
 function Product({ product }) {
@@ -75,7 +76,7 @@ function Product({ product }) {
         <section className="s-pdp-info">
           {product.category && <p className="s-eyebrow">{product.category}</p>}
           <h1>{product.name}</h1>
-          <Price value={variant?.priceOverride ?? product.price} />
+          <Price value={variant?.priceOverride ?? product.price} currency={product.currency} />
           <p className={`s-availability ${stock > 0 ? 'available' : 'unavailable'}`}>
             <Icon name={stock > 0 ? 'check' : 'x'} />{stock > 0 ? 'In stock' : 'Out of stock'}
           </p>
@@ -132,7 +133,7 @@ function Product({ product }) {
 
       {showSticky && (
         <div className="s-mobile-purchase" aria-label="Product purchase actions">
-          <div><strong>{product.name}</strong><Price value={variant?.priceOverride ?? product.price} /></div>
+          <div><strong>{product.name}</strong><Price value={variant?.priceOverride ?? product.price} currency={product.currency} /></div>
           <Button disabled={unavailable} onClick={addToCart}>{variant ? 'Contact to order' : stock <= 0 ? 'Out of stock' : 'Add to cart'}</Button>
         </div>
       )}
@@ -157,7 +158,7 @@ export default function ProductDetails() {
       ) : resource.error ? (
         <ErrorState error={resource.error} retry={resource.reload} />
       ) : (
-        <Product key={id} product={resource.data} />
+        <><ProductSeo product={resource.data} /><Product key={id} product={resource.data} /></>
       )}
     </div>
   );

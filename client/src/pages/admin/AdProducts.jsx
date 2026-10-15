@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { adminApi } from "../../services/adminApi";
 import { resolveMediaUrl } from "../../services/config";
 import "./AdminStyles.css";
+import { checkoutMoney } from "../../services/checkoutApi";
+import { Link } from "react-router-dom";
 import AppIcon from "../../components/AppIcon";
 
 const emptyForm = {
@@ -10,6 +12,8 @@ const emptyForm = {
   shortDescription: "",
   description: "",
   basePrice: "",
+  currency: "",
+  rowVersion: "",
   baseSku: "",
   categoryId: "",
   stock: "0",
@@ -87,6 +91,8 @@ const AdProducts = () => {
       shortDescription: product.shortDescription || "",
       description: product.description || "",
       basePrice: product.basePrice?.toString() || "",
+      currency: product.currency,
+      rowVersion: product.rowVersion,
       baseSku: product.baseSku || "",
       categoryId: product.categoryId?.toString() || "",
       stock: product.stock?.toString() || "0",
@@ -217,7 +223,7 @@ const AdProducts = () => {
                   </div>
                 </td>
                 <td>{product.categoryName || product.category}</td>
-                <td>Rs. {Number(product.basePrice).toLocaleString()}</td>
+                <td>{checkoutMoney(product.basePrice, product.currency)}</td>
                 <td>{product.stock}</td>
                 <td><span className={`badge ${product.isActive ? "badge-success" : "badge-warning"}`}>{product.isActive ? "Active" : "Archived"}</span></td>
                 <td>
@@ -247,8 +253,10 @@ const AdProducts = () => {
             <label className="form-group">Slug<input className="form-control" value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} /></label>
           </div>
           <div className="form-row">
+            <label className="form-group">Currency<select className="form-control" value={formData.currency} disabled={Boolean(editingProduct)} required onChange={e => setFormData({ ...formData, currency: e.target.value })}><option value="">Choose currency</option>{["LKR", "CHF", "USD", "EUR", "GBP"].map(c => <option key={c}>{c}</option>)}</select></label>
             <label className="form-group">Base price<input className="form-control" type="number" min="0" step="0.01" value={formData.basePrice} required onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })} /></label>
-            <label className="form-group">Stock<input className="form-control" type="number" min="0" value={formData.stock} required onChange={(e) => setFormData({ ...formData, stock: e.target.value })} /></label>
+            <p>Existing balances are adjusted in <Link to="/admin/inventory">Inventory</Link> with a required reason.</p>
+            <label className="form-group">Stock<input className="form-control" type="number" min="0" disabled={Boolean(editingProduct)} value={formData.stock} required onChange={(e) => setFormData({ ...formData, stock: e.target.value })} /></label>
           </div>
           <div className="form-row">
             <label className="form-group">SKU<input className="form-control" value={formData.baseSku} onChange={(e) => setFormData({ ...formData, baseSku: e.target.value })} /></label>

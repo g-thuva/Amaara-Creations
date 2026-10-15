@@ -1,4 +1,6 @@
-export const money = (value: number) => `Rs. ${new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0)}`;
+export const money = (value: number, currency = 'LKR') => currency === 'LKR'
+  ? `Rs. ${new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0)}`
+  : new Intl.NumberFormat('en-CH', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
 export const date = (value: string) => new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeZone: 'Asia/Colombo' }).format(new Date(value));
 export const validQuantity = (value: number, max = Number.MAX_SAFE_INTEGER) => Number.isSafeInteger(value) && value >= 1 && value <= max;
 export function safeLink(value: unknown): string | null {

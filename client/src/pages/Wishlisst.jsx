@@ -18,7 +18,7 @@ export default function Wishlist() {
               <div className="s-product-info">
                 {item.productCategory && <p className="s-meta">{item.productCategory}</p>}
                 <h2><Link to={`/products/${item.productId}`}>{item.productName}</Link></h2>
-                <Price value={item.productPrice} />
+                <Price value={item.productPrice} currency={item.currency} />
                 <p className={`s-availability ${item.isOutOfStock ? 'unavailable' : 'available'}`}><Icon name={item.isOutOfStock ? 'x' : 'check'} />{item.isOutOfStock ? 'Out of stock' : 'In stock'}</p>
                 <div className="s-stack">
                   <Button disabled={pending || item.isOutOfStock} onClick={() => mutate(() => wishlistApi.addWishlistItemToCart(item.productId), () => { cart.reload(); wishlist.reload(); }, 'Added to your cart.')}><Icon name="bag" />Move to cart</Button>

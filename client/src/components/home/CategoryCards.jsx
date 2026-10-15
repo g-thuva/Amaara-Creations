@@ -7,7 +7,7 @@ export default function CategoryCards({ categories = [] }) {
     <div className="s-category-grid">
       {categories.map((category) => (
         <article className="s-category-card" key={category.id}>
-          <Link className="s-category-link" to={`/products?categoryId=${category.id}`} aria-label={`Shop ${category.name}`}>
+          <Link className="s-category-link" to={`/products?categoryId=${category.id}`}>
             {category.imageUrl ? (
               <Media src={category.imageUrl} alt={category.name} width={800} height={600} />
             ) : (

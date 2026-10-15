@@ -1,5 +1,5 @@
 /* Admin Dashboard Styles */
-:root {
+.admin-app {
   --sidebar-width: 250px;
   --header-height: 60px;
   --primary-color: #8b5a2b;
@@ -11,7 +11,7 @@
   --bg-color: #f7fafc;
   --card-bg: #ffffff;
   --text-color: #2d3748;
-  --text-muted: #718096;
+  --text-muted: #596579;
   --border-color: #e2e8f0;
   --hover-color: #f7fafc;
 }
@@ -26,7 +26,7 @@
 /* Sidebar */
 .admin-sidebar {
   width: var(--sidebar-width);
-  background: var(--primary-color);
+  background: #573619;
   color: white;
   padding: 1.5rem 0;
   position: fixed;
@@ -59,7 +59,7 @@
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffffff;
   border-radius: 0.375rem;
   margin-bottom: 0.25rem;
   text-decoration: none;
@@ -83,6 +83,7 @@
 
 /* Main Content */
 .admin-main {
+  min-width: 0;
   flex: 1;
   margin-left: var(--sidebar-width);
   min-height: 100vh;
@@ -106,7 +107,13 @@
 .header-left {
   display: flex;
   align-items: center;
+  min-width: 0;
+  margin-right: 1rem;
 }
+
+.header-left h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toggle-sidebar, .back-button { flex: 0 0 40px; width: 40px; height: 40px; }
+.toggle-sidebar svg, .back-button svg { width: 20px; height: 20px; max-width: none; }
 
 .toggle-sidebar {
   background: none;
@@ -142,6 +149,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
 }
 
 .user-info {
@@ -360,7 +368,7 @@ tr:hover {
   }
   
   .admin-main.sidebar-open {
-    margin-left: var(--sidebar-width);
+    margin-left: 0;
   }
   
   .toggle-sidebar {
@@ -369,6 +377,12 @@ tr:hover {
 }
 
 /* Animations */
+@media (max-width: 576px) {
+  .admin-header { padding: 0 1rem; }
+  .admin-header .user-info { display: none; }
+  .admin-header .toggle-sidebar, .admin-header .back-button { margin-right: 0.5rem; }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -793,3 +807,12 @@ tr:hover {
     max-width: 150px;
   }
 }
+.admin-app :focus-visible { outline: 3px solid #1a365d; outline-offset: 3px; }
+.admin-app > .s-skip { z-index: 2000; color: #ffffff; background: #1a365d; border-radius: 6px; }
+.admin-sidebar :focus-visible { outline-color: #ffffff; }
+.admin-app .admin-table th { color: #4a5568; }
+.admin-page pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+.admin-page .form-control { min-width: 0; }
+.admin-page caption { text-align: left; padding: 1rem; font-weight: 600; color: #2d3748; }
+.admin-sidebar button.menu-item { border: 0; background: transparent; width: 100%; font: inherit; text-align: left; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .admin-app *, .admin-app *::before, .admin-app *::after { animation: none !important; transition: none !important; } }

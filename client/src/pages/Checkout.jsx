@@ -1,56 +1,57 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
-import { orderApi } from '../services/orderApi';
-import { Button, EmptyState, ErrorState, Icon, Media, PageHeader, Price, Skeleton } from '../components/storefront/UI';
+import { useCheckout } from '../hooks/useCheckout';
+import { Button, EmptyState, ErrorState, PageHeader, Skeleton } from '../components/storefront/UI';
+import CheckoutTotals from '../components/storefront/CheckoutTotals';
+import { checkoutMoney } from '../services/checkoutApi';
 
 export default function Checkout() {
-  const { cart, pending, mutate } = useStore();
-  const navigate = useNavigate();
-  const [placed, setPlaced] = useState(false);
-  const invalid = cart.data?.items.some((item) => item.isOutOfStock || item.quantity > item.productStock);
-
-  const submit = async (event) => {
-    event.preventDefault();
-    if (placed || invalid) return;
-    const form = Object.fromEntries(new FormData(event.currentTarget));
-    await mutate(async () => {
-      const order = await orderApi.createOrder(form);
-      setPlaced(true);
-      cart.reload();
-      navigate(`/orders/${order.id}`, { replace: true, state: { message: 'Your order has been placed. No online payment has been collected.' } });
-    }, null);
-  };
-
-  return (
-    <div className="s-container s-page">
-      <PageHeader eyebrow="Order details" title="Checkout">Review the products and enter a delivery address.</PageHeader>
-      {cart.loading ? <Skeleton count={2} /> : cart.error ? <ErrorState error={cart.error} retry={cart.reload} /> : !cart.data?.items.length ? <EmptyState title="Your cart is empty" /> : (
-        <div className="s-commerce-layout">
-          <form className="s-form s-checkout-form" onSubmit={submit}>
-            <h2>Delivery details</h2>
-            <p className="s-alert"><Icon name="check" />This checkout records your order. Online payment and shipping quotes are not available yet.</p>
-            <label>Address<textarea name="shippingAddress" autoComplete="street-address" required maxLength="500" rows="3" /></label>
-            <label>City<input name="shippingCity" autoComplete="address-level2" maxLength="100" required /></label>
-            <label>Postal code<input name="shippingPostalCode" autoComplete="postal-code" maxLength="50" required /></label>
-            <label>Country<input name="shippingCountry" autoComplete="country-name" defaultValue="Sri Lanka" maxLength="100" required /></label>
-            <label>Order notes (optional)<textarea name="notes" rows="3" maxLength="500" /></label>
-            {invalid && <p className="s-error-text" role="alert">Some items are no longer available in this quantity. Please update your cart.</p>}
-            <div className="s-actions"><Link to="/cart" className="s-text-link"><Icon name="arrowLeft" />Back to cart</Link><Button type="submit" disabled={pending || placed || invalid}>{pending ? 'Placing order…' : 'Place order'}</Button></div>
-          </form>
-          <aside className="s-summary">
-            <h2>Your order</h2>
-            {cart.data.items.map((item) => (
-              <div className="s-summary-item" key={item.id}>
-                <Media src={item.productImageUrl} alt={item.productName} width={160} height={120} />
-                <div><strong>{item.productName}</strong>{item.itemType === 'CustomDesign' && <small>Custom · {item.width} × {item.height} {item.measurementUnit || 'cm'}</small>}<p>{item.quantity} × <Price value={item.productPrice} /></p></div>
-              </div>
-            ))}
-            <div className="s-row"><strong>Item subtotal</strong><Price value={cart.data.total} /></div>
-            <p>Shipping and payment arrangements are not included.</p>
-          </aside>
-        </div>
-      )}
-    </div>
-  );
+  const { cart } = useStore();
+  const checkout = useCheckout(JSON.stringify(cart.data?.items.map(i => [i.id, i.quantity, i.updatedAt]) || []));
+  const [couponInput, setCouponInput] = useState('');
+  const [notes, setNotes] = useState('');
+  const { addresses, selectedAddress, quote, pending } = checkout;
+  const selected = addresses.data?.find(a => String(a.id) === selectedAddress);
+  return <div className="s-container s-page">
+    <PageHeader eyebrow="Secure checkout" title="Checkout">Choose your address and delivery option, review the server total, then continue to secure payment.</PageHeader>
+    {cart.loading || addresses.loading ? <Skeleton count={2} /> : cart.error ? <ErrorState error={cart.error} retry={cart.reload} /> : addresses.error ? <ErrorState error={addresses.error} retry={addresses.reload} /> : !cart.data?.items.length ? <EmptyState title="Your cart is empty" /> : !addresses.data?.length ? <EmptyState title="Add a delivery address" to="/addresses" label="Manage addresses"><p>Save an address, then return to checkout.</p></EmptyState> : <div className="s-commerce-layout">
+      <form className="s-form s-checkout-form" onSubmit={event => { event.preventDefault(); checkout.pay(notes); }} aria-busy={pending}>
+        <h2>1. Delivery address</h2>
+        <label>Saved address<select value={selectedAddress} onChange={e => checkout.chooseAddress(e.target.value)} disabled={pending}>
+          {addresses.data.map(a => <option key={a.id} value={a.id}>{a.label} — {a.recipientName}, {a.city}</option>)}
+        </select></label>
+        {selected && <address>{selected.recipientName}<br />{selected.addressLine1} {selected.addressLine2}<br />{selected.city} {selected.postalCode}<br />{selected.country}</address>}
+        <Link to="/addresses" className="s-text-link">Manage delivery addresses</Link>
+        <h2>2. Delivery option</h2>
+        {quote.loading ? <p role="status">Calculating your checkout quote…</p> : quote.error ? <><ErrorState error={quote.error} retry={quote.reload} /><Button type="button" variant="secondary" onClick={() => checkout.setShippingMethodId('')}>Choose another delivery option</Button></> : <>
+          <label>Shipping method<select value={checkout.shippingMethodId} onChange={e => checkout.setShippingMethodId(e.target.value)} disabled={pending}>
+            <option value="">Choose delivery</option>
+            {quote.data?.availableShippingMethods.map(m => <option key={m.id} value={m.id}>{m.name} — {checkoutMoney(m.amount, m.currency)}</option>)}
+          </select></label>
+          {quote.data && !quote.data.availableShippingMethods.length && <p role="alert">No delivery option is available for this address. Update your address or contact Amaara.</p>}
+          {quote.data?.availableShippingMethods.filter(m => String(m.id) === checkout.shippingMethodId).map(m => <p key={m.id}>{m.isPickup ? 'Pickup: ' + m.pickupLocation : m.estimatedMinimumDays != null ? 'Estimated delivery: ' + m.estimatedMinimumDays + '–' + (m.estimatedMaximumDays ?? m.estimatedMinimumDays) + ' days.' : 'Delivery estimate will be confirmed by Amaara.'}{m.isDevelopmentValue && ' Development rate — business owner verification required.'}</p>)}
+        </>}
+        <h2>3. Coupon</h2>
+        <label>Coupon code<input value={couponInput} onChange={e => setCouponInput(e.target.value)} maxLength="40" disabled={pending} aria-describedby={quote.data?.couponResult ? 'coupon-feedback' : undefined} /></label>
+        <div className="s-actions"><Button type="button" variant="secondary" disabled={pending || quote.loading} onClick={() => checkout.setCouponCode(couponInput)}>Apply coupon</Button>{checkout.couponCode && <Button type="button" variant="secondary" disabled={pending} onClick={() => { checkout.setCouponCode(''); setCouponInput(''); }}>Remove coupon</Button>}</div>
+        {quote.data?.couponResult && <p id="coupon-feedback" role={quote.data.couponResult.applied ? 'status' : 'alert'}>{quote.data.couponResult.message}</p>}
+        <h2>4. Review and pay</h2>
+        <label>Order notes (optional)<textarea rows="3" value={notes} onChange={e => setNotes(e.target.value)} maxLength="500" disabled={pending} /></label>
+        {quote.data?.paymentAvailable && quote.data.paymentProvider === 'Zahls' && quote.data.paymentMode === 'TEST' &&
+          <p role="status" className="s-test-payment-banner">Test payment — no real money will be charged.</p>}
+        {quote.data?.paymentAvailable
+          ? <p>Payment takes place on the secure Zahls hosted page. Your order is confirmed after our server verifies payment.</p>
+          : quote.data && <p role="status">Secure online payment is not available for this checkout yet. Your cart has not been charged.</p>}
+        {checkout.error && <p role="alert" className="s-error-text">{checkout.error.response?.data?.title || 'Payment could not be started. Check your connection and try again.'}</p>}
+        {checkout.session && !checkout.session.redirectUrl && <p role="status">This payment is {checkout.session.status.toLowerCase()}. <Link to={'/checkout/payment/return?paymentId=' + checkout.session.paymentId}>Check payment status</Link></p>}
+        <div className="s-actions"><Link to="/cart" className="s-text-link">Back to cart</Link><Button type="submit" disabled={pending || quote.loading || !quote.data?.canPay}>{pending ? 'Starting secure payment…' : 'Pay securely'}</Button></div>
+        {pending && <p role="status">Preparing your order and opening secure payment…</p>}
+      </form>
+      <aside className="s-summary" aria-label="Order review">
+        <h2>Your order</h2>
+        {quote.data ? <>{quote.data.items.map(i => <div className="s-summary-item" key={i.cartItemId}><div><strong>{i.name}</strong><p>{i.quantity} × {checkoutMoney(i.unitPrice, quote.data.currency)}</p>{i.itemType === 'CustomDesign' && <small>Custom design specifications are preserved with your order.</small>}</div></div>)}<CheckoutTotals quote={quote.data} /><p>Currency: {quote.data.currency}</p></> : <p>Totals appear after your server quote is ready.</p>}
+      </aside>
+    </div>}
+  </div>;
 }

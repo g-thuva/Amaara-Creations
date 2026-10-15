@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { adminApi } from "../../services/adminApi";
+import { checkoutMoney } from "../../services/checkoutApi";
+import { reportClientError } from '../../services/clientTelemetry';
 import AppIcon from "../../components/AppIcon";
 
 const Dashboard = () => {
@@ -27,7 +29,7 @@ const Dashboard = () => {
         const productStats = await adminApi.getProductStats();
         setTopProducts(productStats.topSellingProducts || []);
       } catch (err) {
-        console.error("Error fetching dashboard data:", err);
+        reportClientError('admin.dashboard', err);
         setError("Failed to load dashboard data");
       } finally {
         setIsLoading(false);
@@ -59,31 +61,31 @@ const Dashboard = () => {
 
   const stats = [
     { 
-      title: "Total Revenue", 
-      value: `Rs. ${dashboardStats?.totalRevenue?.toLocaleString() || '0'}`, 
-      change: dashboardStats?.revenueThisMonth ? `+${((dashboardStats.revenueThisMonth / (dashboardStats.totalRevenue || 1)) * 100).toFixed(1)}%` : '0%', 
-      trend: "up", 
+      title: "LKR order value",
+      value: checkoutMoney(dashboardStats?.totalRevenue || 0, 'LKR'),
+      change: "This month: " + checkoutMoney(dashboardStats?.revenueThisMonth || 0, "LKR"),
+      trend: "neutral",
       icon: <AppIcon name="chart" />
     },
     { 
       title: "Total Orders", 
       value: dashboardStats?.totalOrders?.toLocaleString() || '0', 
-      change: dashboardStats?.ordersThisMonth ? `+${((dashboardStats.ordersThisMonth / (dashboardStats.totalOrders || 1)) * 100).toFixed(1)}%` : '0%', 
-      trend: "up", 
+      change: "This month: " + (dashboardStats?.ordersThisMonth || 0),
+      trend: "neutral",
       icon: <AppIcon name="bag" />
     },
     { 
       title: "Total Customers", 
       value: dashboardStats?.totalCustomers?.toLocaleString() || '0', 
-      change: "+0%", 
-      trend: "up", 
+      change: "Registered accounts",
+      trend: "neutral",
       icon: <AppIcon name="users" />
     },
     { 
       title: "Avg. Rating", 
       value: dashboardStats?.averageRating?.toFixed(1) || '0.0', 
-      change: "+0.0", 
-      trend: "up", 
+      change: "Published customer reviews",
+      trend: "neutral",
       icon: <AppIcon name="star" />
     },
   ];
@@ -160,7 +162,7 @@ const Dashboard = () => {
                       </td>
                       <td>{order.customerName || order.customerEmail}</td>
                       <td>{new Date(order.orderDate).toLocaleDateString()}</td>
-                      <td>Rs. {order.total?.toLocaleString()}</td>
+                      <td>{checkoutMoney(order.total, order.currency || 'LKR')}</td>
                       <td>
                         <span className={`status-badge ${getStatusColor(order.status)}`}>
                           {order.status}

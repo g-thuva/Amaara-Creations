@@ -38,7 +38,7 @@ export default function ProductCard({ product, eager = false }) {
       <div className="s-product-info">
         {product.category && <p className="s-meta">{product.category}</p>}
         <h3 title={product.name}>{product.name}</h3>
-        <Price value={product.price} />
+        <Price value={product.price} currency={product.currency} />
         {product.reviewCount > 0 && (
           <span className="s-card-rating" aria-label={`${product.rating} out of 5 stars from ${product.reviewCount} reviews`}>
             <Icon name="star" fill="currentColor" /> {product.rating} ({product.reviewCount})

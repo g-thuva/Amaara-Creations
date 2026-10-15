@@ -1,20 +1,24 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
+import { useAuth } from './contexts/AuthContext';
+import { adminStart } from './utils/permissions';
 import { StoreProvider } from './contexts/StoreContext';
 import AccountLayout from './components/storefront/AccountLayout';
 import ErrorBoundary from './components/storefront/ErrorBoundary';
 import { Skeleton } from './components/storefront/UI';
 import ContentPage from './pages/ContentPage';
 import NotFound from './pages/NotFound';
+import Seo from './components/Seo';
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import "./App.css";
-const Home = lazy(() => import("./pages/Home"));
+import Home from './pages/Home';
 const Products = lazy(() => import("./pages/Products"));
 const CustomBuilder = lazy(() => import("./pages/CustomBuilder"));
 const Wishlist = lazy(() => import("./pages/Wishlisst"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
+const PaymentReturn = lazy(() => import("./pages/PaymentReturn"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Orders = lazy(() => import("./pages/Orders"));
 const OrderDetails = lazy(() => import("./pages/OrderDetails"));
@@ -38,6 +42,8 @@ const AdProducts = lazy(() => import("./pages/admin/AdProducts"));
 const Reviews = lazy(() => import("./pages/admin/Reviews"));
 const Customers = lazy(() => import("./pages/admin/Customers"));
 const AdOrders = lazy(() => import("./pages/admin/AdOrders"));
+const AdminOrderDetail = lazy(() => import("./pages/admin/OrderDetail"));
+const AdminShipping = lazy(() => import("./pages/admin/Shipping"));
 const Categories = lazy(() => import("./pages/admin/Categories"));
 const Collections = lazy(() => import("./pages/admin/Collections"));
 const Media = lazy(() => import("./pages/admin/Media"));
@@ -48,31 +54,35 @@ const AdminCustomDesigns = lazy(() => import("./pages/admin/CustomDesigns"));
 const AdminCustomDesignDetail = lazy(() => import("./pages/admin/CustomDesignDetail"));
 
 
+const AdminPayments = lazy(() => import('./pages/admin/Payments'));
+const AdminInventory = lazy(() => import('./pages/admin/Inventory'));
+const AdminPromotions = lazy(() => import('./pages/admin/Promotions'));
+const AdminReports = lazy(() => import('./pages/admin/Reports'));
+const AdminAudit = lazy(() => import('./pages/admin/Audit'));
+const AdminStaff = lazy(() => import('./pages/admin/Staff'));
+const AdminCustomerDetail = lazy(() => import('./pages/admin/CustomerDetail'));
+function AdminLanding() { const { user } = useAuth(); return <Navigate to={adminStart(user)} replace />; }
+
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  useEffect(() => {
-    if (isAdminRoute) return;
-    const titles = { '/': 'Custom stickers & decals', '/products': 'Shop stickers & decals', '/custom': 'Custom sticker builder', '/login': 'Sign in', '/register': 'Create account', '/about': 'About Amaara', '/contact': 'Contact Amaara', '/cart': 'Shopping cart', '/wishlist': 'Wishlist', '/profile': 'Your profile', '/addresses': 'Your addresses', '/orders': 'Your orders', '/account/designs': 'Saved designs' };
-    const descriptions = { '/': 'Custom stickers, decals and personalised printed details from Amaara Creations.', '/products': 'Browse stickers, decals and printed products currently available from Amaara Creations.', '/custom': 'Preview custom sticker text, type and proportions before contacting Amaara Creations.' };
-    document.title = `${titles[location.pathname] || 'Amaara Creations'} | Amaara Creations`;
-    document.querySelector('meta[name="description"]')?.setAttribute('content', descriptions[location.pathname] || 'Explore Amaara Creations products, custom sticker previews and customer account services.');
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [location.pathname, isAdminRoute]);
+  // Route metadata is owned by Seo so product metadata stays current.
 
   return (
     <StoreProvider><div className={`app-container ${isAdminRoute ? 'admin-app' : 'storefront'}`}>
+      <Seo />
+      {isAdminRoute && <a className="s-skip" href="#store-main" onClick={e => { e.preventDefault(); document.getElementById('store-main')?.focus(); }}>Skip to main content</a>}
       {!isAdminRoute && <Navbar />}
       <main id="store-main" tabIndex="-1" className={isAdminRoute ? "admin-main-content" : "main-content"}>
-        <ErrorBoundary key={location.pathname}><Suspense fallback={<Skeleton/>}>
+        <ErrorBoundary key={/^\/custom(?:\/\d+)?$/.test(location.pathname) ? '/custom' : location.pathname}><Suspense fallback={<Skeleton/>}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<Products />} />
-          <Route path="/custom" element={<CustomBuilder />} />
-          <Route path="/custom/:id" element={<CustomBuilder />} />
+          <Route path="/custom/:id?" element={<CustomBuilder />} />
           <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
           <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+          <Route path="/checkout/payment/:outcome" element={<ProtectedRoute><PaymentReturn /></ProtectedRoute>} />
           <Route element={<ProtectedRoute><AccountLayout /></ProtectedRoute>}>
             <Route path="/profile" element={<Profile/>}/>
             <Route path="/account/security" element={<AccountSecurity/>}/>
@@ -97,7 +107,7 @@ function App() {
           <Route path="/products/:id" element={<ProductDetails />} />
 
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route index element={<AdminLanding />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="products" element={<AdProducts />} />
             <Route path="categories" element={<Categories />} />
@@ -107,7 +117,16 @@ function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="customers" element={<Customers />} />
+            <Route path="customers/:id" element={<AdminCustomerDetail />} />
+            <Route path="inventory" element={<AdminInventory />} />
+            <Route path="payments" element={<AdminPayments />} />
+            <Route path="promotions" element={<AdminPromotions />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="audit" element={<AdminAudit />} />
+            <Route path="staff" element={<AdminStaff />} />
             <Route path="orders" element={<AdOrders />} />
+            <Route path="orders/:id" element={<AdminOrderDetail />} />
+            <Route path="shipping" element={<AdminShipping />} />
             <Route path="custom-builder" element={<AdminCustomBuilder />} />
             <Route path="custom-designs" element={<AdminCustomDesigns />} />
             <Route path="custom-designs/:id" element={<AdminCustomDesignDetail />} />

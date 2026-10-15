@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
+import process from 'node:process'
 
 export default defineConfig({
   plugins: [react()],
   test: { include: ['src/**/*.test.{js,jsx,ts,tsx}'] },
-  base: '/Amaara-Creations/',
+  base: process.env.VITE_PUBLIC_BASE_PATH || '/Amaara-Creations/',
   build: {
     rollupOptions: {
       treeshake: false,

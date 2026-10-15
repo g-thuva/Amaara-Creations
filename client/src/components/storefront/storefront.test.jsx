@@ -24,6 +24,10 @@ describe('storefront presentation', () => {
     const markup = renderToStaticMarkup(<MemoryRouter><ProductCard product={{ id: 7, name: 'Printed label', category: 'Labels', price: 125, stock: 0, imageUrl: '' }}/></MemoryRouter>);
     expect(markup).toContain('Printed label'); expect(markup).toContain('125.00'); expect(markup).toContain('Out of stock'); expect(markup).toContain('aria-pressed="true"'); expect(markup).toContain('/products/7');
   });
+  it('labels explicitly priced CHF products without an LKR symbol', () => {
+    const markup = renderToStaticMarkup(<MemoryRouter><ProductCard product={{ id: 8, name: 'TEST CHF label', currency: 'CHF', price: 25.5, stock: 1, imageUrl: '' }}/></MemoryRouter>);
+    expect(markup).toContain('CHF'); expect(markup).toContain('25.50'); expect(markup).not.toContain('Rs.');
+  });
   it('disables increase at known stock and exposes labelled quantity', () => {
     const markup = renderToStaticMarkup(<Quantity value={3} max={3} onChange={() => {}}/>);
     expect(markup).toContain('max="3"'); expect(markup).toMatch(/disabled="" aria-label="Increase quantity"/);
@@ -51,7 +55,8 @@ describe('storefront presentation', () => {
     expect(renderToStaticMarkup(<MemoryRouter><CategoryCards categories={[]} /></MemoryRouter>)).toBe('');
     const one = renderToStaticMarkup(<MemoryRouter><CategoryCards categories={[{ id: 1, name: 'Wedding', imageUrl: null }]} /></MemoryRouter>);
     const many = renderToStaticMarkup(<MemoryRouter><CategoryCards categories={[{ id: 1, name: 'Wedding' }, { id: 2, name: 'Car decals' }]} /></MemoryRouter>);
-    expect(one).toContain('Shop Wedding');
+    expect(one).toContain('Wedding</h3>');
+    expect(one).toContain('Shop now');
     expect(many).toContain('Car decals');
   });
   it('hides contact and social footer columns when settings are empty', () => {

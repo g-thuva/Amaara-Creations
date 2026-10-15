@@ -27,7 +27,8 @@ export default function Orders() {
                 <span className="s-badge"><Icon name={statusIcon(order.status)} />{order.status}</span>
               </div>
               <p>{date(order.orderDate)} · {order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} items</p>
-              <div className="s-row"><Price value={order.total} /><Link className="s-text-link" to={`/orders/${order.id}`}>View order <Icon name="arrow" /></Link></div>
+              <p>Payment: {order.paymentStatus || 'Unpaid'} · Fulfilment: {order.fulfilmentStatus || 'NotReady'}</p>
+              <div className="s-row"><Price value={order.total} currency={order.currency} /><Link className="s-text-link" to={`/orders/${order.id}`}>View order <Icon name="arrow" /></Link></div>
             </article>
           ))}
         </div>

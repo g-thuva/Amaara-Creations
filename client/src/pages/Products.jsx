@@ -7,7 +7,7 @@ import { catalogParams, sortOptions } from '../utils/storefront';
 import ProductCard from '../components/storefront/ProductCard';
 import { Button, Dialog, EmptyState, ErrorState, Icon, PageHeader, Pagination, Skeleton } from '../components/storefront/UI';
 
-function Filters({ params, categories, collections, apply, clear }) {
+function Filters({ params, categories, collections, apply, clear, currency }) {
   return (
     <form className="s-filter-form" onSubmit={(event) => {
       event.preventDefault();
@@ -28,7 +28,7 @@ function Filters({ params, categories, collections, apply, clear }) {
         </select>
       </label>
       <fieldset>
-        <legend>Price range (LKR)</legend>
+        <legend>Price range ({currency})</legend>
         <div className="s-price-range">
           <label>Minimum<input type="number" min="0" step="0.01" name="minPrice" defaultValue={params.get('minPrice') || ''} /></label>
           <label>Maximum<input type="number" min="0" step="0.01" name="maxPrice" defaultValue={params.get('maxPrice') || ''} /></label>
@@ -52,6 +52,7 @@ export default function Products() {
   const data = useResource((signal) => productApi.getProducts(catalogParams(params), signal), query);
   const categories = useResource(contentApi.categories, 'categories');
   const collections = useResource(contentApi.collections, 'collections');
+  const currency = data.data?.currency || 'LKR';
 
   const update = (values, reset = true) => {
     const next = new URLSearchParams(params);
@@ -88,7 +89,7 @@ export default function Products() {
     if (key === 'categoryId') return categories.data?.find((item) => String(item.id) === value)?.name || 'Category';
     if (key === 'collectionId') return collections.data?.find((item) => String(item.id) === value)?.name || 'Collection';
     if (key === 'inStock') return 'In stock';
-    const labels = { search: 'Search', minPrice: 'From Rs.', maxPrice: 'Up to Rs.', category: 'Category' };
+    const labels = { search: 'Search', minPrice: `From ${currency}`, maxPrice: `Up to ${currency}`, category: 'Category' };
     return `${labels[key]}: ${value}`;
   };
   const filters = (
@@ -100,6 +101,7 @@ export default function Products() {
         collections={collections.data || []}
         apply={apply}
         clear={clear}
+        currency={currency}
       />
       {filterError && <p role="alert" className="s-error-text">{filterError}</p>}
     </>

@@ -1,6 +1,7 @@
 import api from './api';
 
 export const reviewApi = {
+  getOwnReviews: async (signal, productId) => (await api.get('/reviews/mine', { signal, params: { productId } })).data,
   // Get product reviews
   getProductReviews: async (productId) => {
     const response = await api.get(`/products/${productId}/reviews`);

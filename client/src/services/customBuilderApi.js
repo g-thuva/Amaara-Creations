@@ -1,10 +1,10 @@
 import api from './api';
 
 export const customBuilderApi = {
-  getConfig: async () => (await api.get('/custom-builder/config')).data,
+  getConfig: async (signal) => (await api.get('/custom-builder/config', { signal })).data,
   quote: async (payload, signal) => (await api.post('/custom-builder/quote', payload, { signal })).data,
   listDesigns: async (params = {}) => (await api.get('/custom-designs', { params })).data,
-  getDesign: async (id) => (await api.get(`/custom-designs/${id}`)).data,
+  getDesign: async (id, signal) => (await api.get(`/custom-designs/${id}`, { signal })).data,
   createDesign: async (payload) => (await api.post('/custom-designs', payload)).data,
   updateDesign: async (id, payload) => (await api.put(`/custom-designs/${id}`, payload)).data,
   duplicateDesign: async (id) => (await api.post(`/custom-designs/${id}/duplicate`)).data,

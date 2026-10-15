@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../services/authApi';
 import './Auth.css';
@@ -13,8 +13,10 @@ const VerifyEmail = () => {
   const [message, setMessage] = useState('Verifying your email...');
   const [resending, setResending] = useState(false);
   const [resendEmail, setResendEmail] = useState(email);
+  const confirmationRequest = useRef(null);
 
   useEffect(() => {
+    let active = true;
     const verify = async () => {
       if (!userId || !token) {
         setStatus('failed');
@@ -23,16 +25,23 @@ const VerifyEmail = () => {
       }
 
       try {
-        const response = await authApi.confirmEmail({ userId, token });
+        // Strict Mode replays effects; confirmation is a mutation, so reuse its request.
+        if (confirmationRequest.current?.userId !== userId || confirmationRequest.current?.token !== token) {
+          confirmationRequest.current = { userId, token, promise: authApi.confirmEmail({ userId, token }) };
+        }
+        const response = await confirmationRequest.current.promise;
+        if (!active) return;
         setStatus('success');
         setMessage(response.message);
       } catch (err) {
+        if (!active) return;
         setStatus('failed');
         setMessage(err.response?.data?.message || 'Verification link is invalid or expired.');
       }
     };
 
     verify();
+    return () => { active = false; };
   }, [userId, token]);
 
   const resend = async (event) => {

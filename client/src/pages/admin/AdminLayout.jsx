@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { can, adminRoutes } from "../../utils/permissions";
 import AppIcon from "../../components/AppIcon";
 import "./AdminStyles.css";
 
 const menuItems = [
+  { title: 'Payments', path: '/admin/payments', icon: 'bag', submenu: [] },
+  { title: 'Inventory', path: '/admin/inventory', icon: 'package', submenu: [] },
+  { title: 'Promotions', path: '/admin/promotions', icon: 'tag', submenu: [] },
+  { title: 'Reports', path: '/admin/reports', icon: 'file', submenu: [] },
+  { title: 'Audit log', path: '/admin/audit', icon: 'file', submenu: [] },
+  { title: 'Staff', path: '/admin/staff', icon: 'users', submenu: [] },
+  { title: "Shipping", path: "/admin/shipping", icon: "truck", submenu: [] },
   { 
     title: "Dashboard", 
     path: "/admin/dashboard", 
@@ -80,12 +88,20 @@ const menuItems = [
 ];
 
 const AdminLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const navigationToggle = useRef(null);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 992);
   const [activeSubmenu, setActiveSubmenu] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout: authLogout } = useAuth();
-  const isMobile = window.innerWidth <= 992;
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 992);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 992px)');
+    const changed = () => setIsMobile(media.matches);
+    media.addEventListener('change', changed);
+    return () => media.removeEventListener('change', changed);
+  }, []);
 
   useEffect(() => {
     if (isMobile) {
@@ -121,20 +137,21 @@ const AdminLayout = () => {
   return (
     <div className="admin-container">
       {/* Sidebar */}
-      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <aside inert={isMobile && !sidebarOpen ? true : undefined} aria-hidden={isMobile && !sidebarOpen ? true : undefined} className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`} onKeyDown={event => { if (isMobile && event.key === 'Escape') { setSidebarOpen(false); navigationToggle.current?.focus(); } }}>
         <div className="sidebar-header">
           <h2>
             <span style={{ color: '#d4a76a' }}>Amaara</span> Admin
           </h2>
         </div>
         
-        <nav className="sidebar-menu">
-          {menuItems.map((item, index) => (
+        <nav className="sidebar-menu" aria-label="Administration">
+          {menuItems.filter(item => can(user, adminRoutes[item.path.split("/")[2]])).map((item, index) => (
             <React.Fragment key={index}>
               <Link
                 to={item.path}
                 className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
                 onClick={() => {
+                  if (isMobile) setSidebarOpen(false);
                   if (item.submenu.length > 0) {
                     toggleSubmenu(index);
                   }
@@ -172,10 +189,10 @@ const AdminLayout = () => {
             </React.Fragment>
           ))}
           
-          <div className="menu-item" onClick={handleLogout} style={{ cursor: 'pointer' }}>
+          <button type="button" className="menu-item" onClick={handleLogout}>
             <AppIcon name="logout" />
             <span>Logout</span>
-          </div>
+          </button>
         </nav>
       </aside>
 
@@ -184,7 +201,7 @@ const AdminLayout = () => {
         {/* Header */}
         <header className="admin-header">
           <div className="header-left">
-            <button className="toggle-sidebar" onClick={toggleSidebar}>
+            <button ref={navigationToggle} className="toggle-sidebar" aria-label="Toggle admin navigation" aria-expanded={sidebarOpen} onClick={toggleSidebar}>
               <AppIcon name={sidebarOpen ? 'x' : 'menu'} />
             </button>
             <button 
@@ -211,11 +228,11 @@ const AdminLayout = () => {
         </header>
 
         {/* Page Content */}
-        <main className="admin-content">
-          <div className="fade-in">
+        <div className="admin-content">
+          <div>
             <Outlet />
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

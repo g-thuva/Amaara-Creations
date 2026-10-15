@@ -11,6 +11,7 @@ export default function Cart() {
   const categories = useResource(contentApi.categories, 'cart-categories');
   const [confirm, setConfirm] = useState(null);
   const invalid = cart.data?.items.some((item) => item.isOutOfStock || item.quantity > item.productStock);
+  const currencyMismatch = cart.data?.canCheckout === false && !!cart.data?.items.length;
 
   const confirmRemoval = async () => {
     const action = () => confirm === 'all' ? cartApi.clearCart() : cartApi.removeFromCart(confirm.id);
@@ -40,7 +41,7 @@ export default function Cart() {
                     <h2><Link to={item.itemType === 'CustomDesign' ? item.editUrl : `/products/${item.productId}`}>{item.productName}</Link></h2>
                     {item.itemType === 'CustomDesign' && <p className="s-meta">Custom design · {item.width} × {item.height} {item.measurementUnit || 'cm'}{item.material ? ` · ${item.material}` : ''}{item.finish ? ` · ${item.finish}` : ''}</p>}
                     {item.itemType === 'CustomDesign' && item.customText && <p>Text: “{item.customText}”</p>}
-                    <p><Price value={item.productPrice} /> each</p>
+                    <p><Price value={item.productPrice} currency={item.currency} /> each</p>
                     {(item.isOutOfStock || item.quantity > item.productStock) && (
                       <p className="s-error-text" role="alert">{item.isOutOfStock ? 'No longer available. Please remove this item.' : 'Availability changed. Please reduce the quantity.'}</p>
                     )}
@@ -49,7 +50,7 @@ export default function Cart() {
                       <Button variant="text" disabled={pending} onClick={() => setConfirm(item)}>Remove</Button>
                     </div>
                   </div>
-                  <div className="s-line-total"><span>Line subtotal</span><Price value={item.subtotal} /></div>
+                  <div className="s-line-total"><span>Line subtotal</span><Price value={item.subtotal} currency={item.currency} /></div>
                 </article>
               ))}
             </div>
@@ -57,10 +58,11 @@ export default function Cart() {
           </div>
           <aside className="s-summary">
             <h2>Order summary</h2>
-            <div className="s-row"><span>{cart.data.totalItems} items</span><Price value={cart.data.total} /></div>
+            <div className="s-row"><span>{cart.data.totalItems} items</span>{cart.data.hasMixedCurrencies ? <strong>Mixed currencies</strong> : <Price value={cart.data.total} currency={cart.data.currency} />}</div>
             <strong className="s-summary-label">Subtotal</strong>
             <p>Shipping and payment arrangements are not included in this item subtotal.</p>
-            {invalid ? <p className="s-error-text">Resolve unavailable items before continuing.</p> : <Link className="s-button s-button-primary" to="/checkout">Continue to checkout <Icon name="arrow" /></Link>}
+            {currencyMismatch && <p className="s-error-text" role="alert">Remove items priced in another currency before checkout.</p>}
+            {invalid ? <p className="s-error-text">Resolve unavailable items before continuing.</p> : currencyMismatch ? null : <Link className="s-button s-button-primary" to="/checkout">Continue to checkout <Icon name="arrow" /></Link>}
           </aside>
         </div>
       )}
