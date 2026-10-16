@@ -30,7 +30,7 @@ Disposable SQL verification includes fresh migration, upgrade from `Phase6ZahlsT
 
 ## Quality and release preparation
 
-Public URLs use BrowserRouter with a safe local redirect for old hash links. Route metadata/robots boundaries, canonical/Open Graph and Organization/Breadcrumb/Product JSON-LD use an approved HTTPS public URL; none is invented when the value is absent. The API provides active-product sitemap/robots endpoints. Production reverse-proxy fallback and indexing setup are in [the runbooks](RELEASE_RUNBOOKS.md).
+Public URLs use BrowserRouter with a safe local redirect for old hash links. Route metadata/robots boundaries, canonical/Open Graph and Organization/Breadcrumb/Product JSON-LD use an approved HTTPS public URL; none is invented when the value is absent. The API provides active-product sitemap/robots endpoints. Production reverse-proxy fallback and indexing setup are in [the runbooks](../runbooks/release-cutover.md).
 
 New axe WCAG 2.2 AA rule scans plus browser keyboard tests found/fixed category accessible-name, admin contrast and squeezed mobile navigation controls. Dialogs use native modal focus/restore, tables have captions/column headers and keyboard-scrollable regions, loading/errors use status/alert, and server permission rejection has a clear screen. Mobile navigation is exercised through opening, Escape and focus return. Automated checks are not a claim of universal WCAG certification.
 
@@ -38,7 +38,7 @@ Admin and builder routes stay lazily split. The current initial JS entry is with
 
 Security work includes distinct financial/staff/settings/audit policies, current staff roles on authenticated requests, IDOR regressions, safe audit metadata, per-IP/account rate partitions, trusted proxy configuration, HTTPS/HSTS expectations, no-store private responses, safe headers, log redaction and release artifact exclusions. .NET packages were updated within .NET 8 and the SQL client to remove the vulnerability feed's reported transitive findings. npm's dependency audit is separate from source/authorization verification.
 
-Observability uses structured scoped logs, correlation IDs, aggregate operational health, database/migration readiness and a local Meter. No vendor key or alert recipient is required or invented. Private local email capture is explicit Development-only; real SMTP credentials remain private. [Runbooks](RELEASE_RUNBOOKS.md) cover build/topology, environments/secrets, DNS/TLS, migration, provider/email/storage cutover, smoke, backup/restore, forward-fix/rollback, first-day monitoring and the blocked cutover gate. Inactive templates are in `deploy/`.
+Observability uses structured scoped logs, correlation IDs, aggregate operational health, database/migration readiness and a local Meter. No vendor key or alert recipient is required or invented. Private local email capture is explicit Development-only; real SMTP credentials remain private. [Runbooks](../runbooks/release-cutover.md) cover build/topology, environments/secrets, DNS/TLS, migration, provider/email/storage cutover, smoke, backup/restore, forward-fix/rollback, first-day monitoring and the blocked cutover gate. Inactive templates are in `deploy/`.
 
 ## Verification record
 

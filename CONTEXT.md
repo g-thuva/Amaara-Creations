@@ -1,4 +1,18 @@
-# Amaara Creations Domain Glossary
+# Amaara Creations domain glossary
+
+The terms below describe the commerce business. Module ownership and implementation decisions live in the architecture documentation.
+
+## User
+An identity account used for authentication. A User can have customer and staff roles simultaneously.
+
+## Customer
+A User with the customer role who owns shopping, address, design and order information. Customer is a business role, not a separate identity account.
+
+## Order
+A durable record of a checkout with captured item, amount and delivery facts. Creating an Order does not establish that payment is settled or goods are fulfilled.
+
+## Proof Revision
+A version of the production proof supplied for a Custom Design. A customer responds to the current revision; an older revision cannot approve a newer proof.
 
 ## Product
 A sellable catalog item presented to customers. A Product has mutable catalog information, so Orders keep snapshots of product facts that must remain historically accurate.
@@ -50,7 +64,7 @@ A privileged/business change record that must not contain secrets, passwords, ra
 
 ## Inventory Movement
 
-An append-only change to available base or variant stock. Checkout reservation reduces available stock, release restores it, and consumption records sale of previously reserved goods without subtracting available stock twice. On-hand is available plus currently reserved quantity. Manual changes require an expected available balance, a reason, a staff actor and the SQL commerce transaction.
+An append-only change to available base or variant stock. Checkout reservation reduces available stock, release restores it, and consumption records sale of previously reserved goods without subtracting available stock twice. On-hand is available plus currently reserved quantity. Manual changes require an expected available balance, a reason, a staff actor and coordinated stock changes.
 
 ## Staff Permission
 
@@ -59,7 +73,3 @@ A server authorization policy distinct from admin navigation. Support can inspec
 ## Verified Purchase Review
 
 A review linked by the server to the author's eligible fulfilled, settled order item. Browser verification flags are ignored. New/edited content is Pending until moderated; public responses contain no customer email, account identifier or private order linkage.
-
-## Release Gate
-
-Internal implementation, disposable rehearsal, external merchant/business acceptance and production cutover are separate outcomes. See RELEASE_READINESS.md and RELEASE_RUNBOOKS.md. Missing external evidence never becomes a passing live test.

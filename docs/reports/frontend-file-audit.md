@@ -1,5 +1,7 @@
 # Frontend file audit
 
+Historical frontend refactor record ending at 5b0f639. See [the current repository architecture](../architecture/overview.md) and [full-repository verification](full-repository-refactor-result.md).
+
 Baseline: clean `develop` at `4952565`; 294 tracked frontend files inventoried before editing. Every source/config/test/public file was read by the dependency/source audit. Runtime URLs, dynamic imports, route registration, CSS classes, test harness imports and build entry references were checked before retirement.
 
 Classifications are final dispositions. MOVE/RENAME retain behavior; SPLIT/MERGE retire an old aggregation after its callers migrate. No LEGACY or TEMPORARY COMPAT files remain. Root runtime logs/backups are ignored verification artifacts.

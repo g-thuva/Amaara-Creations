@@ -9,7 +9,7 @@ npm run dev
 
 The default development base is `/Amaara-Creations/`. See the [repository README](../README.md) for public configuration and deployment.
 
-[Frontend architecture](../docs/frontend-architecture.md) documents ownership, routing/providers, API interfaces, styling and contribution examples. [Admin architecture](../docs/admin-architecture.md) describes operational workflows.
+[Frontend architecture](../docs/architecture/frontend.md) documents ownership, routing/providers, API interfaces, styling and contribution examples. [Admin architecture](../docs/architecture/admin.md) describes operational workflows.
 
 ```powershell
 npm run lint

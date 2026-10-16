@@ -10,7 +10,7 @@ Development uses local SQL plus either the existing privately configured SMTP pr
 
 Staging must use a separate database, private storage namespace, email test destination and Zahls TEST account. Restrict access and indexing; never restore production customer data into an unrestricted staging environment. Production configuration comes from an external secret store/environment or a private file outside the artifact. Do not copy the ignored development file. Keep encryption enabled on production SQL connections and validate the server certificate.
 
-Use [the API example](deploy/appsettings.Production.example.json), [frontend environment example](deploy/frontend.production.env.example), [proxy template](deploy/nginx.conf.template) and [service template](deploy/amaara-api.service.template). Every placeholder needs an approved value. The API example deliberately cannot start until required SQL/JWT/CORS settings exist. `Zahls.Enabled` stays **false**. Its `Mode=LIVE` is an inactive future configuration example; the current adapter remains TEST-only and must not be represented as a verified LIVE integration. A merchant-authenticated contract and provider-approved LIVE activation change/review are required before enabling it. Never turn a TEST API key or webhook key into a LIVE key by changing a string.
+Use [the API example](../../deploy/appsettings.Production.example.json), [frontend environment example](../../deploy/frontend.production.env.example), [proxy template](../../deploy/nginx.conf.template) and [service template](../../deploy/amaara-api.service.template). Every placeholder needs an approved value. The API example deliberately cannot start until required SQL/JWT/CORS settings exist. `Zahls.Enabled` stays **false**. Its `Mode=LIVE` is an inactive future configuration example; the current adapter remains TEST-only and must not be represented as a verified LIVE integration. A merchant-authenticated contract and provider-approved LIVE activation change/review are required before enabling it. Never turn a TEST API key or webhook key into a LIVE key by changing a string.
 
 Relevant keys:
 
@@ -179,7 +179,7 @@ Assign named on-call recipients and review cadence privately. Confirm alert deli
 
 ## Final cutover gate
 
-Copy the [gate manifest](deploy/cutover-gate.example.json) into a private release evidence location and fill each approval only from genuine evidence. Run:
+Copy the [gate manifest](../../deploy/cutover-gate.example.json) into a private release evidence location and fill each approval only from genuine evidence. Run:
 
 ```powershell
 python scripts/check-cutover-gate.py deploy/cutover-gate.example.json

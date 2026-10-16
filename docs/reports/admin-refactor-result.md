@@ -1,6 +1,6 @@
 # ADMIN REFACTOR RESULT
 
-Historical record of commit `4952565`. The subsequent whole-frontend migration is documented in [Frontend refactor result](frontend-refactor-result.md); current paths are in [Frontend architecture](frontend-architecture.md).
+Historical record of commit `4952565`. The subsequent whole-frontend migration is documented in [Frontend refactor result](frontend-refactor-result.md); current paths are in [Frontend architecture](../architecture/frontend.md).
 
 Date: 16 October 2026. Verdict: **COMPLETE** for the requested frontend architecture refactor.
 
@@ -25,7 +25,7 @@ Inspection began with a clean `develop` working tree at `01156fd`; status, branc
 | services | Existing authenticated HTTP, auth/session, normalized errors and telemetry remain shared. Storefront APIs retain their public operations; admin methods moved to their features. |
 | tests | Colocated focused tests plus preserved/new admin Playwright suites under client/e2e/admin. |
 
-The maintainers' guide is [admin-architecture.md](admin-architecture.md), linked from README. It records ownership, dependency direction, financial safeguards, routing, CSS, contracts and test placement.
+The maintainers' guide is [admin-architecture.md](../architecture/admin.md), linked from README. It records ownership, dependency direction, financial safeguards, routing, CSS, contracts and test placement.
 
 ## FILES MOVED
 
@@ -33,28 +33,28 @@ The following page responsibilities migrated and were split into feature modules
 
 | Previous file under client/src/pages/admin | New page under client/src/admin/features |
 | --- | --- |
-| `Dashboard.jsx` | [`dashboard/DashboardPage.jsx`](../client/src/admin/features/dashboard/DashboardPage.jsx) |
-| `AdProducts.jsx` | [`products/ProductsPage.jsx`](../client/src/admin/features/products/ProductsPage.jsx) |
-| `Categories.jsx` | [`categories/CategoriesPage.jsx`](../client/src/admin/features/categories/CategoriesPage.jsx) |
-| `Collections.jsx` | [`collections/CollectionsPage.jsx`](../client/src/admin/features/collections/CollectionsPage.jsx) |
-| `Media.jsx` | [`media/MediaPage.jsx`](../client/src/admin/features/media/MediaPage.jsx) |
-| `Content.jsx` | [`content/ContentPage.jsx`](../client/src/admin/features/content/ContentPage.jsx) |
-| `Settings.jsx` | [`settings/SettingsPage.jsx`](../client/src/admin/features/settings/SettingsPage.jsx) |
-| `AdOrders.jsx` | [`orders/OrdersPage.jsx`](../client/src/admin/features/orders/OrdersPage.jsx) |
-| `OrderDetail.jsx` | [`orders/OrderDetailPage.jsx`](../client/src/admin/features/orders/OrderDetailPage.jsx) |
-| `Customers.jsx` | [`customers/CustomersPage.jsx`](../client/src/admin/features/customers/CustomersPage.jsx) |
-| `CustomerDetail.jsx` | [`customers/CustomerDetailPage.jsx`](../client/src/admin/features/customers/CustomerDetailPage.jsx) |
-| `Payments.jsx` | [`payments/PaymentsPage.jsx`](../client/src/admin/features/payments/PaymentsPage.jsx) |
-| `Shipping.jsx` | [`shipping/ShippingPage.jsx`](../client/src/admin/features/shipping/ShippingPage.jsx) |
-| `CustomDesigns.jsx` | [`production/ProductionQueuePage.jsx`](../client/src/admin/features/production/ProductionQueuePage.jsx) |
-| `CustomDesignDetail.jsx` | [`production/ProductionJobPage.jsx`](../client/src/admin/features/production/ProductionJobPage.jsx) |
-| `CustomBuilderConfig.jsx` | [`builder-configuration/BuilderConfigurationPage.jsx`](../client/src/admin/features/builder-configuration/BuilderConfigurationPage.jsx) |
-| `Inventory.jsx` | [`inventory/InventoryPage.jsx`](../client/src/admin/features/inventory/InventoryPage.jsx) |
-| `Promotions.jsx` | [`promotions/PromotionsPage.jsx`](../client/src/admin/features/promotions/PromotionsPage.jsx) |
-| `Reviews.jsx` | [`reviews/ReviewsPage.jsx`](../client/src/admin/features/reviews/ReviewsPage.jsx) |
-| `Reports.jsx` | [`reports/ReportsPage.jsx`](../client/src/admin/features/reports/ReportsPage.jsx) |
-| `Audit.jsx` | [`audit/AuditPage.jsx`](../client/src/admin/features/audit/AuditPage.jsx) |
-| `Staff.jsx` | [`staff/StaffPage.jsx`](../client/src/admin/features/staff/StaffPage.jsx) |
+| `Dashboard.jsx` | [`dashboard/DashboardPage.jsx`](../../client/src/features/admin/features/dashboard/DashboardPage.jsx) |
+| `AdProducts.jsx` | [`products/ProductsPage.jsx`](../../client/src/features/admin/features/products/ProductsPage.jsx) |
+| `Categories.jsx` | [`categories/CategoriesPage.jsx`](../../client/src/features/admin/features/categories/CategoriesPage.jsx) |
+| `Collections.jsx` | [`collections/CollectionsPage.jsx`](../../client/src/features/admin/features/collections/CollectionsPage.jsx) |
+| `Media.jsx` | [`media/MediaPage.jsx`](../../client/src/features/admin/features/media/MediaPage.jsx) |
+| `Content.jsx` | [`content/ContentPage.jsx`](../../client/src/features/admin/features/content/ContentPage.jsx) |
+| `Settings.jsx` | [`settings/SettingsPage.jsx`](../../client/src/features/admin/features/settings/SettingsPage.jsx) |
+| `AdOrders.jsx` | [`orders/OrdersPage.jsx`](../../client/src/features/admin/features/orders/OrdersPage.jsx) |
+| `OrderDetail.jsx` | [`orders/OrderDetailPage.jsx`](../../client/src/features/admin/features/orders/OrderDetailPage.jsx) |
+| `Customers.jsx` | [`customers/CustomersPage.jsx`](../../client/src/features/admin/features/customers/CustomersPage.jsx) |
+| `CustomerDetail.jsx` | [`customers/CustomerDetailPage.jsx`](../../client/src/features/admin/features/customers/CustomerDetailPage.jsx) |
+| `Payments.jsx` | [`payments/PaymentsPage.jsx`](../../client/src/features/admin/features/payments/PaymentsPage.jsx) |
+| `Shipping.jsx` | [`shipping/ShippingPage.jsx`](../../client/src/features/admin/features/shipping/ShippingPage.jsx) |
+| `CustomDesigns.jsx` | [`production/ProductionQueuePage.jsx`](../../client/src/features/admin/features/production/ProductionQueuePage.jsx) |
+| `CustomDesignDetail.jsx` | [`production/ProductionJobPage.jsx`](../../client/src/features/admin/features/production/ProductionJobPage.jsx) |
+| `CustomBuilderConfig.jsx` | [`builder-configuration/BuilderConfigurationPage.jsx`](../../client/src/features/admin/features/builder-configuration/BuilderConfigurationPage.jsx) |
+| `Inventory.jsx` | [`inventory/InventoryPage.jsx`](../../client/src/features/admin/features/inventory/InventoryPage.jsx) |
+| `Promotions.jsx` | [`promotions/PromotionsPage.jsx`](../../client/src/features/admin/features/promotions/PromotionsPage.jsx) |
+| `Reviews.jsx` | [`reviews/ReviewsPage.jsx`](../../client/src/features/admin/features/reviews/ReviewsPage.jsx) |
+| `Reports.jsx` | [`reports/ReportsPage.jsx`](../../client/src/features/admin/features/reports/ReportsPage.jsx) |
+| `Audit.jsx` | [`audit/AuditPage.jsx`](../../client/src/features/admin/features/audit/AuditPage.jsx) |
+| `Staff.jsx` | [`staff/StaffPage.jsx`](../../client/src/features/admin/features/staff/StaffPage.jsx) |
 
 Additional migrations:
 

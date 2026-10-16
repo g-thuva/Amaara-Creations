@@ -1,5 +1,7 @@
 # FRONTEND REFACTOR RESULT
 
+Historical frontend refactor record ending at 5b0f639. See [the current repository architecture](../architecture/overview.md) and [full-repository verification](full-repository-refactor-result.md).
+
 COMPLETE — PROFESSIONAL FRONTEND ARCHITECTURE ESTABLISHED
 
 ## OLD STRUCTURE PROBLEMS

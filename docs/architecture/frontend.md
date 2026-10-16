@@ -129,4 +129,4 @@ From the root, run `git diff --check` and `python scripts/scan-secrets.py`. Buil
 4. Register URLs in `app/routes` and update navigation/permissions where needed. Preserve bookmarks.
 5. Scope styles, colocate tests and verify direct entry, roles, loading/error/empty states and the relevant journey.
 
-See [admin architecture](admin-architecture.md), [refactor result](frontend-refactor-result.md) and [file audit](frontend-file-audit.md).
+See [admin architecture](admin.md), [refactor result](../reports/frontend-refactor-result.md) and [file audit](../reports/frontend-file-audit.md).

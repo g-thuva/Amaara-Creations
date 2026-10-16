@@ -1,6 +1,6 @@
 # Admin frontend architecture
 
-See [complete frontend architecture](frontend-architecture.md) for the current app/shared/customer module map.
+See [complete frontend architecture](frontend.md) for the current app/shared/customer module map.
 
 The admin application lives in `client/src/features/admin`. Existing `/admin/...` URLs are preserved.
 
