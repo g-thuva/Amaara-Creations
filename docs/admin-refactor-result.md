@@ -1,5 +1,7 @@
 # ADMIN REFACTOR RESULT
 
+Historical record of commit `4952565`. The subsequent whole-frontend migration is documented in [Frontend refactor result](frontend-refactor-result.md); current paths are in [Frontend architecture](frontend-architecture.md).
+
 Date: 16 October 2026. Verdict: **COMPLETE** for the requested frontend architecture refactor.
 
 ## BEFORE

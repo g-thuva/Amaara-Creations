@@ -8,7 +8,7 @@ Admin operations now include order/customer detail, paid-order/proof-gated produ
 
 See [the tracked release engineering record](RELEASE_READINESS.md) and [production preparation runbooks](RELEASE_RUNBOOKS.md), plus inactive templates under `deploy/`. These cover configuration keys, assumptions, migrations, exact validation evidence, backup/restore, deployment, DNS/TLS, payment/email/storage acceptance, smoke, rollback, monitoring and the explicit cutover checklist. Do not put keys in Vite configuration. Public canonical URLs require matching approved `PublicSite:BaseUrl` / `VITE_PUBLIC_SITE_URL`; clean BrowserRouter URLs require the documented reverse-proxy fallback. Use `VITE_ROUTER_MODE=hash` only for the historical static GitHub Pages preview.
 
-Current verified results include 200 backend tests with SQL enabled (including seven SQL concurrency/migration/backup/load cases), 78 frontend tests, 57 browser acceptance tests, three production-build browser checks and three webhook ingress checks. The SQL-backed HTTP workload completed 720 requests without failures or provider calls. Exact evidence and the limits of local rehearsals are maintained in the release record. Node 22+ remains required. API publish excludes local settings, private media/key folders and development captures; the artifact privacy and source-secret checks are executable under `scripts/`.
+Current verified results include 200 backend tests with SQL enabled (including seven SQL concurrency/migration/backup/load cases), 110 frontend tests, 70 browser acceptance tests, three production-build browser checks and three webhook ingress checks. The SQL-backed HTTP workload completed 720 requests without failures or provider calls. Exact evidence and the limits of local rehearsals are maintained in the release record. Node 22+ remains required. API publish excludes local settings, private media/key folders and development captures; the artifact privacy and source-secret checks are executable under `scripts/`.
 
 Zahls TEST instance/API/signing key/methods and authenticated contract verification are unavailable. Genuine success/decline/cancel/retry/webhook/reconciliation/refund acceptance remains BLOCKED. Shipping/tax/capture/proof/refund policy and production database/hosting/domain/TLS/email/object-storage/monitoring/backup approvals remain required. `Zahls.Enabled=false`; the current payment adapter is TEST-only. No production deployment, financial transaction, DNS change or business-database migration is authorized or executed by these procedures.
 
@@ -23,7 +23,7 @@ Amaara Creations is a React/Vite frontend with an ASP.NET Core Web API backend u
 
 ## Frontend
 
-The admin application uses a feature-oriented structure documented in [Admin frontend architecture](docs/admin-architecture.md). Routes and permissions live in `client/src/admin/app`, the shell in `admin/layout`, reusable presentation in `admin/shared`, and workflows and endpoint wrappers in `admin/features`.
+The complete application uses the feature-oriented structure documented in [Frontend architecture](docs/frontend-architecture.md). Routes, guards and providers live in `client/src/app`; customer and admin workflows live in `client/src/features`; generic infrastructure/UI lives in `client/src/shared`. See [Admin architecture](docs/admin-architecture.md) for operational details and the [complete refactor result](docs/frontend-refactor-result.md) for current verification evidence.
 
 ```powershell
 cd client

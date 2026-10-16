@@ -1,6 +1,8 @@
 # Admin frontend architecture
 
-The admin application lives in `client/src/admin`. Existing `/admin/...` URLs are preserved.
+See [complete frontend architecture](frontend-architecture.md) for the current app/shared/customer module map.
+
+The admin application lives in `client/src/features/admin`. Existing `/admin/...` URLs are preserved.
 
 **Pages compose; features own behavior; APIs own endpoints; shared components remain domain-neutral.**
 
@@ -8,15 +10,15 @@ The admin application lives in `client/src/admin`. Existing `/admin/...` URLs ar
 
 | Location | Responsibility |
 | --- | --- |
-| `admin/app` | Admin route registration, route guard, landing behavior, navigation and permission metadata. |
-| `admin/layout` | Sidebar, header, user display, responsive navigation, logout and the content outlet. No feature requests. |
-| `admin/shared/components` | Tables, pagination, resource and mutation feedback, page/card/filter presentation, status badges and safe historical snapshots. |
-| `admin/shared/hooks` | Generic mutation locking/state and independent list/filter parameters. No JSX or feature endpoints. |
-| `admin/shared/utils` | File downloads, display dates and pagination calculations. |
-| `admin/shared/styles` | Admin-scoped tokens and common styles. |
-| `admin/features/<feature>` | Feature pages, cohesive sections/forms/tables, request coordination, named API operations and domain contracts. |
-| `components/ui` | Dialog and confirmation primitives shared with the storefront. The original storefront exports remain available. |
-| `services` | Existing authenticated HTTP transport, auth/session, error normalization, telemetry and storefront APIs. Admin endpoints belong to feature API modules. |
+| `features/admin/app` | Admin landing and navigation metadata. Route registration/guards/permissions live in `app/routes`, `app/guards` and `app/config`. |
+| `features/admin/layout` | Sidebar, header, user display, responsive navigation, logout and the content outlet. No feature requests. |
+| `features/admin/shared/components` | Tables, pagination, resource and mutation feedback, page/card/filter presentation, status badges and safe historical snapshots. |
+| `features/admin/shared/hooks` | Generic mutation locking/state and independent list/filter parameters. No JSX or feature endpoints. |
+| `features/admin/shared/utils` | Admin pagination calculations. Generic downloads and dates now live in `shared/utils`. |
+| `features/admin/shared/styles` | Admin-scoped tokens and common styles. |
+| `features/admin/features/<feature>` | Feature pages, cohesive sections/forms/tables, request coordination, named API operations and domain contracts. |
+| `shared/components/ui` | Direct dialog and confirmation primitives shared with the storefront. No compatibility re-exports remain. |
+| `shared/api` | Authenticated HTTP transport, auth/session, safe error handling and telemetry. All endpoints belong to feature API modules. |
 
 The 19 feature directories are dashboard, products, categories, collections, media, content, orders, customers, payments, shipping, production, builder-configuration, inventory, promotions, reviews, reports, audit, staff and settings.
 
@@ -32,7 +34,7 @@ Extract a section when it owns meaningful domain presentation, behavior or a use
 
 ## Requests and mutations
 
-All feature API modules import `services/api.js`; they do not configure another Axios client or change authentication behavior. Use named operations:
+All feature API modules import `shared/api/httpClient.js`; they do not configure another Axios client or change authentication behavior. Use named operations:
 
 ```js
 ordersApi.getOrder(id, signal);
@@ -46,7 +48,7 @@ Components and hooks must not construct backend endpoint strings. ESLint prevent
 
 `useResource` remains the single shared request lifecycle. Its cancellation, generation guard, key isolation and optional previous-data retention are reused rather than reimplemented. Product filters and product tools use keyed resources so earlier requests cannot replace a newer selection, even when a loader ignores cancellation.
 
-`useAdminMutation` returns `pending`, `error`, `success`, `run` and `reset`. Its synchronous ref lock prevents duplicate submissions before React commits the pending state. Render `MutationFeedback` separately. Existing `customerError` messages remain the safe generic UI error contract; the transport and error-normalization modules are unchanged.
+`useAdminMutation` returns `pending`, `error`, `success`, `run` and `reset`. It reuses the shared `useMutation` synchronous lock to prevent duplicate submissions before React commits the pending state. Render `MutationFeedback` separately. Existing `customerError` messages remain the safe generic UI error contract; the transport retains its session behavior and the shared error interface filters unsafe diagnostics.
 
 ```jsx
 const mutation = useAdminMutation(resource.reload);
@@ -67,9 +69,9 @@ Inventory balance and movement history have independent state and request keys. 
 
 ## Routes and permissions
 
-`App.jsx` mounts the lazy `AdminRoutes` subtree at `/admin/*`. `AdminRoutes` maps the page registry to `adminNavigation` metadata. `adminNavigation.js` is the source of paths, titles, icons, permissions and navigation visibility, including detail routes. The layout filters that same metadata with `can`.
+`app/routes/AppRoutes.jsx` mounts the lazy `AdminRoutes` subtree at `/admin/*`. `AdminRoutes` maps the page registry to `adminNavigation` metadata. `adminNavigation.js` is the source of paths, titles, icons, permissions and navigation visibility, including detail routes. The layout filters that same metadata with `can`.
 
-`AdminRouteGuard` composes application authentication with admin permission checks. `ProtectedRoute` owns session restoration and login redirection. `adminPermissions.js` owns role membership, the derived route-permission lookup and the existing landing preference. `utils/permissions.js` remains a small public facade for storefront consumers; it contains no duplicate definitions. Backend authorization remains authoritative.
+`app/guards/AdminGuard.jsx` composes application authentication with admin permission checks. `AuthGuard` owns restoration and login redirection. `app/config/permissions.js` owns role membership, route-permission lookup and the preserved landing preference. Backend authorization remains authoritative; no public permission facade remains.
 
 To add a route, add its metadata and lazy page entry, then verify direct entry, its permitted roles and navigation visibility. Detail routes set `navigation: false`. Do not copy a second permission map into the shell or `App.jsx`.
 
@@ -83,7 +85,7 @@ Use `SnapshotViewer` for historical JSON. It catches parsing failures, escapes a
 
 ## Incremental contracts
 
-Orders, payments/refunds, inventory and production each have a small TypeScript contract file matching the response fields used by their admin workflows. Their JavaScript API modules opt into `// @ts-check` and reference those request/response types through JSDoc. `npm run typecheck` checks these seams without converting the frontend to TypeScript. These are compile-time contracts, not runtime schema validation or a generated backend client; keep them aligned when a DTO changes.
+Common order/payment DTOs live in the customer `orders`/`payments` features and are reused by admin. Admin-only filters/refund/transition requests and inventory/production contracts remain local. Their JavaScript API modules opt into `// @ts-check` and reference those request/response types through JSDoc. `npm run typecheck` checks these seams without converting the frontend to TypeScript. These are compile-time contracts, not runtime schema validation or a generated backend client; keep them aligned when a DTO changes.
 
 ## Tests and verification
 
