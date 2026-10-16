@@ -1,0 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace be.Application.Features.Identity
+{
+    public class UpdateAvatarRequest
+    {
+        [StringLength(500, ErrorMessage = "Avatar URL must not exceed 500 characters")]
+        [Url(ErrorMessage = "Avatar URL must be a valid URL")]
+        public string? AvatarUrl { get; set; }
+    }
+}

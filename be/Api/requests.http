@@ -1,0 +1,13 @@
+@host = http://localhost:5192
+
+### Process liveness, independent of optional external integrations
+GET {{host}}/health/live
+Accept: application/json
+
+### Database/schema readiness
+GET {{host}}/health/ready
+Accept: application/json
+
+### Public catalog using the canonical versioned route
+GET {{host}}/api/v1/products?pageNumber=1&pageSize=20
+Accept: application/json
