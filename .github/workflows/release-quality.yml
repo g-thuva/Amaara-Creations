@@ -29,7 +29,10 @@ jobs:
           done
           exit 1
       - run: dotnet restore tests/be.Tests/be.Tests.csproj
+      - run: dotnet tool restore
       - run: dotnet build tests/be.Tests/be.Tests.csproj --configuration Release --no-restore
+      - run: dotnet ef migrations list --project be --configuration Release --no-build --no-connect
+      - run: dotnet ef migrations has-pending-model-changes --project be --configuration Release --no-build
       - run: dotnet test tests/be.Tests/be.Tests.csproj --configuration Release --no-build --logger trx --results-directory .runtime/test-results
       - run: python scripts/check-nuget-audit.py
       - run: dotnet publish be/be.csproj --configuration Release --no-restore --output .runtime/release/api

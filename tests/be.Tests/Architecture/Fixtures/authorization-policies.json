@@ -1,0 +1,77 @@
+{
+  "AdminAccess": [
+    "Admin",
+    "SuperAdmin",
+    "CatalogManager",
+    "ProductionStaff",
+    "CustomerSupport",
+    "Marketing",
+    "Analyst"
+  ],
+  "ManageCustomers": [
+    "Admin",
+    "SuperAdmin",
+    "CustomerSupport"
+  ],
+  "ViewOrders": [
+    "Admin",
+    "SuperAdmin",
+    "ProductionStaff",
+    "CustomerSupport"
+  ],
+  "ManageOrders": [
+    "Admin",
+    "SuperAdmin",
+    "ProductionStaff"
+  ],
+  "ManageCatalog": [
+    "Admin",
+    "SuperAdmin",
+    "CatalogManager"
+  ],
+  "ManageContent": [
+    "Admin",
+    "SuperAdmin",
+    "Marketing"
+  ],
+  "ManageReviews": [
+    "Admin",
+    "SuperAdmin",
+    "CustomerSupport",
+    "Marketing"
+  ],
+  "ViewReports": [
+    "Admin",
+    "SuperAdmin",
+    "Analyst"
+  ],
+  "ManageInventory": [
+    "Admin",
+    "SuperAdmin",
+    "CatalogManager",
+    "ProductionStaff"
+  ],
+  "ManagePromotions": [
+    "Admin",
+    "SuperAdmin",
+    "Marketing"
+  ],
+  "ManagePayments": [
+    "Admin",
+    "SuperAdmin"
+  ],
+  "RefundPayments": [
+    "Admin",
+    "SuperAdmin"
+  ],
+  "ManageSettings": [
+    "SuperAdmin"
+  ],
+  "ManageStaff": [
+    "SuperAdmin"
+  ],
+  "ViewAudit": [
+    "Admin",
+    "SuperAdmin"
+  ]
+}
