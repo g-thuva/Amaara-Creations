@@ -1,0 +1,11 @@
+/* Feature-owned styles; scoped without adding specificity. */
+
+:where(.storefront) .s-review-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+:where(.storefront) .s-review-list article { min-width: 0; padding: 1.5rem; background: var(--surface); border-radius: var(--radius-md); box-shadow: var(--shadow-1); }
+:where(.storefront) .s-review-list time { color: var(--text-muted); font-size: var(--text-sm); }
+:where(.storefront) .s-stars { color: var(--warning) !important; letter-spacing: 0.12em; }
+:where(.storefront) .s-review-form { max-width: 38rem; margin-top: var(--space-8); }
+
+@media (max-width: 767px) {
+  :where(.storefront) .s-review-list { grid-template-columns: 1fr; }
+}

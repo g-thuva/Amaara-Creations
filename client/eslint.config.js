@@ -27,15 +27,15 @@ export default defineConfig([
     },
   },
   {
-    files: ["src/admin/**/*.{js,jsx}"],
-    ignores: ["src/admin/**/*Api.js", "src/admin/**/*.test.{js,jsx}"],
+    files: ["src/features/**/*.{js,jsx}"],
+    ignores: ["src/features/**/*Api.js", "src/features/**/*.test.{js,jsx}"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
             {
-              group: ["axios", "**/services/api", "**/services/api.js"],
+              group: ["axios", "@/shared/api/httpClient", "@/shared/api/httpClient.js", "**/shared/api/httpClient.js"],
               message:
                 "Use a named feature API operation; feature API modules own HTTP endpoints.",
             },
@@ -45,7 +45,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["src/admin/shared/**/*.{js,jsx}"],
+    files: ["src/features/admin/shared/**/*.{js,jsx}"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -53,13 +53,12 @@ export default defineConfig([
           patterns: [
             {
               group: [
-                "**/features/**",
+                "@/features/admin/features/**",
                 "**/pages/**",
                 "**/app/**",
                 "**/layout/**",
                 "axios",
-                "**/services/api",
-                "**/services/api.js",
+                "@/shared/api/httpClient.js",
               ],
               message:
                 "Admin shared modules must remain domain-neutral and must not own feature requests.",
@@ -67,6 +66,15 @@ export default defineConfig([
           ],
         },
       ],
+    },
+  },
+  {
+    files: ["src/shared/**/*.{js,jsx}"],
+    ignores: ["src/shared/**/*.test.{js,jsx}"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [{ group: ["@/features/**", "@/app/**"], message: "Shared infrastructure and UI must remain independent of application features." }],
+      }],
     },
   },
 ]);

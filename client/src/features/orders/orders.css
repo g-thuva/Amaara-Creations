@@ -1,0 +1,3 @@
+/* Feature-owned styles; scoped without adding specificity. */
+
+:where(.storefront) .s-orders { display: grid; gap: 1.2rem; }

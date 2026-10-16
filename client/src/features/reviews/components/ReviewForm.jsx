@@ -1,0 +1,4 @@
+import { Button } from '@/shared/components/ui/Button.jsx';
+export default function ReviewForm({ editing, pending, submit, setEditing }) {
+  return (<form key={editing?.id || 'new'} onSubmit={submit} className="s-form s-review-form"><h3>{editing ? 'Edit your review' : 'Share your thoughts'}</h3><label>Rating<select name="rating" defaultValue={editing?.rating || 5}>{[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{n} stars</option>)}</select></label><label>Your review<textarea name="comment" rows="4" maxLength="1000" defaultValue={editing?.comment || ''}/></label><div className="s-actions"><Button disabled={pending} type="submit">{pending ? 'Saving…' : 'Save review'}</Button>{editing && <Button type="button" variant="text" onClick={() => setEditing(null)}>Cancel</Button>}</div></form>);
+}

@@ -1,23 +1,21 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import { BrowserRouter, HashRouter } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import './index.css';
-import './styles/storefront.css';
-
-const Router = import.meta.env.VITE_ROUTER_MODE === 'hash' ? HashRouter : BrowserRouter;
-if (import.meta.env.VITE_ROUTER_MODE !== 'hash' && window.location.hash.startsWith('#/')) {
-  window.history.replaceState(null, '', import.meta.env.BASE_URL + window.location.hash.slice(2));
-}
-const routerProps = Router === BrowserRouter ? { basename: import.meta.env.BASE_URL.replace(/\/$/, '') || '/' } : {};
+import App from '@/app/App.jsx';
+import { AppProviders } from '@/app/providers/AppProviders.jsx';
+import '@/shared/styles/tokens.css';
+import '@/shared/styles/globals.css';
+import '@/app/layout/storefrontLayout.css';
+import '@/features/home/home.css';
+import '@/features/catalog/catalog.css';
+import '@/features/reviews/reviews.css';
+import '@/features/cart/cart.css';
+import '@/features/wishlist/wishlist.css';
+import '@/features/checkout/checkout.css';
+import '@/features/account/account.css';
+import '@/features/orders/orders.css';
+import '@/features/content/content.css';
+import '@/features/custom-design/customDesign.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <Router {...routerProps}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </Router>
-  </React.StrictMode>
+  <React.StrictMode><AppProviders><App /></AppProviders></React.StrictMode>
 );

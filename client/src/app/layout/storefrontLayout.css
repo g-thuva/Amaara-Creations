@@ -1,0 +1,133 @@
+/* Feature-owned styles; scoped without adding specificity. */
+
+:where(.storefront) .s-announcement { color: var(--text-on-dark); background: var(--brand-navy-900); }
+:where(.storefront) .s-announcement .s-container { display: flex; align-items: center; justify-content: center; gap: var(--space-4); min-height: 40px; padding-block: 0.45rem; text-align: center; }
+:where(.storefront) .s-announcement span,
+:where(.storefront) .s-announcement a { color: var(--text-on-dark); font-size: var(--text-sm); font-weight: 600; overflow-wrap: anywhere; }
+:where(.storefront) .s-announcement a { text-decoration: underline; text-underline-offset: 0.2em; }
+:where(.storefront) .s-announcement button { display: grid; flex: 0 0 auto; width: 36px; height: 36px; place-items: center; color: var(--text-on-dark); background: transparent; border: 0; border-radius: 50%; }
+:where(.storefront) .s-header-sentinel { display: block; height: 1px; margin-bottom: -1px; }
+:where(.storefront) .s-header {
+  position: sticky;
+  z-index: var(--z-header);
+  top: 0;
+  background: rgb(255 255 255 / 0.88);
+  border-bottom: 1px solid rgb(26 54 93 / 0.12);
+  backdrop-filter: saturate(1.4) blur(12px);
+  transition: box-shadow var(--dur), background var(--dur);
+}
+:where(.storefront) .s-header.is-scrolled { background: rgb(255 255 255 / 0.96); box-shadow: var(--shadow-1); }
+:where(.storefront) .s-header-inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); min-height: 76px; }
+:where(.storefront) .s-brand { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 0.7rem; color: var(--brand-navy-700) !important; font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; letter-spacing: -0.025em; }
+:where(.storefront) .s-brand strong { color: var(--brand-sky-700); font-weight: 700; }
+:where(.storefront) .s-brand-logo { width: 42px; height: 42px; }
+:where(.storefront) .s-brand-logo rect { fill: var(--brand-navy-700); }
+:where(.storefront) .s-brand-logo path { fill: var(--surface); }
+:where(.storefront) .s-brand-logo circle { fill: var(--brand-sky-200); }
+:where(.storefront) .s-desktop-nav { display: flex; align-self: stretch; gap: clamp(0.7rem, 1.8vw, 1.6rem); }
+:where(.storefront) .s-desktop-nav a { position: relative; display: inline-flex; align-items: center; color: var(--text-secondary); font-size: var(--text-sm); font-weight: 600; }
+:where(.storefront) .s-desktop-nav a::after { position: absolute; right: 0; bottom: 0; left: 0; height: 3px; content: ''; background: var(--brand-sky-500); border-radius: var(--radius-pill); transform: scaleX(0); transition: transform var(--dur-fast); }
+:where(.storefront) .s-desktop-nav a:hover,
+:where(.storefront) .s-desktop-nav a.active { color: var(--brand-navy-700); }
+:where(.storefront) .s-desktop-nav a.active::after { transform: scaleX(1); }
+:where(.storefront) .s-header-actions { display: flex; align-items: center; gap: 0.1rem; }
+:where(.storefront) .s-menu-button { display: none; }
+:where(.storefront) .s-account-menu { position: relative; }
+:where(.storefront) .s-account-popover { position: absolute; top: calc(100% + 0.65rem); right: 0; display: none; width: 15rem; padding: 0.65rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-3); }
+:where(.storefront) .s-account-menu[open] .s-account-popover { display: grid; }
+:where(.storefront) .s-account-popover a,
+:where(.storefront) .s-account-popover button,
+:where(.storefront) .s-account-popover > span { display: flex; align-items: center; gap: 0.7rem; min-height: 42px; padding: 0.5rem 0.65rem; color: var(--text-primary); background: transparent; border: 0; border-radius: var(--radius-sm); font-size: var(--text-sm); text-align: left; }
+:where(.storefront) .s-account-popover a:hover,
+:where(.storefront) .s-account-popover button:hover { background: var(--brand-tint); }
+:where(.storefront) .s-header-search { display: flex; align-items: center; gap: 0.7rem; padding-block: 0.7rem 0.9rem; }
+:where(.storefront) .s-header-search > svg { flex: 0 0 auto; color: var(--brand-sky-700); }
+.storefront .s-header-search input { margin: 0; }
+:where(.storefront) .s-mobile-nav { display: grid; }
+:where(.storefront) .s-mobile-nav > a { display: flex; align-items: center; justify-content: space-between; min-height: 52px; gap: 1rem; border-bottom: 1px solid var(--border); font-weight: 600; }
+:where(.storefront) .s-mobile-nav > a.active { color: var(--brand-sky-700); }
+:where(.storefront) .s-footer { position: relative; padding-block: var(--space-16) var(--space-8); overflow: hidden; color: var(--text-on-dark); background: var(--brand-navy-900); }
+:where(.storefront) .s-footer-pattern { position: absolute; inset: 0; pointer-events: none; opacity: 0.35; background-image: linear-gradient(30deg, transparent 47%, rgb(144 205 244 / 0.08) 48%, rgb(144 205 244 / 0.08) 52%, transparent 53%); background-size: 36px 36px; }
+:where(.storefront) .s-footer .s-container { position: relative; }
+:where(.storefront) .s-footer-top { display: grid; grid-template-columns: 1.35fr repeat(3, minmax(0, 1fr)); gap: clamp(2rem, 5vw, 4rem); }
+:where(.storefront) .s-footer h2 { margin-bottom: 1.2rem; color: var(--text-on-dark); font-size: 1rem; }
+:where(.storefront) .s-footer h2::after { display: block; width: 2.75rem; height: 3px; margin-top: 0.65rem; content: ''; background: var(--brand-sky-500); border-radius: var(--radius-pill); }
+:where(.storefront) .s-footer p { color: var(--text-on-dark-muted); }
+:where(.storefront) .s-footer-about p { max-width: 32ch; }
+:where(.storefront) .s-footer-brand { display: inline-block; margin-bottom: 1rem; color: var(--text-on-dark) !important; font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; }
+:where(.storefront) .s-footer nav,
+:where(.storefront) .s-footer-contact,
+:where(.storefront) .s-footer-social { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; gap: 0.7rem; }
+:where(.storefront) .s-footer a:hover { color: var(--brand-sky-200); }
+:where(.storefront) .s-footer-bottom { margin-top: var(--space-12); padding-top: var(--space-6); color: var(--text-on-dark-muted); border-top: 1px solid rgb(255 255 255 / 0.2); font-size: var(--text-xs); }
+
+@media (max-width: 1099px) {
+  :where(.storefront) .s-desktop-nav { gap: 0.7rem; }
+}
+
+@media (max-width: 1099px) {
+  :where(.storefront) .s-footer-top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 899px) {
+  :where(.storefront) .s-desktop-nav,
+  :where(.storefront) .s-account-menu,
+  :where(.storefront) .s-wishlist-link { display: none; }
+}
+
+@media (max-width: 899px) {
+  :where(.storefront) .s-menu-button { display: inline-grid; }
+}
+
+@media (max-width: 899px) {
+  :where(.storefront) .s-header-inner { min-height: 70px; }
+}
+
+@media (max-width: 767px) {
+  :where(.storefront) .s-footer-top { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 767px) {
+  :where(.storefront) .s-footer-about { grid-column: 1 / -1; }
+}
+
+@media (max-width: 479px) {
+  :where(.storefront) .s-brand { font-size: 1rem; }
+}
+
+@media (max-width: 479px) {
+  :where(.storefront) .s-brand-logo { width: 38px; height: 38px; }
+}
+
+@media (max-width: 479px) {
+  :where(.storefront) .s-brand strong { display: none; }
+}
+
+@media (max-width: 479px) {
+  :where(.storefront) .s-header-actions { margin-left: auto; }
+}
+
+@media (max-width: 479px) {
+  :where(.storefront) .s-header-actions .s-icon-link { width: 42px; min-width: 42px; }
+}
+
+@media (max-width: 479px) {
+  :where(.storefront) .s-announcement .s-container { align-items: flex-start; text-align: left; }
+}
+
+@media (max-width: 479px) {
+  :where(.storefront) .s-footer-top { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 479px) {
+  :where(.storefront) .s-footer-about { grid-column: auto; }
+}
+
+@media (prefers-contrast: more) {
+  :where(.storefront) .s-header { background: var(--surface); backdrop-filter: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :where(.storefront) .s-header,
+  :where(.storefront) .s-header.is-scrolled { background: var(--surface); backdrop-filter: none; }
+}

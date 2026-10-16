@@ -1,0 +1,6 @@
+/* Feature-owned styles; scoped without adding specificity. */
+
+:where(.storefront) .s-wishlist-card { pointer-events: auto; }
+:where(.storefront) .s-wishlist-card .s-product-info { pointer-events: auto; }
+:where(.storefront) .s-wishlist-card .s-product-info h2 { min-height: 0; }
+:where(.storefront) .s-wishlist-card .s-stack { margin-top: 0.8rem; }

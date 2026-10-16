@@ -1,0 +1,32 @@
+/* Feature-owned styles; scoped without adding specificity. */
+
+:where(.storefront) .s-content-page { max-width: min(var(--container), 78rem); }
+:where(.storefront) .s-cms-sections { display: grid; gap: clamp(2.5rem, 6vw, 5rem); }
+:where(.storefront) .s-cms-sections:not(:empty) { padding-bottom: 3rem; }
+:where(.storefront) .s-prose { max-width: 70ch; }
+:where(.storefront) .s-prose p { font-size: 1.05rem; line-height: 1.85; white-space: pre-line; }
+:where(.storefront) .s-prose figure { margin: 1.5rem 0; }
+:where(.storefront) .s-prose .s-media { max-width: 48rem; aspect-ratio: 16 / 10; border-radius: var(--radius-md); }
+:where(.storefront) .s-prose figcaption,
+:where(.storefront) .s-cms-gallery figcaption { margin-top: 0.5rem; color: var(--text-muted); font-size: var(--text-sm); }
+:where(.storefront) .s-cms-cta { padding: 2rem; background: var(--brand-tint); border-radius: var(--radius-md); }
+:where(.storefront) .s-cms-gallery > p { max-width: 60ch; }
+:where(.storefront) .s-cms-gallery > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+:where(.storefront) .s-cms-gallery figure { margin: 0; }
+:where(.storefront) .s-cms-gallery .s-media { aspect-ratio: 1; border-radius: var(--radius-md); }
+:where(.storefront) .s-faq { max-width: 52rem; }
+:where(.storefront) .s-contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); gap: 1rem; margin-bottom: 2rem; }
+:where(.storefront) .s-contact-grid > a { display: grid; align-content: start; gap: 0.4rem; min-height: 10rem; padding: 1.5rem; overflow-wrap: anywhere; background: var(--surface); border-radius: var(--radius-md); box-shadow: var(--shadow-1); }
+:where(.storefront) .s-contact-grid > a > svg { color: var(--brand-sky-700); }
+:where(.storefront) .s-contact-grid .s-eyebrow { margin: 0.5rem 0 0; }
+:where(.storefront) .s-contact-details { display: grid; gap: 0.7rem; margin-bottom: 1.5rem; padding: 1.3rem; background: var(--brand-tint); border-radius: var(--radius-md); }
+:where(.storefront) .s-contact-details address,
+:where(.storefront) .s-contact-details p { display: flex; align-items: flex-start; gap: 0.65rem; margin: 0; }
+
+@media (max-width: 767px) {
+  :where(.storefront) .s-cms-gallery > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 479px) {
+  :where(.storefront) .s-cms-gallery > div { grid-template-columns: 1fr; }
+}

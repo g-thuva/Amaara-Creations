@@ -36,6 +36,8 @@ client/build/
 client/dist-ssr/
 client/test-results/
 client/playwright-report/
+client/coverage/
+client/screenshots/
 client/*.tmp.mjs
 client/*.tmp.ps1
 client/.runtime/

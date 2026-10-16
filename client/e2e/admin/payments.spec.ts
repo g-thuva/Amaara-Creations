@@ -346,7 +346,7 @@ async function resourceHarness(page: Page) {
     <div id="root"></div><script type="module">
     import React from '/Amaara-Creations/node_modules/.vite/deps/react.js';
     import ReactDOM from '/Amaara-Creations/node_modules/.vite/deps/react-dom_client.js';
-    import { useResource } from '/Amaara-Creations/src/hooks/useResource.js';
+    import { useResource } from '/Amaara-Creations/src/shared/hooks/useResource.js';
     const h = React.createElement;
     const requests = [];
     const old = { status: 'Paid', refundedAmount: 0, refundableAmount: 225, refunds: [] };

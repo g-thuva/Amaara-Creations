@@ -15,6 +15,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@',
+        replacement: fileURLToPath(new URL('./src', import.meta.url)),
+      },
+      {
         find: /^axios$/,
         replacement: fileURLToPath(new URL('./node_modules/axios/dist/esm/axios.min.js', import.meta.url)),
       },

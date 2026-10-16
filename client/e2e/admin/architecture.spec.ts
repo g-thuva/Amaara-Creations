@@ -121,10 +121,10 @@ test("product hook rejects older filter results even when the loader ignores can
   const errors = await harness(
     page,
     `
-    import { useProducts } from '/Amaara-Creations/src/admin/features/products/useProducts.js';
-    import { productsApi } from '/Amaara-Creations/src/admin/features/products/productsApi.js';
-    import { categoriesApi } from '/Amaara-Creations/src/admin/features/categories/categoriesApi.js';
-    import { collectionsApi } from '/Amaara-Creations/src/admin/features/collections/collectionsApi.js';
+    import { useProducts } from '/Amaara-Creations/src/features/admin/features/products/useProducts.js';
+    import { productsApi } from '/Amaara-Creations/src/features/admin/features/products/productsApi.js';
+    import { categoriesApi } from '/Amaara-Creations/src/features/admin/features/categories/categoriesApi.js';
+    import { collectionsApi } from '/Amaara-Creations/src/features/admin/features/collections/collectionsApi.js';
     const requests = [];
     productsApi.getProducts = () => new Promise(resolve => requests.push(resolve));
     categoriesApi.getCategories = async () => [];
@@ -161,7 +161,7 @@ test("admin mutation hook locks synchronous duplicate submissions and returns st
   const errors = await harness(
     page,
     `
-    import { useAdminMutation } from '/Amaara-Creations/src/admin/shared/hooks/useAdminMutation.js';
+    import { useAdminMutation } from '/Amaara-Creations/src/features/admin/shared/hooks/useAdminMutation.js';
     let calls = 0;
     let finish;
     function Harness() {
