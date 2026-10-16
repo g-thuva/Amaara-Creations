@@ -102,14 +102,21 @@ public class AccountService
         var totalWishlistItems = await _context.WishlistItems.Where(w => w.UserId == userId).CountAsync();
         var totalCartItems = await _context.CartItems.Where(c => c.UserId == userId).CountAsync();
         var totalReviews = await _context.Reviews.Where(r => r.UserId == userId).CountAsync();
-        var totalSpent = await _context.Orders.Where(o => o.UserId == userId && o.Status != be.Domain.Orders.OrderStatus.Cancelled).SumAsync(o => (decimal? )o.Total) ?? 0;
+        var orderTotals = await _context.Orders.AsNoTracking()
+            .Where(o => o.UserId == userId && o.Status != be.Domain.Orders.OrderStatus.Cancelled)
+            .GroupBy(o => o.Currency)
+            .Select(group => new { Currency = group.Key, Total = group.Sum(o => o.Total) })
+            .ToListAsync();
+        var totalsByCurrency = orderTotals.ToDictionary(total => total.Currency, total => total.Total, StringComparer.Ordinal);
         var response = new UserStatsResponse
         {
             TotalOrders = totalOrders,
             TotalWishlistItems = totalWishlistItems,
             TotalCartItems = totalCartItems,
             TotalReviews = totalReviews,
-            TotalSpent = totalSpent
+            TotalSpent = totalsByCurrency.GetValueOrDefault("LKR"),
+            Currency = "LKR",
+            OrderTotalsByCurrency = totalsByCurrency
         };
         return response;
     }

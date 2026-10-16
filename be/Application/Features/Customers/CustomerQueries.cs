@@ -94,7 +94,7 @@ public sealed class CustomerQueries(IApplicationDbContext _context, UserManager<
         var orders = await query.OrderByDescending(o => o.OrderDate)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(o => new { Id = o.Id, OrderNumber = o.OrderNumber, OrderDate = o.OrderDate, Total = o.Total, Status = o.Status.ToString(), ShippingAddress = o.ShippingAddress, ShippingCity = o.ShippingCity, TotalItems = o.OrderItems.Sum(oi => oi.Quantity) })
+            .Select(o => new { Id = o.Id, OrderNumber = o.OrderNumber, OrderDate = o.OrderDate, Total = o.Total, Currency = o.Currency, Status = o.Status.ToString(), ShippingAddress = o.ShippingAddress, ShippingCity = o.ShippingCity, TotalItems = o.OrderItems.Sum(oi => oi.Quantity) })
             .ToListAsync();
         return new
         {
