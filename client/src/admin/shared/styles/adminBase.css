@@ -1,0 +1,863 @@
+/* Admin Dashboard Styles */
+
+/* Layout */
+.admin-app .admin-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+}
+
+/* Sidebar */
+.admin-app .admin-sidebar {
+  width: var(--sidebar-width);
+  background: #573619;
+  color: white;
+  padding: 1.5rem 0;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.admin-app .sidebar-header {
+  padding: 0 1.5rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1rem;
+}
+
+.admin-app .sidebar-header h2 {
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-app .sidebar-menu {
+  padding: 0 0.75rem;
+}
+
+.admin-app .menu-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: #ffffff;
+  border-radius: 0.375rem;
+  margin-bottom: 0.25rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.admin-app .menu-item:hover,
+.admin-app .menu-item.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.admin-app .menu-item i,
+.admin-app .menu-item svg {
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+  width: 20px;
+  height: 20px;
+  text-align: center;
+}
+
+/* Main Content */
+.admin-app .admin-main {
+  min-width: 0;
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+/* Top Navigation */
+.admin-app .admin-header {
+  height: var(--header-height);
+  background: var(--card-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.admin-app .toggle-sidebar,
+.admin-app .back-button {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+}
+.admin-app .toggle-sidebar svg,
+.admin-app .back-button svg {
+  width: 20px;
+  height: 20px;
+  max-width: none;
+}
+
+.admin-app .toggle-sidebar {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-size: 1.25rem;
+  cursor: pointer;
+  margin-right: 1rem;
+  display: none;
+}
+
+.admin-app .back-button {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-size: 1.25rem;
+  cursor: pointer;
+  margin-right: 1rem;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.admin-app .back-button:hover {
+  background: var(--hover-color);
+  color: var(--primary-color);
+}
+
+.admin-app .user-info {
+  text-align: right;
+}
+
+.admin-app .user-name {
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 0.875rem;
+}
+
+.admin-app .user-role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.admin-app .user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Page Content */
+.admin-app .admin-content {
+  padding: 1.5rem;
+}
+
+/* Cards */
+.admin-app .card {
+  background: var(--card-bg);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.admin-app .card-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-app .card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.admin-app .card-body {
+  padding: 1.5rem;
+}
+
+.admin-app .s-spec-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+.admin-app .s-spec-list div {
+  padding: 0.75rem;
+  background: var(--hover-color);
+  border-radius: 0.375rem;
+}
+.admin-app .s-spec-list dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+.admin-app .s-spec-list dd {
+  margin: 0.25rem 0 0;
+  font-weight: 600;
+}
+
+/* Tables */
+.admin-app .table-responsive {
+  overflow-x: auto;
+}
+
+.admin-app table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-app th,
+.admin-app td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-app th {
+  font-weight: 600;
+  color: var(--text-color);
+  background-color: #f8fafc;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.admin-app tr:hover {
+  background-color: var(--hover-color);
+}
+
+/* Buttons */
+.admin-app .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.admin-app .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.admin-app .btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.admin-app .btn-primary:hover {
+  background-color: #744a23;
+}
+
+.admin-app .btn-outline-primary {
+  background-color: transparent;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.admin-app .btn-outline-primary:hover {
+  background-color: rgba(139, 90, 43, 0.1);
+}
+
+.admin-app .btn-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.admin-app .btn-danger {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.admin-app .btn-warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+/* Badges */
+.admin-app .badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-app .badge-success {
+  background-color: #c6f6d5;
+  color: #22543d;
+}
+
+.admin-app .badge-warning {
+  background-color: #feebc8;
+  color: #744210;
+}
+
+.admin-app .badge-danger {
+  background-color: #fed7d7;
+  color: #742a2a;
+}
+
+/* Forms */
+.admin-app .form-group {
+  margin-bottom: 1.25rem;
+}
+
+.admin-app .form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.admin-app .form-control {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.admin-app .form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(139, 90, 43, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .admin-app .admin-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .admin-app .admin-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .admin-app .admin-main {
+    margin-left: 0;
+  }
+
+  .admin-app .admin-main.sidebar-open {
+    margin-left: 0;
+  }
+
+  .admin-app .toggle-sidebar {
+    display: block;
+  }
+}
+
+/* Animations */
+@media (max-width: 576px) {
+  .admin-app .admin-header {
+    padding: 0 1rem;
+  }
+  .admin-app .admin-header .user-info {
+    display: none;
+  }
+  .admin-app .admin-header .toggle-sidebar,
+  .admin-app .admin-header .back-button {
+    margin-right: 0.5rem;
+  }
+}
+
+@keyframes admin-fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-app .fade-in {
+  animation: admin-fadeIn 0.3s ease forwards;
+}
+
+/* Custom Scrollbar */
+.admin-app ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-app ::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.admin-app ::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.admin-app ::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Admin Products Page Styles */
+.admin-app .admin-page {
+  padding: 1.5rem;
+}
+
+.admin-app .admin-page .page-header {
+  margin-bottom: 1.5rem;
+}
+
+.admin-app .admin-page .header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-app .admin-page .header-content h2 {
+  margin: 0 0 0.25rem 0;
+  color: var(--text-color);
+  font-size: 1.5rem;
+}
+
+.admin-app .admin-page .header-content p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.admin-app .btn-add-product {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admin-app .btn-add-product:hover {
+  background: #744a23;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.admin-app .products-table-container {
+  background: var(--card-bg);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.admin-app .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-app .admin-table thead {
+  background: #f8fafc;
+}
+
+.admin-app .admin-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.admin-app .admin-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.admin-app .admin-table tbody tr:hover {
+  background: var(--hover-color);
+}
+
+.admin-app .product-thumbnail {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.admin-app .product-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-app .product-name-cell strong {
+  color: var(--text-color);
+  font-size: 0.95rem;
+}
+
+.admin-app .product-name-cell small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-app .category-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #edf2f7;
+  color: var(--text-color);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.admin-app .status-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.admin-app .status-badge.in-stock {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.admin-app .status-badge.out-of-stock {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.admin-app .action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-app .btn-edit,
+.admin-app .btn-delete {
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-color);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-app .btn-edit:hover {
+  background: #edf2f7;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.admin-app .btn-delete:hover {
+  background: #fff5f5;
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+/* Modal Styles */
+.admin-app .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.admin-app .modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: admin-modalSlideIn 0.3s ease;
+}
+
+@keyframes admin-modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-app .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-app .modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+.admin-app .modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.admin-app .modal-close:hover {
+  background: var(--hover-color);
+  color: var(--text-color);
+}
+
+.admin-app .add-product-form {
+  padding: 1.5rem;
+}
+
+.admin-app .add-product-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.admin-app .add-product-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 0.95rem;
+}
+
+.admin-app .add-product-form input,
+.admin-app .add-product-form textarea,
+.admin-app .add-product-form select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.admin-app .add-product-form input:focus,
+.admin-app .add-product-form textarea:focus,
+.admin-app .add-product-form select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.1);
+}
+
+.admin-app .add-product-form textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.admin-app .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.admin-app .image-preview {
+  margin-top: 1rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--border-color);
+}
+
+.admin-app .image-preview img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-app .out-of-stock-alert {
+  background: #fff5f5;
+  border: 1px solid #fc8181;
+  color: #742a2a;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.admin-app .form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.admin-app .btn-cancel,
+.admin-app .btn-submit {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-app .btn-cancel {
+  background: var(--hover-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.admin-app .btn-cancel:hover {
+  background: #edf2f7;
+}
+
+.admin-app .btn-submit {
+  background: var(--primary-color);
+  color: white;
+}
+
+.admin-app .btn-submit:hover {
+  background: #744a23;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 90, 43, 0.3);
+}
+
+@media (max-width: 768px) {
+  .admin-app .admin-page .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-app .btn-add-product {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .admin-app .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-app .form-actions {
+    flex-direction: column;
+  }
+
+  .admin-app .btn-cancel,
+  .admin-app .btn-submit {
+    width: 100%;
+  }
+
+  .admin-app .admin-table {
+    font-size: 0.85rem;
+  }
+
+  .admin-app .admin-table th,
+  .admin-app .admin-table td {
+    padding: 0.75rem;
+  }
+
+  .admin-app .product-name-cell small {
+    max-width: 150px;
+  }
+}
+.admin-app :focus-visible {
+  outline: 3px solid #1a365d;
+  outline-offset: 3px;
+}
+.admin-app > .s-skip {
+  z-index: 2000;
+  color: #ffffff;
+  background: #1a365d;
+  border-radius: 6px;
+}
+.admin-app .admin-sidebar :focus-visible {
+  outline-color: #ffffff;
+}
+.admin-app .admin-table th {
+  color: #4a5568;
+}
+.admin-app .admin-page pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.admin-app .admin-page .form-control {
+  min-width: 0;
+}
+.admin-app .admin-page caption {
+  text-align: left;
+  padding: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+.admin-app .admin-sidebar button.menu-item {
+  border: 0;
+  background: transparent;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-app *,
+  .admin-app *::before,
+  .admin-app *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

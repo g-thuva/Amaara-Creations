@@ -1,0 +1,17 @@
+.headerLeft {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin-right: 1rem;
+}
+.headerLeft h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.userMenu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}

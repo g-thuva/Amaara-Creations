@@ -1,0 +1,16 @@
+.admin-app {
+  --sidebar-width: 250px;
+  --header-height: 60px;
+  --primary-color: #8b5a2b;
+  --primary-light: #d4a76a;
+  --secondary-color: #4a5568;
+  --success-color: #2f855a;
+  --danger-color: #c53030;
+  --warning-color: #9c4221;
+  --bg-color: #f7fafc;
+  --card-bg: #ffffff;
+  --text-color: #2d3748;
+  --text-muted: #596579;
+  --border-color: #e2e8f0;
+  --hover-color: #f7fafc;
+}

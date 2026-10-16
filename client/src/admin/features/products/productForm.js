@@ -1,0 +1,15 @@
+export const emptyForm = {
+  name: "",
+  slug: "",
+  shortDescription: "",
+  description: "",
+  basePrice: "",
+  currency: "",
+  rowVersion: "",
+  baseSku: "",
+  categoryId: "",
+  stock: "0",
+  isActive: true,
+  isFeatured: false,
+  collectionIds: [],
+};

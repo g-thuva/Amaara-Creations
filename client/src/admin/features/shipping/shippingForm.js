@@ -1,0 +1,36 @@
+export const newZone = () => ({
+  name: "",
+  country: "",
+  region: "",
+  postalCodePrefix: "",
+  isActive: true,
+  requiresPhone: true,
+  requiresRegion: false,
+  requiresPostalCode: false,
+});
+export const newMethod = () => ({
+  name: "",
+  code: "",
+  shippingZoneId: "",
+  currency: "LKR",
+  basePrice: 0,
+  freeShippingThreshold: null,
+  minimumOrderValue: null,
+  maximumOrderValue: null,
+  estimatedMinimumDays: null,
+  estimatedMaximumDays: null,
+  displayOrder: 0,
+  isActive: true,
+  isPickup: false,
+  pickupLocation: "",
+  isDevelopmentValue: true,
+});
+export const numeric = [
+  "basePrice",
+  "freeShippingThreshold",
+  "minimumOrderValue",
+  "maximumOrderValue",
+  "estimatedMinimumDays",
+  "estimatedMaximumDays",
+  "displayOrder",
+];

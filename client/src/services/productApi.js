@@ -13,22 +13,4 @@ export const productApi = {
     return response.data;
   },
 
-  // Create product (Admin only)
-  createProduct: async (productData) => {
-    const response = await api.post('/admin/products', productData);
-    return response.data;
-  },
-
-  // Update product (Admin only)
-  updateProduct: async (id, productData) => {
-    const response = await api.put(`/admin/products/${id}`, productData);
-    return response.data;
-  },
-
-  // Archive product (Admin only)
-  deleteProduct: async (id) => {
-    const response = await api.post(`/admin/products/${id}/archive`);
-    return response.data;
-  },
 };
-

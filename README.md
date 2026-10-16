@@ -23,6 +23,8 @@ Amaara Creations is a React/Vite frontend with an ASP.NET Core Web API backend u
 
 ## Frontend
 
+The admin application uses a feature-oriented structure documented in [Admin frontend architecture](docs/admin-architecture.md). Routes and permissions live in `client/src/admin/app`, the shell in `admin/layout`, reusable presentation in `admin/shared`, and workflows and endpoint wrappers in `admin/features`.
+
 ```powershell
 cd client
 npm ci

@@ -1,0 +1,248 @@
+.dashboard {
+  padding: 1rem 0;
+}
+
+.dashboard :global(.dashboard-header) {
+  margin-bottom: 2rem;
+}
+
+.dashboard :global(.dashboard-header h1) {
+  font-size: 1.75rem;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard :global(.dashboard-header p) {
+  color: #718096;
+  margin: 0;
+}
+
+.dashboard :global(.stats-grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard :global(.stat-card) {
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.dashboard :global(.stat-card:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard :global(.stat-icon) {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+}
+
+.dashboard :global(.stat-info) {
+  flex: 1;
+}
+
+.dashboard :global(.stat-value) {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  line-height: 1.2;
+}
+
+.dashboard :global(.stat-title) {
+  font-size: 0.875rem;
+  color: #718096;
+}
+
+.dashboard :global(.stat-change) {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.dashboard :global(.stat-change.up) {
+  color: #38a169;
+  background: rgba(72, 187, 120, 0.1);
+}
+
+.dashboard :global(.stat-change.down) {
+  color: #e53e3e;
+  background: rgba(229, 62, 62, 0.1);
+}
+
+.dashboard :global(.stat-change svg) {
+  margin-right: 0.25rem;
+}
+
+.dashboard :global(.dashboard-row) {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 1200px) {
+  .dashboard :global(.dashboard-row) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard :global(.dashboard-card) {
+  background: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.dashboard :global(.card-header) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.dashboard :global(.card-header h3) {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #2d3748;
+}
+
+.dashboard :global(.view-all) {
+  color: #8b5a2b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.dashboard :global(.view-all:hover) {
+  color: #6b4620;
+  text-decoration: underline;
+}
+
+.dashboard :global(table) {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard :global(th),
+.dashboard :global(td) {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.dashboard :global(th) {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #718096;
+  background: #f8fafc;
+}
+
+.dashboard :global(tr:hover) {
+  background: #f8fafc;
+}
+
+.dashboard :global(.order-link) {
+  color: #3182ce;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.dashboard :global(.order-link:hover) {
+  text-decoration: underline;
+}
+
+.dashboard :global(.status-badge) {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.dashboard :global(.status-badge.completed) {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.dashboard :global(.status-badge.processing) {
+  background: #bee3f8;
+  color: #2a4365;
+}
+
+.dashboard :global(.status-badge.shipped) {
+  background: #e9d8fd;
+  color: #44337a;
+}
+
+.dashboard :global(.status-badge.pending) {
+  background: #feebc8;
+  color: #7b341e;
+}
+
+.dashboard :global(.product-list) {
+  padding: 0.5rem 0;
+}
+
+.dashboard :global(.product-item) {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.dashboard :global(.product-item:last-child) {
+  border-bottom: none;
+}
+
+.dashboard :global(.product-item h4) {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.dashboard :global(.product-meta) {
+  display: flex;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard :global(.product-meta span) {
+  margin-right: 0.5rem;
+}
+
+.dashboard :global(.product-chart) {
+  height: 6px;
+  background: #edf2f7;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dashboard :global(.chart-bar) {
+  height: 100%;
+  background: #8b5a2b;
+  border-radius: 3px;
+}

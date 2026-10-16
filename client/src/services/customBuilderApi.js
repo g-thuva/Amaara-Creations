@@ -20,19 +20,3 @@ export const customBuilderApi = {
   approveProof: async (id, revisionNumber, comment) => (await api.post(`/custom-designs/${id}/proofs/approve`, { revisionNumber, comment })).data,
   requestProofChanges: async (id, revisionNumber, comment) => (await api.post(`/custom-designs/${id}/proofs/request-changes`, { revisionNumber, comment })).data,
 };
-
-export const adminCustomBuilderApi = {
-  getConfig: async () => (await api.get('/admin/custom-builder')).data,
-  updateDraft: async (id, payload) => (await api.put(`/admin/custom-builder/draft/${id}`, payload)).data,
-  testQuote: async (id, payload) => (await api.post(`/admin/custom-builder/draft/${id}/quote`, payload)).data,
-  publish: async (id) => (await api.post(`/admin/custom-builder/draft/${id}/publish`)).data,
-  listDesigns: async (params = {}) => (await api.get('/admin/custom-designs', { params })).data,
-  getDesign: async (id) => (await api.get(`/admin/custom-designs/${id}`)).data,
-  uploadProof: async (id, file, customerVisibleMessage) => {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('customerVisibleMessage', customerVisibleMessage || '');
-    return (await api.post(`/admin/custom-designs/${id}/proofs`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
-  },
-  updateProductionStatus: async (id, status) => (await api.put(`/admin/custom-designs/${id}/production-status`, { status })).data,
-};
