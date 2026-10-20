@@ -31,7 +31,7 @@ export function Media({
         <div
           className="s-image-fallback"
           role="img"
-          aria-label={`${alt || "Product"} â€” image unavailable`}
+          aria-label={`${alt || "Product"} - image unavailable`}
         >
           <span className="s-sticker-glyph" aria-hidden="true">
             <Icon name="image" />

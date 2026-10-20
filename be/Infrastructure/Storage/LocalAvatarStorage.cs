@@ -18,6 +18,19 @@ public sealed class LocalAvatarStorage(IWebHostEnvironment environment, IConfigu
             throw new CommerceException("AVATAR_UPLOAD_INVALID", $"Invalid file type. Allowed types: {string.Join(", ", Extensions)}");
         if (!ContentTypes.Contains(file.ContentType.ToLowerInvariant()))
             throw new CommerceException("AVATAR_UPLOAD_INVALID", "Invalid image content type");
+        byte[] bytes;
+        try
+        {
+            bytes = await ImageUploadValidator.ReadBoundedAsync(file, maximum, cancellationToken);
+            var image = ImageUploadValidator.Validate(bytes, file.ContentType, extension, allowGif: true);
+            var maximumPixels = configuration.GetValue<int?>("Uploads:MaxImagePixels") ?? 24_000_000;
+            if (image.Width <= 0 || image.Height <= 0 || (long)image.Width * image.Height > maximumPixels)
+                throw new InvalidOperationException("Image dimensions are invalid or too large.");
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw new CommerceException("AVATAR_UPLOAD_INVALID", exception.Message);
+        }
         var directory = Path.Combine(environment.ContentRootPath, "wwwroot", "uploads", "avatars");
         Directory.CreateDirectory(directory);
         var fileName = $"{userId}_{Guid.NewGuid()}{extension}";
@@ -25,7 +38,7 @@ public sealed class LocalAvatarStorage(IWebHostEnvironment environment, IConfigu
         if (!path.StartsWith(Path.GetFullPath(directory) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new CommerceException("AVATAR_UPLOAD_INVALID", "Invalid upload owner.");
         await using var target = new FileStream(path, FileMode.CreateNew);
-        await file.CopyToAsync(target, cancellationToken);
+        await target.WriteAsync(bytes, cancellationToken);
         return new StoredAvatar($"/uploads/avatars/{fileName}", fileName);
     }
 }

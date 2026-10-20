@@ -151,7 +151,7 @@
   {"method":"PUT","path":"api/v1/reviews/{id:int}","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
   {"method":"GET","path":"api/v1/seo/robots.txt","authenticated":false,"anonymous":true,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
   {"method":"GET","path":"api/v1/seo/sitemap.xml","authenticated":false,"anonymous":true,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
-  {"method":"POST","path":"api/v1/upload/avatar","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
+  {"method":"POST","path":"api/v1/upload/avatar","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":["custom-upload"],"requestLimit":"6291456","multipartLimit":null},
   {"method":"GET","path":"api/v1/users/profile","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
   {"method":"PUT","path":"api/v1/users/profile","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
   {"method":"GET","path":"api/v1/users/profile/avatar","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},

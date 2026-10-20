@@ -11,6 +11,15 @@ public sealed class LocalMediaStorageServiceTests : IDisposable
 {
     private readonly string _contentRoot = Path.Combine(Path.GetTempPath(), $"amaara-media-tests-{Guid.NewGuid():N}");
     [Fact]
+    public async Task UploadAsyncBoundsActualStreamBytesBeforeWritingAnyMedia()
+    {
+        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        var file = new MediaUpload("oversize.png", "image/png", 1, () => new MemoryStream(bytes));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateService(maxFileSize: 40).UploadAsync(file, "products"));
+        Assert.Empty(Directory.GetFiles(_contentRoot, "*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
     public async Task UploadAsyncStoresValidPngWithPortableMetadata()
     {
         var service = CreateService();
