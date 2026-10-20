@@ -22,8 +22,10 @@ public sealed class ZahlsPaymentGateway(HttpClient client, IOptions<ZahlsOptions
     public string Mode => options.Value.Mode;
 
     public void EnsureAvailable(string currency)
+        => ValidateConfiguration(options.Value, currency);
+
+    public static void ValidateConfiguration(ZahlsOptions o, string currency)
     {
-        var o = options.Value;
         if (!o.Enabled || o.Mode != "TEST" || o.Currency != "CHF" || currency != "CHF" || !o.TestProviderConfigured || !o.ChfSupportedByTestProvider)
             throw new CommerceException("PAYMENT_NOT_CONFIGURED", "Zahls TEST payment is not configured for CHF.", 503);
         if (!InstancePattern.IsMatch(o.InstanceName) || string.IsNullOrWhiteSpace(o.ApiKey) || string.IsNullOrWhiteSpace(o.WebhookSigningKey) || o.TimeoutSeconds is < 2 or > 60)

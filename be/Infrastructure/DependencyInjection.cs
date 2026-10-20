@@ -6,6 +6,7 @@ using be.Application.Abstractions.Storage;
 using be.Application.Features.Checkout;
 using be.Domain.Identity;
 using be.Infrastructure.BackgroundJobs;
+using be.Infrastructure.Configuration;
 using be.Infrastructure.Email;
 using be.Infrastructure.Identity;
 using be.Infrastructure.Observability;
@@ -23,6 +24,7 @@ public static class DependencyInjection
 {
     public static void AddAmaaraInfrastructure(this WebApplicationBuilder builder)
     {
+        ProductionSettings.Validate(builder.Configuration, builder.Environment);
         var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"] ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
         builder.Services.AddDataProtection()
             .SetApplicationName("AmaaraCreations")
@@ -53,7 +55,9 @@ public static class DependencyInjection
         // Register TokenService
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();
-        if (builder.Configuration["Email:Provider"] == "DevelopmentCapture")
+        if (builder.Configuration.GetValue<bool?>("Email:Enabled") == false)
+            builder.Services.AddScoped<IEmailService, DisabledEmailService>();
+        else if (builder.Configuration["Email:Provider"] == "DevelopmentCapture")
         {
             if (!builder.Environment.IsDevelopment())
                 throw new InvalidOperationException("Development email capture cannot run outside Development.");

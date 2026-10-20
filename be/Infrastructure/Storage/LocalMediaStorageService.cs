@@ -5,13 +5,11 @@ namespace be.Infrastructure.Storage
     public class LocalMediaStorageService : IMediaStorageService
     {
         private readonly IWebHostEnvironment _environment;
-        private readonly IConfiguration _configuration;
         private readonly long _maxFileSize;
         private readonly int _maxImagePixels;
         public LocalMediaStorageService(IWebHostEnvironment environment, IConfiguration configuration)
         {
             _environment = environment;
-            _configuration = configuration;
             _maxFileSize = configuration.GetValue<long?>("Uploads:MaxFileSizeBytes") ?? 5 * 1024 * 1024;
             _maxImagePixels = configuration.GetValue<int?>("Uploads:MaxImagePixels") ?? 24_000_000;
         }
@@ -107,7 +105,7 @@ namespace be.Infrastructure.Storage
 
             var isPrivate = normalized.StartsWith("private/", StringComparison.OrdinalIgnoreCase);
             var relative = isPrivate ? normalized["private/".Length..] : normalized;
-            var root = isPrivate ? Path.Combine(_environment.ContentRootPath, "App_Data", "private-media") : Path.Combine(_environment.ContentRootPath, "wwwroot");
+            var root = isPrivate ? Path.Combine(_environment.ContentRootPath, "App_Data", "private-media") : _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
             var fullRoot = Path.GetFullPath(root) + Path.DirectorySeparatorChar;
             var fullPath = Path.GetFullPath(Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar)));
             if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))

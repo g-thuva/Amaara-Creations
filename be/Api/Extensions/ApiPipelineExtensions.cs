@@ -1,6 +1,7 @@
 using be.Api.Middleware;
 using be.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 
 namespace be.Api.Extensions;
 public static class ApiPipelineExtensions
@@ -23,7 +24,16 @@ public static class ApiPipelineExtensions
         if (!app.Environment.IsDevelopment())
             app.UseHsts();
         app.UseHttpsRedirection();
-        Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads"));
+        var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+        Directory.CreateDirectory(Path.Combine(webRoot, "uploads"));
+        if (app.Environment.WebRootFileProvider is NullFileProvider)
+        {
+            // Fresh published hosts can start before wwwroot exists. Bind the created root now.
+            var provider = new PhysicalFileProvider(webRoot);
+            app.Environment.WebRootPath = webRoot;
+            app.Environment.WebRootFileProvider = provider;
+            app.Lifetime.ApplicationStopped.Register(provider.Dispose);
+        }
         Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "App_Data", "private-media"));
         // Enable static file serving for uploaded images
         app.UseStaticFiles();
@@ -33,6 +43,7 @@ public static class ApiPipelineExtensions
         app.UseAuthentication();
         app.UseRateLimiter();
         app.UseAuthorization();
+        app.UseMiddleware<ReleaseControlsMiddleware>();
         app.MapGet("/health", () => Results.Ok(new { status = "ok", environment = app.Environment.EnvironmentName, timestamp = DateTimeOffset.UtcNow }));
         app.MapControllers();
         app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }));

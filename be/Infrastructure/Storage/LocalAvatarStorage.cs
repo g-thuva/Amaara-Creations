@@ -31,7 +31,7 @@ public sealed class LocalAvatarStorage(IWebHostEnvironment environment, IConfigu
         {
             throw new CommerceException("AVATAR_UPLOAD_INVALID", exception.Message);
         }
-        var directory = Path.Combine(environment.ContentRootPath, "wwwroot", "uploads", "avatars");
+        var directory = Path.Combine(environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot"), "uploads", "avatars");
         Directory.CreateDirectory(directory);
         var fileName = $"{userId}_{Guid.NewGuid()}{extension}";
         var path = Path.GetFullPath(Path.Combine(directory, fileName));

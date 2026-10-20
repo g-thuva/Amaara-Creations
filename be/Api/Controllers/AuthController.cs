@@ -37,7 +37,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
         return Ok(session.Response);
     }
 
-    [HttpPost("refresh"), EnableRateLimiting("auth-sensitive")]
+    [HttpPost("refresh"), EnableRateLimiting("auth-refresh")]
     public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
     {
         var session = await identity.RefreshAsync(cookie.Read(Request), cancellationToken);

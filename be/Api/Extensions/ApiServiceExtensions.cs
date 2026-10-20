@@ -14,6 +14,7 @@ public static class ApiServiceExtensions
         builder.Logging.ClearProviders();
         builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
         builder.Logging.AddDebug();
+        builder.Services.Configure<be.Api.Configuration.ReleaseControls>(builder.Configuration.GetSection("ReleaseControls"));
         builder.Services.AddScoped<be.Application.Abstractions.Identity.IRequestActor, be.Api.Identity.HttpRequestActor>();
         builder.Services.AddScoped<be.Api.Identity.RefreshCookie>();
         builder.Services.AddRateLimiter(options =>
@@ -21,6 +22,8 @@ public static class ApiServiceExtensions
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             string Partition(HttpContext context) => context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             options.AddPolicy("auth-sensitive", context => RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = builder.Configuration.GetValue<int?>("Authentication:RateLimitPermitLimit") ?? 10, Window = TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Authentication:RateLimitWindowMinutes") ?? 1), QueueLimit = 0 }));
+            // Reloads restore an existing secure session; they must not consume password-attempt permits.
+            options.AddPolicy("auth-refresh", context => RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = builder.Configuration.GetValue<int?>("Authentication:RefreshRateLimitPermitLimit") ?? 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             options.AddPolicy("custom-quote", context => RateLimitPartition.GetFixedWindowLimiter(Partition(context), _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             options.AddPolicy("custom-upload", context => RateLimitPartition.GetFixedWindowLimiter(Partition(context), _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
         });

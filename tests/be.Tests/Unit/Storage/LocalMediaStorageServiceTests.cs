@@ -11,6 +11,21 @@ public sealed class LocalMediaStorageServiceTests : IDisposable
 {
     private readonly string _contentRoot = Path.Combine(Path.GetTempPath(), $"amaara-media-tests-{Guid.NewGuid():N}");
     [Fact]
+    public async Task PublicMediaUsesTheConfiguredWebRootWhilePrivateArtworkStaysSeparate()
+    {
+        Directory.CreateDirectory(_contentRoot);
+        var publicRoot = Path.Combine(_contentRoot, "configured-public");
+        var environment = new TestEnvironment(_contentRoot) { WebRootPath = publicRoot };
+        var service = new LocalMediaStorageService(environment, new ConfigurationBuilder().Build());
+        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        var visible = await service.UploadAsync(CreateFile(bytes, "public.png", "image/png"), "catalog");
+        var hidden = await service.UploadPrivateAsync(CreateFile(bytes, "private.png", "image/png"), "artwork");
+        Assert.True(File.Exists(Path.Combine(publicRoot, visible.StorageKey)));
+        Assert.False(File.Exists(Path.Combine(publicRoot, hidden.StorageKey)));
+        Assert.True(await service.ExistsAsync(hidden.StorageKey));
+    }
+
+    [Fact]
     public async Task UploadAsyncBoundsActualStreamBytesBeforeWritingAnyMedia()
     {
         var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");

@@ -71,6 +71,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
                 foreach (var name in new[]
                 {
                     "auth-sensitive",
+                    "auth-refresh",
                     "custom-quote",
                     "custom-upload"
                 }
