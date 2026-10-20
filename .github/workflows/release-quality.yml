@@ -20,6 +20,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
       - name: Start disposable SQL Server with an ephemeral generated password
         shell: bash
         run: |
@@ -43,6 +48,17 @@ jobs:
       - run: dotnet publish be/be.csproj --configuration Release --no-restore --output .runtime/release/api
       - run: python scripts/check-release-artifacts.py .runtime/release/api
       - run: python scripts/scan-secrets.py
+      - name: Test release manifest and privacy enforcement
+        run: python -m unittest discover -s tests/release_tools -v
+      - name: Prepare and verify immutable rehearsal package
+        run: |
+          python scripts/prepare-release.py --public-config deploy/frontend.rehearsal.json --output .runtime/releases/ci-rehearsal
+          python scripts/verify-release.py .runtime/releases/ci-rehearsal
+      - name: Install the isolated rehearsal browser
+        working-directory: client
+        run: npx playwright install --with-deps chromium
+      - name: Rehearse the published Production API and browser over local HTTPS
+        run: dotnet run --project tests/be.ReleaseRehearsal/be.ReleaseRehearsal.csproj --configuration Release -- .runtime/releases/ci-rehearsal
       - name: Verify the unapproved production gate remains closed
         run: |
           if python scripts/check-cutover-gate.py deploy/cutover-gate.example.json; then
@@ -62,5 +78,7 @@ jobs:
             .runtime/test-results/*.trx
             tests/be.Tests/bin/Release/net8.0/release789-load-*.json
             tests/be.Tests/bin/Release/net8.0/release789-backup-rehearsal.json
+            .runtime/releases/ci-rehearsal/manifest.json
+            .runtime/rehearsals/*/result.json
           if-no-files-found: warn
           retention-days: 14
