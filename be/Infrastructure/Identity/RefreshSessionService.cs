@@ -20,7 +20,10 @@ namespace be.Infrastructure.Identity
             _configuration = configuration;
         }
 
-        public async Task<RefreshTokenIssueResult> CreateSessionAsync(User user, SessionMetadata metadata, CancellationToken cancellationToken = default)
+        public Task<RefreshTokenIssueResult> CreateSessionAsync(User user, SessionMetadata metadata, CancellationToken cancellationToken = default)
+            => WithSessionLockAsync(user.Id, () => CreateSessionCoreAsync(user, metadata, cancellationToken), cancellationToken);
+
+        private async Task<RefreshTokenIssueResult> CreateSessionCoreAsync(User user, SessionMetadata metadata, CancellationToken cancellationToken)
         {
             var rawToken = GenerateRawRefreshToken();
             var session = new RefreshSession
@@ -41,6 +44,13 @@ namespace be.Infrastructure.Identity
         public async Task<RefreshTokenRotationResult?> RotateAsync(string rawRefreshToken, SessionMetadata metadata, CancellationToken cancellationToken = default)
         {
             var tokenHash = HashRefreshToken(rawRefreshToken);
+            var userId = await _context.RefreshSessions.AsNoTracking().Where(s => s.TokenHash == tokenHash).Select(s => s.UserId).SingleOrDefaultAsync(cancellationToken);
+            if (userId == null) return null;
+            return await WithSessionLockAsync(userId, () => RotateCoreAsync(tokenHash, metadata, cancellationToken), cancellationToken);
+        }
+
+        private async Task<RefreshTokenRotationResult?> RotateCoreAsync(string tokenHash, SessionMetadata metadata, CancellationToken cancellationToken)
+        {
             var session = await _context.RefreshSessions.Include(s => s.User).FirstOrDefaultAsync(s => s.TokenHash == tokenHash, cancellationToken);
             if (session == null)
             {
@@ -61,7 +71,7 @@ namespace be.Infrastructure.Identity
             }
 
             var user = await _userManager.FindByIdAsync(session.UserId);
-            if (user == null || !user.EmailConfirmed)
+            if (user == null || !user.EmailConfirmed || await _userManager.IsLockedOutAsync(user))
             {
                 session.RevokedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync(cancellationToken);
@@ -98,6 +108,17 @@ namespace be.Infrastructure.Identity
             }
 
             var tokenHash = HashRefreshToken(rawRefreshToken);
+            var userId = await _context.RefreshSessions.AsNoTracking().Where(s => s.TokenHash == tokenHash).Select(s => s.UserId).SingleOrDefaultAsync(cancellationToken);
+            if (userId == null) return;
+            await WithSessionLockAsync(userId, async () =>
+            {
+                await RevokeCoreAsync(tokenHash, cancellationToken);
+                return true;
+            }, cancellationToken);
+        }
+
+        private async Task RevokeCoreAsync(string tokenHash, CancellationToken cancellationToken)
+        {
             var session = await _context.RefreshSessions.FirstOrDefaultAsync(s => s.TokenHash == tokenHash, cancellationToken);
             if (session == null || session.RevokedAt.HasValue)
             {
@@ -109,6 +130,15 @@ namespace be.Infrastructure.Identity
         }
 
         public async Task RevokeAllForUserAsync(string userId, CancellationToken cancellationToken = default)
+        {
+            await WithSessionLockAsync(userId, async () =>
+            {
+                await RevokeAllCoreAsync(userId, cancellationToken);
+                return true;
+            }, cancellationToken);
+        }
+
+        private async Task RevokeAllCoreAsync(string userId, CancellationToken cancellationToken)
         {
             var sessions = await _context.RefreshSessions.Where(s => s.UserId == userId && s.RevokedAt == null && s.ExpiresAt > DateTime.UtcNow)
             .ToListAsync(cancellationToken);
@@ -142,6 +172,19 @@ namespace be.Infrastructure.Identity
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        // A database-owned per-user lock coordinates rotation, logout and replay across API instances.
+        // The replacement insert and predecessor link commit atomically; no external I/O occurs here.
+        private async Task<T> WithSessionLockAsync<T>(string userId, Func<Task<T>> operation, CancellationToken cancellationToken)
+        {
+            if (!_context.Database.IsSqlServer()) return await operation();
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            var resource = "Amaara.RefreshSessions." + HashRefreshToken(userId);
+            await _context.Database.ExecuteSqlInterpolatedAsync($"DECLARE @result int; EXEC @result = sys.sp_getapplock @Resource = {resource}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000; IF @result < 0 THROW 51001, 'Session lock unavailable', 1;", cancellationToken);
+            var result = await operation();
+            await transaction.CommitAsync(cancellationToken);
+            return result;
         }
 
         private int GetRefreshTokenDays()
