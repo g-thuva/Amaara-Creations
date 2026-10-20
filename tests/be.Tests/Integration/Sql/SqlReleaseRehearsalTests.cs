@@ -2,6 +2,8 @@ using be.Domain.Common;
 using be.Application.Features.Checkout;
 using be.Application.Features.Inventory;
 using be.Domain.Catalog;
+using be.Domain.CustomDesigns;
+using be.Domain.Inventory;
 using be.Domain.Identity;
 using be.Domain.Orders;
 using be.Domain.Payments;
@@ -121,6 +123,14 @@ public sealed class SqlReleaseRehearsalTests(ITestOutputHelper output)
         product.Media.Add(new ProductMedia { StorageKey = "fixture/product.png", Url = "/uploads/fixture/product.png" });
         source.AddRange(user, product);
         await source.SaveChangesAsync();
+        const string designSnapshot = "{\"schemaVersion\":1,\"text\":\"Restore fixture\"}";
+        const string privateKey = "private/restore-artwork/proof.png";
+        var design = new CustomDesign { UserId = user.Id, Name = "Restore custom fixture", Status = CustomDesignStatus.Ordered, DesignJson = designSnapshot };
+        var artwork = new CustomDesignAsset { CustomDesign = design, StorageKey = privateKey, AssetType = "proof", ContentType = "image/png" };
+        source.AddRange(design, artwork);
+        await source.SaveChangesAsync();
+        source.CustomDesignProofRevisions.Add(new CustomDesignProofRevision { CustomDesignId = design.Id, AssetId = artwork.Id, RevisionNumber = 1 });
+        source.InventoryTransactions.Add(new InventoryTransaction { ProductId = product.Id, PreviousQuantity = 0, QuantityDelta = 11, NewQuantity = 11, MovementType = "Opening", Reason = "Restore fixture", PerformedByUserId = user.Id });
         foreach (var currency in new[]
         {
             "LKR",
@@ -130,6 +140,19 @@ public sealed class SqlReleaseRehearsalTests(ITestOutputHelper output)
         )
             source.Orders.Add(new Order { UserId = user.Id, OrderNumber = "RESTORE-" + currency, Currency = currency, Subtotal = 25.25m, Total = 25.25m, Payments = [new Payment { Provider = "Fixture", ProviderReference = "RESTORE-" + currency, ProviderMode = "TEST", Method = "Mock", Currency = currency, Amount = 25.25m, SettledAmount = 25.25m, Status = PaymentStatus.Paid }] });
         await source.SaveChangesAsync();
+        var customOrder = await source.Orders.SingleAsync(o => o.Currency == "CHF");
+        source.OrderItems.Add(new OrderItem { OrderId = customOrder.Id, ItemType = OrderItemType.CustomDesign, CustomDesignId = design.Id, ProductNameSnapshot = design.Name, ConfigurationSnapshotJson = designSnapshot, CustomDesignSnapshotVersion = 1, Quantity = 1, Price = 25.25m, UnitPrice = 25.25m, Subtotal = 25.25m });
+        await source.SaveChangesAsync();
+        var mediaRoot = Path.Combine(AppContext.BaseDirectory, "restore-media-" + Guid.NewGuid().ToString("N")[..8]);
+        var sourceMedia = Path.Combine(mediaRoot, "source", privateKey);
+        var backupMedia = Path.Combine(mediaRoot, "backup", privateKey);
+        var restoredMedia = Path.Combine(mediaRoot, "restored", privateKey);
+        Directory.CreateDirectory(Path.GetDirectoryName(sourceMedia)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(backupMedia)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(restoredMedia)!);
+        var privateBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        await File.WriteAllBytesAsync(sourceMedia, privateBytes);
+        File.Copy(sourceMedia, backupMedia);
         var masterBuilder = new SqlConnectionStringBuilder(sourceConnection)
         {
             InitialCatalog = "master",
@@ -190,12 +213,27 @@ public sealed class SqlReleaseRehearsalTests(ITestOutputHelper output)
         Assert.Equal(2, await restored.Orders.CountAsync());
         Assert.Equal(11, (await restored.Products.SingleAsync()).Stock);
         Assert.Equal("fixture/product.png", (await restored.ProductMedia.SingleAsync()).StorageKey);
+        Assert.Equal(11, await restored.InventoryTransactions.SumAsync(movement => movement.QuantityDelta));
+        var recoveredItem = await restored.OrderItems.Include(item => item.CustomDesign).SingleAsync();
+        Assert.Equal(customOrder.Id, recoveredItem.OrderId);
+        Assert.Equal(designSnapshot, recoveredItem.ConfigurationSnapshotJson);
+        Assert.Equal(designSnapshot, recoveredItem.CustomDesign!.DesignJson);
+        var recoveredProof = await restored.CustomDesignProofRevisions.Include(proof => proof.Asset).SingleAsync();
+        Assert.Equal(recoveredItem.CustomDesignId, recoveredProof.CustomDesignId);
+        Assert.Equal(privateKey, recoveredProof.Asset!.StorageKey);
+        await File.WriteAllBytesAsync(sourceMedia, "changed after backup"u8.ToArray());
+        File.Copy(backupMedia, restoredMedia);
+        Assert.Equal(privateBytes, await File.ReadAllBytesAsync(restoredMedia));
+        var orderTotals = await restored.Orders.GroupBy(order => order.Currency).Select(group => new { Currency = group.Key, Total = group.Sum(order => order.Total) }).ToDictionaryAsync(total => total.Currency, total => total.Total);
+        Assert.Equal(25.25m, orderTotals["CHF"]);
+        Assert.Equal(25.25m, orderTotals["LKR"]);
+        Assert.Equal(new[] { "RESTORE-CHF", "RESTORE-LKR" }, await restored.Payments.OrderBy(payment => payment.Currency).Select(payment => payment.ProviderReference).ToArrayAsync());
         var balances = await restored.Payments.GroupBy(p => p.Currency).Select(g => new { Currency = g.Key, Amount = g.Sum(p => p.SettledAmount) }).ToListAsync();
         Assert.Equal(2, balances.Count);
         Assert.All(balances, b => Assert.Equal(25.25m, b.Amount));
         watch.Stop();
-        output.WriteLine($"Backup CHECKSUM / VERIFYONLY / restore / migration / currency / stock / media checks passed. Development rehearsal RPO: 0 fixture writes. RTO including validation: {watch.Elapsed.TotalSeconds:F2} seconds. Disposable databases and backup retained.");
+        output.WriteLine($"Backup CHECKSUM / VERIFYONLY / restore / migration / currency / stock / custom snapshot / proof / private-media byte checks passed. Development rehearsal RPO: 0 fixture writes. RTO including validation: {watch.Elapsed.TotalSeconds:F2} seconds. Disposable databases and backup retained.");
         var artifact = Path.Combine(AppContext.BaseDirectory, "release789-backup-rehearsal.json");
-        await File.WriteAllTextAsync(artifact, JsonSerializer.Serialize(new { status = "PASS", developmentOnly = true, rpoFixtureWrites = 0, rtoSeconds = watch.Elapsed.TotalSeconds, currencies = balances.Select(b => b.Currency), financialRows = 2, mediaReferences = 1, productionGuarantee = false }));
+        await File.WriteAllTextAsync(artifact, JsonSerializer.Serialize(new { status = "PASS", developmentOnly = true, rpoFixtureWrites = 0, rtoSeconds = watch.Elapsed.TotalSeconds, currencies = balances.Select(b => b.Currency), financialRows = 2, customSnapshots = 1, proofReferences = 1, inventoryQuantity = 11, mediaReferences = 2, privateMediaBytesVerified = true, productionGuarantee = false }));
     }
 }

@@ -61,5 +61,6 @@ jobs:
           path: |
             .runtime/test-results/*.trx
             tests/be.Tests/bin/Release/net8.0/release789-load-*.json
+            tests/be.Tests/bin/Release/net8.0/release789-backup-rehearsal.json
           if-no-files-found: warn
           retention-days: 14

@@ -11,6 +11,7 @@ Status: **local acceptance passed; GitHub Actions verification pending the revie
 - Restricted the sitemap to active storefront-currency products and published CMS content. Product/CMS pages become indexable only after a public resource loads; missing resources keep noindex and no canonical/schema. Published CMS metadata and missing-page/product behavior are verified in the built browser.
 - Bounded legacy customer/order pagination before offset arithmetic; removed customer-ID materialization and tracking from read paths; collapsed per-status customer order-statistic queries into one SQL aggregate. SQL HTTP regressions preserve currency-labelled totals and extreme-paging behavior.
 - Verified process liveness, database readiness and recovery by taking only a newly generated disposable SQL database offline, restoring it in finally, and polling through SqlClient's reconnect blocking interval. Optional payment unavailability does not fail readiness.
+- Extended database backup recovery to reconcile custom order/design snapshots, proof-to-artwork references, inventory ledger quantities and both order/payment currency totals. A separate fixture copy restores the private image's exact original bytes after the source file is deliberately changed.
 - Corrected the shared image-fallback accessible label. Existing keyboard/modal/form/financial-action semantics were reviewed alongside automated accessibility checks.
 - Enabled both deterministic quality workflows on develop pushes and retained safe SQL/browser diagnostics. No pull request, main change or production deployment is needed to run these workflows.
 
@@ -40,7 +41,7 @@ Initial gzip JavaScript: **115705 / 128000 bytes**. Largest route: **4659 / 4000
 
 The eight-worker SQL workload issued 720 measured HTTP requests with zero failures and zero provider calls. One recorded run completed in 3.06 seconds with p95 77.62 ms; the final run's TRX/load artifact retains its own timing. Stock/order/payment invariants passed. No external provider was load-tested.
 
-Backup CHECKSUM, VERIFYONLY, restore, migration and row/total/stock/reference/media checks passed. One recorded local fixture recovery including validation took 0.80 seconds, with zero writes lost in that fixture. This is not an approved production RPO/RTO.
+Backup CHECKSUM, VERIFYONLY, restore, migration and row/total/stock/reference/media checks passed. The strengthened rehearsal additionally checks custom snapshots, proof references and private-media bytes; its JSON artifact records the final timing. The earlier SQL-only fixture took 0.80 seconds. No database writes occur between the selected backup and its verification; private-file corruption is deliberately reversed from the fixture copy. These are not approved production RPO/RTO values.
 
 ## Gate review and limits
 
