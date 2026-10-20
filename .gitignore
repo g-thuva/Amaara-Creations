@@ -126,3 +126,7 @@ docs/implementation/
 
 # Local verification logs and preserved pre-existing work
 .runtime/
+
+# Python release-tool caches
+__pycache__/
+*.py[cod]
