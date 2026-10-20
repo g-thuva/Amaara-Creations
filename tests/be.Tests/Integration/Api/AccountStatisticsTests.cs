@@ -56,5 +56,13 @@ public sealed class AccountStatisticsTests
         var history = await client.GetFromJsonAsync<JsonElement>($"/api/v1/admin/customers/{owner.Id}/orders");
         Assert.All(history.GetProperty("orders").EnumerateArray(), order =>
             Assert.Contains(order.GetProperty("currency").GetString(), new[] { "LKR", "CHF" }));
+        var customerStats = await client.GetFromJsonAsync<JsonElement>($"/api/v1/admin/customers/{owner.Id}/stats");
+        Assert.Equal(100m, customerStats.GetProperty("totalSpent").GetDecimal());
+        Assert.Equal("LKR", customerStats.GetProperty("currency").GetString());
+        Assert.Equal(3, customerStats.GetProperty("totalOrders").GetInt32());
+        Assert.Equal(1, customerStats.GetProperty("cancelledOrders").GetInt32());
+        var bounded = await client.GetFromJsonAsync<JsonElement>($"/api/v1/admin/customers/{owner.Id}/orders?pageNumber=2147483647&pageSize=2147483647");
+        Assert.Equal(100, bounded.GetProperty("pageSize").GetInt32());
+        Assert.Empty(bounded.GetProperty("orders").EnumerateArray());
     }
 }

@@ -24,7 +24,7 @@ public sealed class OrderService(IApplicationDbContext db, OrderLifecycleService
             query = query.Where(o => o.Status == parsed);
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(o => o.OrderNumber.Contains(search) || o.User!.Name.Contains(search) || o.User.Email!.Contains(search));
-        pageNumber = Math.Max(1, pageNumber);
+        pageNumber = Math.Clamp(pageNumber, 1, 1_000_000);
         pageSize = Math.Clamp(pageSize, 1, 100);
         var count = await query.CountAsync(ct);
         var orders = (await query.OrderByDescending(o => o.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct)).Select(Map).ToList();

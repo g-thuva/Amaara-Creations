@@ -10,6 +10,8 @@ public sealed class CustomerQueries(IApplicationDbContext _context, UserManager<
 {
     public async Task<object?> GetAllCustomers(string? search = null, int pageNumber = 1, int pageSize = 20)
     {
+        pageNumber = Math.Clamp(pageNumber, 1, 1_000_000);
+        pageSize = Math.Clamp(pageSize, 1, 100);
         var customersRole = await _roleManager.FindByNameAsync("Customer");
         if (customersRole == null)
         {
@@ -23,8 +25,8 @@ public sealed class CustomerQueries(IApplicationDbContext _context, UserManager<
             };
         }
 
-        var customerUserIds = await _context.UserRoles.Where(ur => ur.RoleId == customersRole.Id).Select(ur => ur.UserId).ToListAsync();
-        var query = _context.Users.Where(u => customerUserIds.Contains(u.Id)).AsQueryable();
+        var roleId = customersRole.Id;
+        var query = _context.Users.AsNoTracking().Where(u => _context.UserRoles.Any(ur => ur.RoleId == roleId && ur.UserId == u.Id));
         // Search by name, email, or phone
         if (!string.IsNullOrEmpty(search))
         {
@@ -83,13 +85,15 @@ public sealed class CustomerQueries(IApplicationDbContext _context, UserManager<
 
     public async Task<object?> GetCustomerOrders(string id, int pageNumber = 1, int pageSize = 20)
     {
+        pageNumber = Math.Clamp(pageNumber, 1, 1_000_000);
+        pageSize = Math.Clamp(pageSize, 1, 100);
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
         {
             throw new CommerceException("REPORTING_NOT_FOUND", "Customer not found", 404);
         }
 
-        var query = _context.Orders.Include(o => o.OrderItems).ThenInclude(oi => oi.Product).Where(o => o.UserId == id).AsQueryable();
+        var query = _context.Orders.AsNoTracking().Where(o => o.UserId == id);
         var totalCount = await query.CountAsync();
         var orders = await query.OrderByDescending(o => o.OrderDate)
             .Skip((pageNumber - 1) * pageSize)
@@ -121,34 +125,35 @@ public sealed class CustomerQueries(IApplicationDbContext _context, UserManager<
     // Helper method to get customer statistics
     private async Task<CustomerStatsResponse> GetCustomerStatistics(string userId)
     {
-        var totalOrders = await _context.Orders.Where(o => o.UserId == userId).CountAsync();
-        var pendingOrders = await _context.Orders.Where(o => o.UserId == userId && o.Status == OrderStatus.Pending).CountAsync();
-        var processingOrders = await _context.Orders.Where(o => o.UserId == userId && o.Status == OrderStatus.Processing).CountAsync();
-        var shippedOrders = await _context.Orders.Where(o => o.UserId == userId && o.Status == OrderStatus.Shipped).CountAsync();
-        var deliveredOrders = await _context.Orders.Where(o => o.UserId == userId && o.Status == OrderStatus.Delivered).CountAsync();
-        var cancelledOrders = await _context.Orders.Where(o => o.UserId == userId && o.Status == OrderStatus.Cancelled).CountAsync();
-        var totalSpent = await _context.Orders.Where(o => o.UserId == userId && o.Currency == "LKR" && o.Status != OrderStatus.Cancelled)
-            .SumAsync(o => (decimal? )o.Total) ?? 0;
-        var totalCartItems = await _context.CartItems.Where(c => c.UserId == userId).CountAsync();
-        var totalWishlistItems = await _context.WishlistItems.Where(w => w.UserId == userId).CountAsync();
-        var totalReviews = await _context.Reviews.Where(r => r.UserId == userId).CountAsync();
-        var lastOrderDate = await _context.Orders.Where(o => o.UserId == userId)
-            .OrderByDescending(o => o.OrderDate)
-            .Select(o => (DateTime? )o.OrderDate)
-            .FirstOrDefaultAsync();
+        var orders = await _context.Orders.AsNoTracking().Where(o => o.UserId == userId)
+            .GroupBy(o => o.UserId)
+            .Select(group => new
+            {
+                Total = group.Count(),
+                Pending = group.Count(o => o.Status == OrderStatus.Pending),
+                Processing = group.Count(o => o.Status == OrderStatus.Processing),
+                Shipped = group.Count(o => o.Status == OrderStatus.Shipped),
+                Delivered = group.Count(o => o.Status == OrderStatus.Delivered),
+                Cancelled = group.Count(o => o.Status == OrderStatus.Cancelled),
+                Spent = group.Sum(o => o.Currency == "LKR" && o.Status != OrderStatus.Cancelled ? o.Total : 0m),
+                Last = group.Max(o => (DateTime?)o.OrderDate)
+            }).SingleOrDefaultAsync();
+        var totalCartItems = await _context.CartItems.CountAsync(c => c.UserId == userId);
+        var totalWishlistItems = await _context.WishlistItems.CountAsync(w => w.UserId == userId);
+        var totalReviews = await _context.Reviews.CountAsync(r => r.UserId == userId);
         return new CustomerStatsResponse
         {
-            TotalOrders = totalOrders,
-            PendingOrders = pendingOrders,
-            ProcessingOrders = processingOrders,
-            ShippedOrders = shippedOrders,
-            DeliveredOrders = deliveredOrders,
-            CancelledOrders = cancelledOrders,
-            TotalSpent = totalSpent,
+            TotalOrders = orders?.Total ?? 0,
+            PendingOrders = orders?.Pending ?? 0,
+            ProcessingOrders = orders?.Processing ?? 0,
+            ShippedOrders = orders?.Shipped ?? 0,
+            DeliveredOrders = orders?.Delivered ?? 0,
+            CancelledOrders = orders?.Cancelled ?? 0,
+            TotalSpent = orders?.Spent ?? 0m,
             TotalCartItems = totalCartItems,
             TotalWishlistItems = totalWishlistItems,
             TotalReviews = totalReviews,
-            LastOrderDate = lastOrderDate
+            LastOrderDate = orders?.Last
         };
     }
 }
