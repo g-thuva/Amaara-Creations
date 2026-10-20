@@ -14,6 +14,7 @@ Status: **local acceptance passed; GitHub Actions verification pending the revie
 - Extended database backup recovery to reconcile custom order/design snapshots, proof-to-artwork references, inventory ledger quantities and both order/payment currency totals. A separate fixture copy restores the private image's exact original bytes after the source file is deliberately changed.
 - Corrected the shared image-fallback accessible label. Existing keyboard/modal/form/financial-action semantics were reviewed alongside automated accessibility checks.
 - Enabled both deterministic quality workflows on develop pushes and retained safe SQL/browser diagnostics. No pull request, main change or production deployment is needed to run these workflows.
+- Remote browser CI exposed a test synchronization defect: the initial admin redirect could temporarily replace the sidebar with the lazy-loading fallback between counting links and reading them. The added snapshot-length assertion reproduced an empty list locally. The corrected regression waits for the dashboard, requires all 19 destinations and checks every destination again after reload. Failure-only DOM context is retained for future diagnosis.
 
 ## Local final regression
 

@@ -209,6 +209,9 @@ test("every permitted admin navigation target survives direct entry and reload",
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("./admin");
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
+  // The index redirect can briefly show its shell before the lazy dashboard suspends.
+  // Wait for the actual destination before taking a non-retrying DOM snapshot.
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true, level: 1 })).toBeVisible();
   const navigation = page.getByRole("navigation", {
     name: "Administration",
     exact: true,
@@ -218,19 +221,46 @@ test("every permitted admin navigation target survives direct entry and reload",
   const links = await navigation
     .getByRole("link")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
+  expect(links).toHaveLength(19);
+  const headings: Record<string, string> = {
+    payments: "Payments and refunds",
+    inventory: "Inventory ledger",
+    promotions: "Promotions",
+    reports: "Reports",
+    audit: "Admin audit log",
+    staff: "Staff permissions",
+    shipping: "Shipping zones and methods",
+    dashboard: "Dashboard",
+    products: "Product Management",
+    categories: "Categories",
+    collections: "Collections",
+    media: "Media Library",
+    content: "Content",
+    settings: "Site Settings",
+    "custom-builder": "Custom builder configuration",
+    "custom-designs": "Custom design production",
+    orders: "Order management",
+    customers: "Customers",
+    reviews: "Review moderation",
+  };
   for (const href of links) {
     await page.goto(href);
+    const expectedUrl = new URL(href, page.url()).href;
+    const destination = new URL(expectedUrl).pathname.split("/").at(-1)!;
+    expect(headings[destination], `Expected page heading for ${destination}`).toBeTruthy();
+    const heading = page.locator(".admin-content").getByRole("heading", { name: headings[destination], exact: true });
+    await expect(page).toHaveURL(expectedUrl);
     await expect(
       page.getByRole("heading", { name: "Access denied", exact: true }),
     ).toHaveCount(0);
-    await expect(
-      page.locator(".admin-content h1, .admin-content h2").first(),
-    ).toBeVisible();
+    await expect(heading).toBeVisible();
+    await page.reload();
+    await expect(page).toHaveURL(expectedUrl);
+    await expect(heading).toBeVisible();
     await expect(
       page.getByText("Something went wrong", { exact: false }),
     ).toHaveCount(0);
   }
-  await page.reload();
   await expect(
     page.getByRole("heading", { name: "Review moderation", exact: true }),
   ).toBeVisible();
