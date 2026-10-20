@@ -9,6 +9,7 @@ React/Vite storefront and staff operations backed by an ASP.NET Core 8 / EF Core
 - [Full repository refactor verification](docs/reports/full-repository-refactor-result.md)
 - [Quality controls](docs/quality/release-hardening.md) and [Phase 8 verification](docs/reports/phase8-quality-result.md)
 - [Release evidence](docs/release/engineering-record.md) and [cutover/recovery runbook](docs/runbooks/release-cutover.md)
+- [Verified package and production cutover procedure](docs/release/production-cutover.md)
 
 ## Development
 

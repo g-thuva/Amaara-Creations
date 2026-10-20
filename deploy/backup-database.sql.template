@@ -1,0 +1,8 @@
+-- Render from approved identifiers and a private destination, then use sqlcmd -b.
+IF DB_NAME() <> N'{{DATABASE}}' THROW 51010, 'Approved database identity does not match.', 1;
+DECLARE @backupFile nvarchar(4000) = N'{{BACKUP_FILE_PREFIX}}' +
+    REPLACE(CONVERT(nvarchar(33), SYSUTCDATETIME(), 126), N':', N'-') + N'-' + CONVERT(nvarchar(36), NEWID()) + N'.bak';
+BACKUP DATABASE [{{DATABASE}}] TO DISK = @backupFile
+WITH COPY_ONLY, CHECKSUM, COMPRESSION, ENCRYPTION (ALGORITHM = AES_256, SERVER CERTIFICATE = [{{BACKUP_CERTIFICATE}}]);
+RESTORE VERIFYONLY FROM DISK = @backupFile WITH CHECKSUM;
+-- Export/protect the backup certificate and private key separately before relying on this backup.

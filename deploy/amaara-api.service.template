@@ -5,8 +5,8 @@ Wants=network-online.target
 [Service]
 User={{SERVICE_USER}}
 Group={{SERVICE_GROUP}}
-WorkingDirectory={{API_DIRECTORY}}
-ExecStart={{DOTNET_EXECUTABLE}} {{API_DIRECTORY}}/be.dll
+WorkingDirectory={{RUNTIME_DIRECTORY}}
+ExecStart={{DOTNET_EXECUTABLE}} {{API_DIRECTORY}}/be.dll --contentRoot {{RUNTIME_DIRECTORY}}
 Environment=ASPNETCORE_ENVIRONMENT=Production
 EnvironmentFile={{PRIVATE_ENVIRONMENT_FILE}}
 Restart=on-failure

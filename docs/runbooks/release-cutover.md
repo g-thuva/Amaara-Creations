@@ -2,6 +2,8 @@
 
 Prepared on 16 October 2026. These are reviewable procedures and inactive templates, not deployment authorization. No production host, domain, DNS record, provider credential, tax rule, shipping rate, capture rule, storage account, monitoring recipient or customer data has been supplied or invented.
 
+The [current execution guide](../release/production-cutover.md) adds the checksummed package builder, actual published-host HTTPS/SQL rehearsal, runtime mount layout, startup/operational controls, executable reconciliation, backup schedule templates and exact first-day schedule. Use its package procedure for release candidates; commands below also document individual development checks and historical migration boundaries.
+
 The current implementation is a modular ASP.NET Core/SQL Server monolith with a React application. Preserve historical LKR amounts and Datatrans records. New CHF prices must be entered explicitly on separate products; catalog editing cannot relabel an existing currency. All financial comparisons and reconciliation are grouped by currency and provider environment.
 
 ## Environment boundary and safe configuration

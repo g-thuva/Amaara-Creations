@@ -1,0 +1,8 @@
+[Unit]
+Description=Amaara approved backup schedule
+[Timer]
+OnCalendar={{APPROVED_BACKUP_SCHEDULE}}
+Persistent=true
+Unit=amaara-backup.service
+[Install]
+WantedBy=timers.target

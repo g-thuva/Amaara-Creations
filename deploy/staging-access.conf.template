@@ -1,0 +1,8 @@
+# Include inside the staging HTTPS server. Use separate TEST credentials/database/media.
+# Access restriction is required: noindex alone is not authentication.
+auth_basic "Private release verification";
+auth_basic_user_file {{STAGING_PASSWORD_FILE}};
+# Repeat this header in locations with add_header directives, or in their header snippet.
+add_header X-Robots-Tag 'noindex, nofollow, noarchive' always;
+# Genuine provider callbacks need a separately reviewed signature-only exception;
+# never expose all /api routes to work around staging authentication.

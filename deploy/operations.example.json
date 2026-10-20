@@ -1,0 +1,37 @@
+{
+  "description": "Operator inventory only; not application configuration. Resolve privately from approved infrastructure.",
+  "environment": "Production",
+  "host": "{{APP_HOST}}",
+  "apiLoopbackOrigin": "{{API_LOOPBACK_ORIGIN}}",
+  "artifactDirectory": "{{RELEASE_DIRECTORY}}",
+  "runtimeDirectory": "{{RUNTIME_DIRECTORY}}",
+  "publicMediaDirectory": "{{PUBLIC_MEDIA_DIRECTORY}}",
+  "privateArtworkDirectory": "{{PRIVATE_ARTWORK_DIRECTORY}}",
+  "dataProtectionDirectory": "{{KEY_DIRECTORY}}",
+  "storage": {
+    "implementedAdapter": "Local",
+    "productionProvider": "{{APPROVED_STORAGE_PROVIDER}}",
+    "publicContainer": "{{PUBLIC_CONTAINER_OR_VOLUME}}",
+    "privateContainer": "{{PRIVATE_CONTAINER_OR_VOLUME}}",
+    "credentialsSecretReference": "{{PRIVATE_STORAGE_SECRET_REFERENCE}}",
+    "retention": "{{APPROVED_MEDIA_RETENTION}}"
+  },
+  "monitoring": {
+    "collector": "{{APPROVED_MONITORING_COLLECTOR}}",
+    "credentialsSecretReference": "{{PRIVATE_MONITORING_SECRET_REFERENCE}}",
+    "alertDestination": "{{APPROVED_ALERT_DESTINATION}}",
+    "onCallRole": "{{NAMED_ON_CALL_OWNER}}",
+    "logRetention": "{{APPROVED_LOG_RETENTION}}"
+  },
+  "backups": {
+    "databaseDestination": "{{PRIVATE_BACKUP_DIRECTORY}}",
+    "offHostDestination": "{{APPROVED_ENCRYPTED_OFF_HOST_DESTINATION}}",
+    "schedule": "{{APPROVED_BACKUP_SCHEDULE}}",
+    "retention": "{{APPROVED_BACKUP_RETENTION}}",
+    "mediaSchedule": "{{APPROVED_MEDIA_BACKUP_SCHEDULE}}",
+    "keyEscrowSecretReference": "{{PRIVATE_BACKUP_KEY_ESCROW_REFERENCE}}",
+    "rpo": "{{APPROVED_RPO}}",
+    "rto": "{{APPROVED_RTO}}",
+    "restoreDrillSchedule": "{{APPROVED_RESTORE_DRILL_SCHEDULE}}"
+  }
+}

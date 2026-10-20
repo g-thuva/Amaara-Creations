@@ -1,0 +1,13 @@
+[Unit]
+Description=Amaara approved encrypted database backup and verification
+After=network-online.target
+[Service]
+Type=oneshot
+User={{BACKUP_SERVICE_USER}}
+EnvironmentFile={{PRIVATE_BACKUP_ENVIRONMENT_FILE}}
+ExecStart={{SQLCMD_EXECUTABLE}} -b -d {{DATABASE}} -i {{RENDERED_BACKUP_SQL_FILE}}
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths={{BACKUP_DIRECTORY}}
+UMask=0077
