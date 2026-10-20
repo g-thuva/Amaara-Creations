@@ -9,6 +9,7 @@ import Icon from '@/shared/components/ui/Icon.jsx';
 import { PageHeader } from '@/shared/components/ui/PageHeader.jsx';
 import { Skeleton } from '@/shared/components/feedback/Skeleton.jsx';
 import { safeLink } from '@/shared/utils/safeLink.ts';
+import ContentSeo from '@/features/content/components/ContentSeo.jsx';
 
 export default function ContentPage({ page }) {
   const { slug } = useParams();
@@ -16,6 +17,7 @@ export default function ContentPage({ page }) {
   const resource = useResource((signal) => contentApi.page(current, signal), current);
   const { settings, values } = useSiteContent();
   const contact = current === 'contact';
+  const missing = !page && !resource.loading && !resource.error && !resource.data;
   const channels = [
     values['contact.email'] && { href: `mailto:${values['contact.email']}`, text: values['contact.email'], label: 'Email', icon: 'mail' },
     values['contact.phone'] && { href: `tel:${values['contact.phone'].replace(/\s/g, '')}`, text: values['contact.phone'], label: 'Phone', icon: 'phone' },
@@ -25,10 +27,11 @@ export default function ContentPage({ page }) {
 
   return (
     <>
+      {resource.data && !resource.loading && <ContentSeo page={resource.data} path={page ? `/${page}` : `/pages/${encodeURIComponent(current)}`} />}
       <div className="s-page-band">
         <div className="s-container">
           <nav className="s-breadcrumb" aria-label="Breadcrumb"><Link to="/">Home</Link><Icon name="chevronRight" /><span aria-current="page">{resource.data?.title || current}</span></nav>
-          <PageHeader eyebrow="Amaara Creations" title={resource.data?.title || (contact ? 'Contact Amaara' : current === 'about' ? 'About Amaara' : 'More from Amaara')}>
+          <PageHeader eyebrow="Amaara Creations" title={resource.data?.title || (missing ? 'Page not found' : contact ? 'Contact Amaara' : current === 'about' ? 'About Amaara' : 'More from Amaara')}>
             {resource.data?.summary}
           </PageHeader>
         </div>
@@ -40,8 +43,8 @@ export default function ContentPage({ page }) {
         ) : resource.data ? (
           <CmsSections sections={resource.data.sections} />
         ) : !contact && (
-          <EmptyState to="/products" label="Explore products" title="This page is being prepared">
-            <p>Explore the current product catalogue while this content is completed.</p>
+          <EmptyState to="/products" label="Explore products" title={missing ? 'This page is not available' : 'This page is being prepared'}>
+            <p>{missing ? 'The link may be old, or the page may no longer be published.' : 'Explore the current product catalogue while this content is completed.'}</p>
           </EmptyState>
         )}
 

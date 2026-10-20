@@ -2,9 +2,11 @@ using be.Application.Abstractions.Persistence;
 using be.Domain.Common;
 using System.Xml.Linq;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using be.Application.Features.Checkout;
 
 namespace be.Application.Features.Cms;
-public sealed class PublicSeoService(IApplicationDbContext db, IConfiguration config)
+public sealed class PublicSeoService(IApplicationDbContext db, IConfiguration config, IOptions<CheckoutOptions> checkout)
 {
     private string? BaseUrl()
     {
@@ -43,7 +45,9 @@ public sealed class PublicSeoService(IApplicationDbContext db, IConfiguration co
         var origin = BaseUrl();
         if (origin == null)
             throw new CommerceException("PUBLIC_SITE_UNCONFIGURED", "The approved public site URL is not configured.", 503);
-        var products = await db.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Id).Select(p => new { p.Id, p.UpdatedAt }).ToListAsync(ct);
+        var currency = checkout.Value.Currency;
+        var products = await db.Products.AsNoTracking().Where(p => p.IsActive && p.Currency == currency).OrderBy(p => p.Id).Select(p => new { p.Id, p.UpdatedAt }).ToListAsync(ct);
+        var pages = await db.CmsPages.AsNoTracking().Where(p => p.IsPublished).OrderBy(p => p.Slug).Select(p => new { p.Slug, p.UpdatedAt }).ToListAsync(ct);
         XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
         var nodes = new[]
         {
@@ -53,7 +57,9 @@ public sealed class PublicSeoService(IApplicationDbContext db, IConfiguration co
             "/about",
             "/contact"
         }.Select(path => new XElement(ns + "url", new XElement(ns + "loc", origin + path)))
-            .Concat(products.Select(p => new XElement(ns + "url", new XElement(ns + "loc", origin + "/products/" + p.Id), new XElement(ns + "lastmod", p.UpdatedAt.ToUniversalTime().ToString("yyyy-MM-dd")))));
+            .Concat(products.Select(p => new XElement(ns + "url", new XElement(ns + "loc", origin + "/products/" + p.Id), new XElement(ns + "lastmod", p.UpdatedAt.ToUniversalTime().ToString("yyyy-MM-dd")))))
+            .Concat(pages.Where(p => !string.IsNullOrWhiteSpace(p.Slug) && p.Slug is not ("home" or "about" or "contact"))
+                .Select(p => new XElement(ns + "url", new XElement(ns + "loc", origin + "/pages/" + Uri.EscapeDataString(p.Slug)), new XElement(ns + "lastmod", p.UpdatedAt.ToUniversalTime().ToString("yyyy-MM-dd")))));
         return new XDocument(new XElement(ns + "urlset", nodes)).ToString();
     }
 }

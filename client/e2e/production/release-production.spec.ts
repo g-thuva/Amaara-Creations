@@ -10,6 +10,14 @@ test('built public routes reload cleanly and expose canonical product metadata',
   await page.reload(); await expect(page.getByRole('button', { name: 'Add to cart', exact: true })).toBeVisible();
   const sitemap = await request.get('http://127.0.0.1:5198/api/v1/seo/sitemap.xml'); expect(sitemap.ok()).toBe(true); const xml = await sitemap.text(); expect(xml).toContain('/products/' + fixture.products[0]); expect(xml).not.toMatch(/\/admin|\/account|\/checkout|\/api\/v1\/custom-designs/);
   await page.goto('./login'); await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow'); await expect(page.locator('link[rel="canonical"]')).toHaveCount(0); expect(errors).toEqual([]);
+  await page.goto('./products/2147483647'); await expect(page.getByRole('heading', { level: 1 })).toHaveText('Product not found');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow'); await expect(page.locator('link[rel="canonical"]')).toHaveCount(0); await expect(page.locator('#product-schema')).toHaveCount(0);
+  await page.route('**/api/v1/content/pages/published-seo', route => route.fulfill({ json: { id: 1, title: 'Published information', slug: 'published-seo', summary: 'Useful public information.', isPublished: true, sections: [] } }));
+  await page.goto('./pages/published-seo'); await expect(page).toHaveTitle('Published information | Amaara Creations');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://store.example.test/Amaara-Creations/pages/published-seo');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index,follow');
+  await page.goto('./pages/missing-seo'); await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page not found');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow'); await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
 });
 
 test('built storefront meets local lab LCP, CLS and entry-bundle budgets', async ({ page }, testInfo) => {

@@ -45,11 +45,18 @@ public sealed class ReleaseSecurityAndSeoTests
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var first = await db.Products.OrderBy(p => p.Id).FirstAsync();
         first.IsActive = false;
+        var hiddenCurrency = new be.Domain.Catalog.Product { Name = "Other currency", Slug = "seo-chf", Currency = "CHF", Price = 25m, BasePrice = 25m };
+        db.Products.Add(hiddenCurrency);
+        db.CmsPages.AddRange(new be.Domain.Cms.CmsPage { Title = "Published information", Slug = "public-information", IsPublished = true },
+            new be.Domain.Cms.CmsPage { Title = "Draft information", Slug = "draft-information", IsPublished = false });
         await db.SaveChangesAsync();
         using var client = factory.CreateClient();
         var xml = await client.GetStringAsync("/api/v1/seo/sitemap.xml");
         Assert.DoesNotContain($"/products/{first.Id}</loc>", xml);
         Assert.Contains("/products/13</loc>", xml);
+        Assert.DoesNotContain($"/products/{hiddenCurrency.Id}</loc>", xml);
+        Assert.Contains("/pages/public-information</loc>", xml);
+        Assert.DoesNotContain("draft-information", xml);
         foreach (var path in new[]
         {
             "/admin",

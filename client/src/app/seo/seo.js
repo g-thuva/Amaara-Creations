@@ -9,7 +9,8 @@ const pages = {
 const privateTitles = { login: 'Sign in', register: 'Create account', cart: 'Shopping cart', checkout: 'Checkout', orders: 'Your orders', profile: 'Your profile', addresses: 'Your addresses', wishlist: 'Wishlist', admin: 'Administration', account: 'Your account', 'forgot-password': 'Reset your password', 'reset-password': 'Reset your password', 'verify-email': 'Verify email' };
 export function seoForRoute(path, base) {
   const isProduct = /^\/products\/\d+$/.test(path);
-  const isPublic = Boolean(pages[path]) || isProduct;
+  // Resource routes opt into indexing only after a published resource loads.
+  const isPublic = Boolean(pages[path]);
   return { title: pages[path]?.[0] || (isProduct ? 'Product details' : privateTitles[path.split('/')[1]] || 'Page not found'),
     description: pages[path]?.[1] || 'Amaara Creations products and customer services.', index: isPublic,
     canonical: publicBase(base) ? publicBase(base) + (path === '/' ? '/' : path) : null };
