@@ -41,6 +41,7 @@ public class ProductQueries
             throw new CommerceException("CATALOG_REQUEST_INVALID", "Unsupported sort order.", 400);
         var currency = _checkoutOptions.Value.Currency;
         var query = _context.Products.AsNoTracking().Where(p => p.IsActive && p.Currency == currency);
+        var publishedCount = await query.CountAsync();
         if (categoryId.HasValue)
             query = query.Where(p => p.CategoryId == categoryId && p.CategoryEntity!.IsActive);
         if (collectionId.HasValue)
@@ -85,6 +86,7 @@ public class ProductQueries
             Products = products,
             Currency = currency,
             TotalCount = totalCount,
+            PublishedCount = publishedCount,
             PageNumber = pageNumber,
             PageSize = pageSize,
             TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)

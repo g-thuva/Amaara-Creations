@@ -43,7 +43,7 @@ internal sealed class CommerceApiFactory(string? sqlConnection = null) : WebAppl
             db.Database.Migrate();
         }
 
-        builder.ConfigureHostConfiguration(config => config.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = "Server=unreachable-test-only;Database=Test;Integrated Security=true;Encrypt=false;", ["Jwt:Key"] = "DeterministicTestSigningKeyOnly-32Characters", ["Jwt:Issuer"] = "Test", ["Jwt:Audience"] = "Test", ["Cors:AllowedOrigins:0"] = "http://localhost", ["AdminBootstrap:Enabled"] = "false" }));
+        builder.ConfigureHostConfiguration(config => config.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = "Server=unreachable-test-only;Database=Test;Integrated Security=true;Encrypt=false;", ["Jwt:Key"] = "DeterministicTestSigningKeyOnly-32Characters", ["Jwt:Issuer"] = "Test", ["Jwt:Audience"] = "Test", ["Cors:AllowedOrigins:0"] = "http://localhost", ["AdminBootstrap:Enabled"] = "false", ["Administration:Enabled"] = "true" }));
         return base.CreateHost(builder);
     }
 
@@ -51,7 +51,7 @@ internal sealed class CommerceApiFactory(string? sqlConnection = null) : WebAppl
     {
         builder.UseEnvironment("Testing");
         builder.ConfigureLogging(logging => logging.ClearProviders());
-        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = "Server=unreachable-test-only;Database=Test;Integrated Security=true;Encrypt=false;", ["Jwt:Key"] = "DeterministicTestSigningKeyOnly-32Characters", ["Jwt:Issuer"] = "Test", ["Jwt:Audience"] = "Test", ["Cors:AllowedOrigins:0"] = "http://localhost", ["AdminBootstrap:Enabled"] = "false", ["Datatrans:Enabled"] = "true", ["Datatrans:HmacKey"] = Convert.ToHexString(HmacBytes) }));
+        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = "Server=unreachable-test-only;Database=Test;Integrated Security=true;Encrypt=false;", ["Jwt:Key"] = "DeterministicTestSigningKeyOnly-32Characters", ["Jwt:Issuer"] = "Test", ["Jwt:Audience"] = "Test", ["Cors:AllowedOrigins:0"] = "http://localhost", ["AdminBootstrap:Enabled"] = "false", ["Administration:Enabled"] = "true", ["Datatrans:Enabled"] = "true", ["Datatrans:HmacKey"] = Convert.ToHexString(HmacBytes) }));
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
@@ -93,7 +93,9 @@ internal sealed class TestAuthenticationHandler(IOptionsMonitor<AuthenticationSc
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user),
-            new(ClaimTypes.Role, role)
+            new(ClaimTypes.Role, role),
+            new("amr", "mfa"),
+            new("mfa_time", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
         };
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity(claims, Scheme.Name)), Scheme.Name)));
     }

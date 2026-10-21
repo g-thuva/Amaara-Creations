@@ -15,14 +15,22 @@ namespace be.Infrastructure.Identity
             _configuration = configuration;
         }
 
-        public string GenerateToken(User user, IList<string> roles)
+        public string GenerateToken(User user, IList<string> roles, string? sessionFamily = null, DateTimeOffset? secondFactorAt = null)
         {
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Email, user.Email ?? string.Empty)
+                new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+                new Claim("security_stamp", user.SecurityStamp ?? string.Empty),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
             };
+            if (sessionFamily != null) claims.Add(new Claim("session_family", sessionFamily));
+            if (secondFactorAt.HasValue)
+            {
+                claims.Add(new Claim("amr", "mfa"));
+                claims.Add(new Claim("mfa_time", secondFactorAt.Value.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            }
             // Add roles as claims
             foreach (var role in roles)
             {

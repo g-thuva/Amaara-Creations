@@ -18,7 +18,7 @@ public sealed class IdentityService(
     public async Task RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         if (await users.FindByEmailAsync(request.Email) != null)
-            throw new CommerceException("EMAIL_ALREADY_REGISTERED", "Email is already registered. Try signing in or resetting your password.");
+            return;
         var user = new User
         {
             UserName = request.Email,
@@ -52,22 +52,45 @@ public sealed class IdentityService(
         var user = await users.FindByEmailAsync(request.Email);
         if (user == null)
             throw InvalidLogin();
-        var result = await signIn.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-        if (result.IsLockedOut || !result.Succeeded)
+        if (await users.IsLockedOutAsync(user))
             throw InvalidLogin();
+        if (!await users.CheckPasswordAsync(user, request.Password))
+        {
+            await users.AccessFailedAsync(user);
+            throw InvalidLogin();
+        }
         if (!user.EmailConfirmed)
             throw new CommerceException("EMAIL_CONFIRMATION_REQUIRED", "Email verification is required before signing in.", 401, new Dictionary<string, object?> { ["requiresEmailConfirmation"] = true });
         var roles = await users.GetRolesAsync(user);
+        DateTimeOffset? secondFactorAt = null;
+        if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode))
+        {
+            if (!user.TwoFactorEnabled || !await users.VerifyTwoFactorTokenAsync(user, users.Options.Tokens.AuthenticatorTokenProvider, request.AuthenticatorCode.Replace(" ", "").Replace("-", "")))
+            {
+                await users.AccessFailedAsync(user);
+                throw InvalidLogin();
+            }
+            secondFactorAt = DateTimeOffset.UtcNow;
+        }
+        // Do not reset failed-factor counts until the complete submitted flow succeeds.
+        if (!user.TwoFactorEnabled || secondFactorAt.HasValue) await users.ResetAccessFailedCountAsync(user);
         var session = await sessions.CreateSessionAsync(user, actor.Session, ct);
-        return new(CreateResponse(user, roles), session.RawToken, session.Session.ExpiresAt);
+        var assurance = secondFactorAt.HasValue ? new StaffAssurance(user.Id, user.SecurityStamp!, session.Session.FamilyId, secondFactorAt.Value.ToUnixTimeSeconds()) : null;
+        return new(CreateResponse(user, roles, session.Session.FamilyId, secondFactorAt), session.RawToken, session.Session.ExpiresAt, assurance);
     }
 
-    public async Task<AuthenticatedSession?> RefreshAsync(string? rawToken, CancellationToken ct)
+    public async Task<AuthenticatedSession?> RefreshAsync(string? rawToken, CancellationToken ct, StaffAssurance? assurance = null)
     {
         if (string.IsNullOrWhiteSpace(rawToken))
             return null;
         var rotation = await sessions.RotateAsync(rawToken, actor.Session, ct);
-        return rotation == null ? null : new(CreateResponse(rotation.User, rotation.Roles), rotation.RawToken, rotation.Session.ExpiresAt);
+        if (rotation == null) return null;
+        var age = assurance == null ? -1 : DateTimeOffset.UtcNow.ToUnixTimeSeconds() - assurance.VerifiedAt;
+        // The protected HttpOnly grant binds assurance to the original session and stamp.
+        // Rotation preserves its original time; it can never renew privileged assurance.
+        var valid = assurance != null && assurance.UserId == rotation.User.Id && assurance.SecurityStamp == rotation.User.SecurityStamp && assurance.SessionFamily == rotation.Session.FamilyId && age >= 0 && age < 900;
+        var secondFactorAt = valid ? DateTimeOffset.FromUnixTimeSeconds(assurance!.VerifiedAt) : (DateTimeOffset?)null;
+        return new(CreateResponse(rotation.User, rotation.Roles, rotation.Session.FamilyId, secondFactorAt), rotation.RawToken, rotation.Session.ExpiresAt, valid ? assurance : null);
     }
 
     public async Task LogoutAsync(string? rawToken, CancellationToken ct)
@@ -80,7 +103,11 @@ public sealed class IdentityService(
     {
         var id = actor.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (id != null)
+        {
             await sessions.RevokeAllForUserAsync(id, ct);
+            var user = await users.FindByIdAsync(id);
+            if (user != null) await users.UpdateSecurityStampAsync(user);
+        }
     }
 
     public async Task<UserDto> CurrentUserAsync()
@@ -125,9 +152,9 @@ public sealed class IdentityService(
             throw new CommerceException(code, message, details: new Dictionary<string, object?> { ["errors"] = result.Errors.Select(e => e.Description).ToArray() });
     }
 
-    private AuthResponse CreateResponse(User user, IList<string> roles) => new()
+    private AuthResponse CreateResponse(User user, IList<string> roles, string sessionFamily, DateTimeOffset? secondFactorAt = null) => new()
     {
-        Token = tokens.GenerateToken(user, roles),
+        Token = tokens.GenerateToken(user, roles, sessionFamily, secondFactorAt),
         User = ToUserDto(user, roles),
         ExpiresAt = tokens.GetAccessTokenExpiry()
     };

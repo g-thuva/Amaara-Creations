@@ -15,6 +15,7 @@ builder.Logging.ClearProviders();
 builder.WebHost.UseUrls("http://127.0.0.1:5198");
 var app = builder.Build();
 app.MapGet("/__fixture/health", () => Results.Ok(new { testOnly = true }));
+app.MapGet("/__fixture/authenticator-code", () => Results.Ok(new { code = TotpFixture.Code }));
 app.MapPost("/__fixture/new", () => factory.CreateBrowserFixtureAsync());
 app.MapPost("/__fixture/operations", () => factory.CreateOperationsFixtureAsync());
 app.MapPost("/__fixture/refund", (RefundFixtureRequest request) => factory.CreateBrowserFixtureAsync(request.Outcome));

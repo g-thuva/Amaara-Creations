@@ -41,6 +41,8 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
         ["Jwt:Issuer"] = "Acceptance",
         ["Jwt:Audience"] = "Acceptance",
         ["Cors:AllowedOrigins:0"] = "http://127.0.0.1:5178",
+        ["Cors:AllowedOrigins:1"] = "http://127.0.0.1:5179",
+        ["Administration:Enabled"] = "true",
         ["AdminBootstrap:Enabled"] = "false",
         ["Authentication:FrontendBaseUrl"] = "http://127.0.0.1:5178/Amaara-Creations",
         ["Authentication:RateLimitPermitLimit"] = "200",
@@ -159,6 +161,11 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
             var result = await users.CreateAsync(user, password);
             if (!result.Succeeded || !(await users.AddToRoleAsync(user, role)).Succeeded)
                 throw new InvalidOperationException("Acceptance account setup failed.");
+            if (role != "Customer")
+            {
+                await users.SetAuthenticationTokenAsync(user, "[AspNetUserStore]", "AuthenticatorKey", TotpFixture.Secret);
+                await users.SetTwoFactorEnabledAsync(user, true);
+            }
             return email;
         }
 
@@ -237,6 +244,8 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
             };
             if (!(await users.CreateAsync(account, password)).Succeeded || !(await users.AddToRoleAsync(account, role)).Succeeded)
                 throw new InvalidOperationException("Operations fixture setup failed.");
+            await users.SetAuthenticationTokenAsync(account, "[AspNetUserStore]", "AuthenticatorKey", TotpFixture.Secret);
+            await users.SetTwoFactorEnabledAsync(account, true);
             return email;
         }
 

@@ -111,3 +111,5 @@ wwwroot/uploads/
 
 # ─── Docs: auto-generated implementation stubs (not real docs) ───────────────
 docs/implementation/
+client/dist-admin/
+tests/**/TestResults/

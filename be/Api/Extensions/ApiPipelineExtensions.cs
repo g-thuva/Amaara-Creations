@@ -39,6 +39,7 @@ public static class ApiPipelineExtensions
         app.UseStaticFiles();
         // Enable CORS (must be before UseAuthentication and UseAuthorization)
         app.UseCors("AllowReactApp");
+        app.UseMiddleware<AuthOriginMiddleware>();
         // Authentication & Authorization (order matters!)
         app.UseAuthentication();
         app.UseRateLimiter();

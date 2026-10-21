@@ -11,7 +11,7 @@ public sealed class StaffAndProductionTests
 {
     private static async Task Login(HttpClient client, string email, string password)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
+        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password, authenticatorCode = email.StartsWith("acceptance-customer-", StringComparison.OrdinalIgnoreCase) ? null : TotpFixture.Code });
         response.EnsureSuccessStatusCode();
         var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", payload.GetProperty("token").GetString());
@@ -33,7 +33,8 @@ public sealed class StaffAndProductionTests
         Assert.Equal(HttpStatusCode.OK, (await marketing.GetAsync("/api/v1/admin/promotions")).StatusCode);
         var demote = await super.PutAsJsonAsync("/api/v1/admin/staff", new { email, roles = Array.Empty<string>(), reason = "Deterministic demotion fixture" });
         demote.EnsureSuccessStatusCode();
-        Assert.Equal(HttpStatusCode.Forbidden, (await marketing.GetAsync("/api/v1/admin/promotions")).StatusCode);
+        // Demotion revokes the session family, so its access token is now unauthenticated.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await marketing.GetAsync("/api/v1/admin/promotions")).StatusCode);
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var userId = await db.Users.Where(u => u.Email == email).Select(u => u.Id).SingleAsync();

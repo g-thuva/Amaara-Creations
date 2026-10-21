@@ -37,11 +37,12 @@ public static class DependencyInjection
         builder.Services.AddIdentity<User, IdentityRole>(options =>
         {
             // Password settings
-            options.Password.RequireDigit = true;
-            options.Password.RequireLowercase = true;
-            options.Password.RequireUppercase = true;
+            options.Password.RequireDigit = false;
+            options.Password.RequireLowercase = false;
+            options.Password.RequireUppercase = false;
             options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequiredLength = 6;
+            // Unicode code-point length and the upper bound are checked below.
+            options.Password.RequiredLength = 1;
             // User settings
             options.User.RequireUniqueEmail = true;
             options.SignIn.RequireConfirmedEmail = builder.Configuration.GetValue<bool?>("Authentication:RequireConfirmedEmail") ?? true;
@@ -52,6 +53,8 @@ public static class DependencyInjection
         })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+        builder.Services.AddScoped<IPasswordValidator<User>, PassphraseValidator>();
+        builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromMinutes(30));
         // Register TokenService
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();

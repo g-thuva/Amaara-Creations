@@ -15,10 +15,23 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authorization;
 
 namespace be.Tests;
 public class CustomDesignWorkflowTests
 {
+    [Fact]
+    public void CircularStickerDimensionsAreValidatedByTheServer()
+    {
+        var configuration = Configuration();
+        configuration.Options.Add(new CustomBuilderOption { ConfigurationVersion = configuration, Group = BuilderOptionGroup.Shape, Code = "round", Label = "Round", IsActive = true });
+        var pricing = new CustomStickerPricingService();
+        var request = new CustomQuoteRequest { Width = 8, Height = 4, Quantity = 1, ShapeCode = "round", MaterialCode = "premium", TextAlignment = "center" };
+        Assert.Contains("Round stickers need equal width and height.", Assert.Throws<CustomBuilderValidationException>(() => pricing.Quote(configuration, request)).Errors);
+        request.Height = 8;
+        Assert.Equal(66m, pricing.Quote(configuration, request).Subtotal);
+    }
+
     [Fact]
     public void PricingIsServerCalculatedWithDecimalPrecision()
     {
@@ -179,7 +192,12 @@ public class CustomDesignWorkflowTests
             User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, userId)], "test"))
         }
     };
-    private static CustomDesignService CustomerController(ApplicationDbContext context, string userId) => new(context, new CustomStickerPricingService(), new FakeStorage(), Options.Create(new CheckoutOptions()), new TestRequestActor(userId));
+    private static CustomDesignService CustomerController(ApplicationDbContext context, string userId) => new(context, new CustomStickerPricingService(), new FakeStorage(), Options.Create(new CheckoutOptions()), new TestRequestActor(userId), new DenyStaffAuthorization());
+    private sealed class DenyStaffAuthorization : IAuthorizationService
+    {
+        public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource, IEnumerable<IAuthorizationRequirement> requirements) => Task.FromResult(AuthorizationResult.Failed());
+        public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource, string policyName) => Task.FromResult(AuthorizationResult.Failed());
+    }
     private sealed class FakeStorage : IMediaStorageService
     {
         public Task DeleteAsync(string storageKey, CancellationToken cancellationToken = default) => Task.CompletedTask;
