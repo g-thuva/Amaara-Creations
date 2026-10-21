@@ -2,7 +2,7 @@
 
 Verification date: 2026-10-20. Gate A baseline: `ae6e4cc`, with its four coherent refactor/currency/architecture/documentation commits. See the [refactor result](full-repository-refactor-result.md) and [quality control guide](../quality/release-hardening.md).
 
-Status: **local acceptance passed; GitHub Actions verification pending the reviewed develop push**. Phase 9 has not started at this snapshot.
+Status: **PASS**, verified on `1ca40d8` before Phase 9 began. Both [SQL/recovery CI](https://github.com/g-thuva/Amaara-Creations/actions/runs/39481076018) and [browser CI](https://github.com/g-thuva/Amaara-Creations/actions/runs/39481076017) passed. The latter confirms 21 files / 111 unit tests, 70 application journeys and three built production-browser checks. The navigation stress regression also passed six runs, covering 228 direct-entry/reload checks.
 
 ## Changes and defects
 
@@ -48,4 +48,4 @@ Backup CHECKSUM, VERIFYONLY, restore, migration and row/total/stock/reference/me
 
 No known internal P0/P1 defect remains from this review. Relevant behavior, accessibility, SEO, performance, security, observability, recovery and concurrency checks pass locally. The [quality guide](../quality/release-hardening.md) records coverage, implementation ownership and limits, including static-SPA HTTP status semantics and media validation without full raster decoding.
 
-External Zahls merchant acceptance, real email delivery, actual hosting/monitoring/storage destinations and owner business-policy approvals are not claimed by this gate. They do not replace any deterministic test. Remote CI results must be attached before advancing to Phase 9.
+External Zahls merchant acceptance, real email delivery, actual hosting/monitoring/storage destinations and owner business-policy approvals are not claimed by this gate. They do not replace any deterministic test. Final GitHub browser lab measurements were LCP 580 ms and CLS 0.00173. Phase 9 may proceed from this verified gate; production cutover remains separate.
