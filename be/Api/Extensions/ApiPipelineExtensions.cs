@@ -26,14 +26,12 @@ public static class ApiPipelineExtensions
         app.UseHttpsRedirection();
         var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
         Directory.CreateDirectory(Path.Combine(webRoot, "uploads"));
-        if (app.Environment.WebRootFileProvider is NullFileProvider)
-        {
-            // Fresh published hosts can start before wwwroot exists. Bind the created root now.
-            var provider = new PhysicalFileProvider(webRoot);
-            app.Environment.WebRootPath = webRoot;
-            app.Environment.WebRootFileProvider = provider;
-            app.Lifetime.ApplicationStopped.Register(provider.Dispose);
-        }
+        // Upload storage and static reads must use the same configured root,
+        // including hosts whose initial provider contains build-time web assets.
+        var provider = new PhysicalFileProvider(webRoot);
+        app.Environment.WebRootPath = webRoot;
+        app.Environment.WebRootFileProvider = provider;
+        app.Lifetime.ApplicationStopped.Register(provider.Dispose);
         Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "App_Data", "private-media"));
         // Enable static file serving for uploaded images
         app.UseStaticFiles();

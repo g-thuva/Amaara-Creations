@@ -2,13 +2,14 @@ import { storefrontNavigation } from '@/app/config/navigation.js';
 import { useCart } from '@/features/cart/CartProvider.jsx';
 import { useWishlist } from '@/features/wishlist/WishlistProvider.jsx';
 import { useSiteContent } from '@/features/content/SiteContentProvider.jsx';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider.jsx';
 import { Button } from '@/shared/components/ui/Button.jsx';
 import { Dialog } from '@/shared/components/ui/Dialog.jsx';
 import Icon from '@/shared/components/ui/Icon.jsx';
 import { safeLink } from '@/shared/utils/safeLink.ts';
+const CartDrawer = lazy(() => import('@/features/cart/components/CartDrawer.jsx'));
 
 
 function Brand({ name }) {
@@ -41,6 +42,8 @@ function AccountLinks({ close, signOut }) {
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartUsed, setCartUsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { isAuthenticated, authStatus, logout } = useAuth();
   const { cart } = useCart();
@@ -143,7 +146,7 @@ export default function Navbar() {
                 )}
               </div>
             </details>
-            <Link className="s-icon-link" to="/cart" aria-label={`Cart${cart.data ? `, ${cart.data.totalItems} items` : ''}`}>
+            <Link className="s-icon-link" to="/cart" aria-haspopup="dialog" aria-expanded={cartOpen} aria-controls={cartUsed ? 'cart-preview' : undefined} onClick={event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); setCartUsed(true); setCartOpen(true); }} aria-label={`Cart${cart.data ? `, ${cart.data.totalItems} ${cart.data.totalItems === 1 ? 'item' : 'items'}` : ''}`}>
               <Icon name="bag" />
               {cart.data?.totalItems > 0 && <span className="s-count">{cart.data.totalItems}</span>}
             </Link>
@@ -163,6 +166,7 @@ export default function Navbar() {
         )}
       </header>
 
+      {cartUsed && <Suspense fallback={<p role="status">Loading cart preview…</p>}><CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} /></Suspense>}
       <Dialog open={open} onClose={() => setOpen(false)} title="Explore Amaara" drawer>
         <nav className="s-mobile-nav" aria-label="Mobile navigation">
           {storefrontNavigation.map(([to, label]) => (

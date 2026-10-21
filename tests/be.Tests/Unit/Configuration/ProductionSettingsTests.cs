@@ -35,6 +35,15 @@ public sealed class ProductionSettingsTests
     public void DisabledOptionalIntegrationsAllowAnExplicitProductionHost()
         => ProductionSettings.Validate(Config(Valid()), new TestEnvironment());
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("App_Data")]
+    public void PublicRootCannotExposeApplicationConfigurationOrPrivateMedia(string relative)
+    {
+        var environment = new TestEnvironment { WebRootPath = Path.Combine(Path.GetTempPath(), relative) };
+        Assert.Throws<InvalidOperationException>(() => ProductionSettings.Validate(Config(Valid()), environment));
+    }
+
     private static Dictionary<string, string?> Valid() => new()
     {
         ["AllowedHosts"] = "store.example.test", ["DataProtection:KeysPath"] = "/private/rehearsal-keys",

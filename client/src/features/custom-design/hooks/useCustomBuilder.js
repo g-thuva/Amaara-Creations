@@ -25,6 +25,9 @@ export function useCustomBuilder(id) {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [artworkPending, setArtworkPending] = useState(false);
+  const [uploadingArtwork, setUploadingArtwork] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [retryFile, setRetryFile] = useState(null);
   const [error, setError] = useState(null);
   const [artworkPreview, setArtworkPreview] = useState('');
   const [draftStatus, setDraftStatus] = useState('');
@@ -36,6 +39,8 @@ export function useCustomBuilder(id) {
   const [artworkActions] = useState(() => createArtworkActions({
     api: customDesignApi,
     onPending: setArtworkPending,
+    onUploadPending: setUploadingArtwork,
+    onProgress: setUploadProgress,
     onAsset: (designId, asset, file) => {
       setDesign((current) => current?.id === designId ? { ...current, assets: [...(current.assets || []), asset] } : current);
       setArtworkPreview(URL.createObjectURL(file));
@@ -158,6 +163,11 @@ export function useCustomBuilder(id) {
     finally { saving.current = false; setPending(false); }
   };
 
+  const uploadFile = async file => {
+    setRetryFile(null);
+    const result = await artworkActions.upload(() => design?.id ? design : save(), file);
+    setRetryFile(result ? null : file);
+  };
   const upload = async (event) => {
     const input = event.target;
     const file = input.files?.[0];
@@ -166,11 +176,11 @@ export function useCustomBuilder(id) {
       const failure = { response: { status: 400, data: { errors: { file: ['Artwork must be a JPEG, PNG or WebP image.'] } } } };
       setError(failure); notify(customerError(failure), 'error'); input.value = ''; return;
     }
-    await artworkActions.upload(() => design?.id ? design : save(), file);
+    await uploadFile(file);
     input.value = '';
   };
 
-  const removeArtwork = (assetId) => artworkActions.remove(design, assetId);
+  const removeArtwork = (assetId) => { setRetryFile(null); return artworkActions.remove(design, assetId); };
 
   const discardDraft = () => { clearBuilderDraft(undefined, draftKey); navigate(0); };
   const recoverDraft = () => { setForm(current => ({ ...draftConflict, rowVersion: current.rowVersion, editor: readEditorState(draftConflict.editor) })); setDraftConflict(null); setDraftStatus('Recovered local edits. Review them, then save against the current account version.'); };
@@ -187,5 +197,5 @@ export function useCustomBuilder(id) {
   };
 
 
-  return { config, form, design, quote, loading, busy, error, quoteError, draftStatus, draftConflict, recoverDraft, discardDraft, artworkPreview, groups, change, changeEditor, save, upload, removeArtwork, addToCart, reload: () => navigate(0) };
+  return { config, form, design, quote, loading, busy, error, quoteError, draftStatus, draftConflict, recoverDraft, discardDraft, artworkPreview, groups, change, changeEditor, save, upload, removeArtwork, uploadingArtwork, uploadProgress, cancelUpload: artworkActions.cancelUpload, retryArtwork: retryFile ? () => uploadFile(retryFile) : null, addToCart, reload: () => navigate(0) };
 }

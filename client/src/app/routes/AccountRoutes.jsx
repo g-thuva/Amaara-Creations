@@ -9,6 +9,7 @@ const CheckoutPage = lazy(() => import('@/features/checkout/pages/CheckoutPage.j
 const PaymentReturnPage = lazy(() => import('@/features/payments/pages/PaymentReturnPage.jsx'));
 const ProfilePage = lazy(() => import('@/features/account/pages/ProfilePage.jsx'));
 const AccountSecurityPage = lazy(() => import('@/features/account/pages/AccountSecurityPage.jsx'));
+const CustomerRequestsPage = lazy(() => import('@/features/account/pages/CustomerRequestsPage.jsx'));
 const AddressesPage = lazy(() => import('@/features/account/pages/AddressesPage.jsx'));
 const OrdersPage = lazy(() => import('@/features/orders/pages/OrdersPage.jsx'));
 const OrderDetailsPage = lazy(() => import('@/features/orders/pages/OrderDetailsPage.jsx'));
@@ -23,6 +24,7 @@ export const accountRoutes = [
   { element: <AuthGuard><AccountLayout /></AuthGuard>, children: [
       { path: '/profile', element: <ProfilePage /> },
       { path: '/account/security', element: <AccountSecurityPage /> },
+      { path: '/account/requests', element: <CustomerRequestsPage /> },
       { path: '/addresses', element: <AddressesPage /> },
       { path: '/orders', element: <OrdersPage /> },
       { path: '/orders/:id', element: <OrderDetailsPage /> },

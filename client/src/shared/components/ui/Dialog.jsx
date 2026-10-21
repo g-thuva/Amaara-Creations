@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef } from "react";
 import AppIcon from "@/shared/components/ui/Icon.jsx";
-export function Dialog({ open, onClose, title, children, drawer = false }) {
+export function Dialog({ open, onClose, title, children, drawer = false, id }) {
   const ref = useRef(null);
   const titleId = useId();
   const closeRef = useRef(onClose);
@@ -41,6 +41,7 @@ export function Dialog({ open, onClose, title, children, drawer = false }) {
 
   return (
     <dialog
+      id={id}
       ref={ref}
       className={`s-dialog ${drawer ? "s-drawer" : ""}`.trim()}
       aria-labelledby={titleId}

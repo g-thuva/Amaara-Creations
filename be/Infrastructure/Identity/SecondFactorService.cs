@@ -23,7 +23,7 @@ public sealed class SecondFactorService(UserManager<User> users, IUserStore<User
     private sealed record UsedCode(string Hash, long Expires);
 
     public async Task<SecondFactorStatus> StatusAsync(User user, CancellationToken ct) =>
-        new(user.TwoFactorEnabled, (await Read<List<string>>(user, "Recovery") ?? []).Count);
+        new(user.TwoFactorEnabled, (await Read<List<string>>(user, "Recovery") ?? []).Count, (await users.GetRolesAsync(user)).Any(AppRoles.AdministrativeRoles.Contains));
 
     public Task<AuthenticatorEnrollment?> BeginAsync(User user, string password, string? code, string? recoveryCode, CancellationToken ct) => Locked(user, async () =>
     {

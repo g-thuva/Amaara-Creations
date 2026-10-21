@@ -7,9 +7,13 @@ namespace be.Infrastructure.Storage
         private readonly IWebHostEnvironment _environment;
         private readonly long _maxFileSize;
         private readonly int _maxImagePixels;
-        public LocalMediaStorageService(IWebHostEnvironment environment, IConfiguration configuration)
+        private readonly IUploadScanner? _scanner;
+        private readonly IConfiguration _configuration;
+        public LocalMediaStorageService(IWebHostEnvironment environment, IConfiguration configuration, IUploadScanner? scanner = null)
         {
             _environment = environment;
+            _scanner = scanner;
+            _configuration = configuration;
             _maxFileSize = configuration.GetValue<long?>("Uploads:MaxFileSizeBytes") ?? 5 * 1024 * 1024;
             _maxImagePixels = configuration.GetValue<int?>("Uploads:MaxImagePixels") ?? 24_000_000;
         }
@@ -45,6 +49,7 @@ namespace be.Infrastructure.Storage
                 throw new InvalidOperationException("Image dimensions are invalid or too large.");
             }
 
+            await UploadScanning.Check(_scanner, _configuration, bytes, cancellationToken);
             bytes = await SafeRasterImage.NormalizeAsync(bytes, _maxImagePixels, _maxFileSize, cancellationToken);
             // Orientation can exchange width and height; use the normalized contract.
             imageInfo = ImageUploadValidator.Validate(bytes, "image/png", ".png");

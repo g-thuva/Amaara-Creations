@@ -32,6 +32,8 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
     private readonly string databaseName = "Acceptance-" + Guid.NewGuid();
     public CapturedAcceptanceEmail Email { get; } = new();
     public TimeProvider Clock { get; init; } = TimeProvider.System;
+    public bool RequestsEnabled { get; init; } = true;
+    public bool EmailChangeEnabled { get; init; } = true;
 
     private readonly FakePaymentGateway gateway = new();
     private readonly string storageRoot = Path.Combine(Path.GetTempPath(), "AmaaraAcceptance", Guid.NewGuid().ToString("N"));
@@ -44,6 +46,9 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
         ["Cors:AllowedOrigins:0"] = "http://127.0.0.1:5178",
         ["Cors:AllowedOrigins:1"] = "http://127.0.0.1:5179",
         ["Administration:Enabled"] = "true",
+        ["CustomerRequests:QuotesEnabled"] = RequestsEnabled.ToString(),
+        ["Privacy:RequestsEnabled"] = RequestsEnabled.ToString(),
+        ["Authentication:EmailChangeEnabled"] = EmailChangeEnabled.ToString(),
         ["AdminBootstrap:Enabled"] = "false",
         ["Authentication:FrontendBaseUrl"] = "http://127.0.0.1:5178/Amaara-Creations",
         ["Authentication:RateLimitPermitLimit"] = "200",
@@ -315,9 +320,11 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
 public sealed class CapturedAcceptanceEmail : IEmailService
 {
     private readonly ConcurrentDictionary<string, string> confirmations = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, string> emailChanges = new(StringComparer.OrdinalIgnoreCase);
     public IEmailService? Delivery { get; set; }
 
     public string? Confirmation(string email) => confirmations.TryGetValue(email, out var url) ? url : null;
+    public string? EmailChangeToken(string email) => emailChanges.TryGetValue(email, out var token) ? token : null;
     public async Task SendEmailConfirmationAsync(User user, string url, CancellationToken ct = default)
     {
         if (Delivery != null)
@@ -326,5 +333,9 @@ public sealed class CapturedAcceptanceEmail : IEmailService
     }
 
     public Task SendPasswordResetAsync(User user, string url, CancellationToken ct = default) => Delivery?.SendPasswordResetAsync(user, url, ct) ?? Task.CompletedTask;
-    public Task SendTransactionAsync(User user, string subject, string body, CancellationToken ct = default) => Delivery?.SendTransactionAsync(user, subject, body, ct) ?? Task.CompletedTask;
+    public async Task SendTransactionAsync(User user, string subject, string body, CancellationToken ct = default)
+    {
+        if (Delivery != null) await Delivery.SendTransactionAsync(user, subject, body, ct);
+        if (subject == "Confirm your sign-in email change") emailChanges[user.Email!] = body.Split("\n\n")[1];
+    }
 }

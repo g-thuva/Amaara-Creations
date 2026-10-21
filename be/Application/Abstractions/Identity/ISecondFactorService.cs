@@ -2,7 +2,7 @@ using be.Domain.Identity;
 
 namespace be.Application.Abstractions.Identity;
 
-public sealed record SecondFactorStatus(bool Enabled, int RecoveryCodesLeft);
+public sealed record SecondFactorStatus(bool Enabled, int RecoveryCodesLeft, bool Mandatory);
 public sealed record AuthenticatorEnrollment(string SharedKey, string AuthenticatorUri, DateTimeOffset ExpiresAt);
 public interface ISecondFactorService
 {

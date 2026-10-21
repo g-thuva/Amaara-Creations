@@ -167,7 +167,7 @@ public class CartService
     }
 
     private string? UserId() => _actor.User.FindFirstValue(ClaimTypes.NameIdentifier);
-    private IQueryable<CartItem> CartQuery() => _context.CartItems.Include(item => item.Product).Include(item => item.ProductVariant).Include(item => item.CustomDesign)!.ThenInclude(design => design!.BuilderConfigurationVersion)!.ThenInclude(version => version!.Options);
+    private IQueryable<CartItem> CartQuery() => _context.CartItems.Include(item => item.Product).Include(item => item.ProductVariant).Include(item => item.CustomDesign)!.ThenInclude(design => design!.Assets).Include(item => item.CustomDesign)!.ThenInclude(design => design!.BuilderConfigurationVersion)!.ThenInclude(version => version!.Options).AsSplitQuery();
     private async Task<CustomBuilderConfigurationVersion?> ActiveConfiguration(CancellationToken cancellationToken) => await _context.CustomBuilderConfigurationVersions.Include(version => version.Options)
         .Where(version => version.Status == BuilderVersionStatus.Published && version.Currency == _checkoutOptions.Value.Currency)
         .OrderByDescending(version => version.PublishedAt)
@@ -229,6 +229,7 @@ public class CartService
                 Finish = Label(BuilderOptionGroup.Finish, design.FinishCode),
                 CustomText = design.CustomText,
                 EditUrl = $"/custom/{design.Id}",
+                ArtworkDownloadUrl = design.Assets.Where(asset => asset.AssetType == "artwork").OrderByDescending(asset => asset.Id).Select(asset => $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}").FirstOrDefault(),
                 IsOutOfStock = false,
                 ProductStock = int.MaxValue,
                 CreatedAt = item.CreatedAt,

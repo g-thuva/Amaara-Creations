@@ -105,4 +105,20 @@ describe('persisted private artwork actions', () => {
     await f.actions.upload(() => f.design, {});
     expect(f.notices).toEqual([]); expect(f.design.assets).toEqual([]); expect(f.errors).toHaveLength(1);
   });
+  it('reconciles a cancelled request that completed on the server without a false upload success', async () => {
+    const upload = deferred(); const f = fixture({ uploadArtwork: vi.fn(() => upload.promise) });
+    const action = f.actions.upload(() => f.design, {});
+    await vi.waitFor(() => expect(f.api.uploadArtwork).toHaveBeenCalledOnce());
+    f.actions.cancelUpload(); upload.resolve(asset); await action;
+    expect(f.notices).toHaveLength(1); expect(f.notices[0]).toContain('Transfer stopped');
+    expect(f.notices).not.toContain('Artwork uploaded securely.');
+    expect(f.design.assets).toEqual([asset]); expect(f.errors).toEqual([]);
+    expect(f.pending).toHaveBeenLastCalledWith(false);
+  });
+  it('stops before sending artwork when cancellation happens during automatic design save', async () => {
+    const save = deferred(); const f = fixture();
+    const action = f.actions.upload(() => save.promise, {});
+    f.actions.cancelUpload(); save.resolve(f.design); await action;
+    expect(f.api.uploadArtwork).not.toHaveBeenCalled(); expect(f.notices[0]).toContain('Transfer stopped');
+  });
 });

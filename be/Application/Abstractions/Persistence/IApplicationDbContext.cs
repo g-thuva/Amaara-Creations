@@ -57,6 +57,7 @@ public interface IApplicationDbContext
     DbSet<CustomDesignProofRevision> CustomDesignProofRevisions { get; }
 
     DbSet<RefreshSession> RefreshSessions { get; }
+    DbSet<CustomerRequest> CustomerRequests { get; }
 
     DbSet<OrderStatusHistory> OrderStatusHistories { get; }
 

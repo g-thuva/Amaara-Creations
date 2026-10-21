@@ -29,6 +29,8 @@ export default function BuilderControls({ builder }) {
             <Button variant="text" type="button" onClick={() => builder.change('editor', readEditorState(null))}>Reset layout adjustments</Button>
           </div></details>
           <label>Artwork (JPEG, PNG or WebP)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={upload} /></label>
+          {builder.uploadingArtwork && <div role="status"><progress aria-label="Artwork transfer" max={100} value={builder.uploadProgress ?? undefined} /><p>{builder.uploadProgress === 100 ? 'Transfer sent. Validating and saving artwork…' : builder.uploadProgress == null ? 'Sending artwork…' : `Sending artwork: ${builder.uploadProgress}%`}</p><Button type="button" variant="secondary" onClick={builder.cancelUpload}>Stop upload</Button></div>}
+          {builder.retryArtwork && !busy && <Button type="button" variant="secondary" onClick={builder.retryArtwork}>Retry artwork upload</Button>}
           {config.artworkRequired && <p className="s-meta">Artwork is required before this design can be added to the cart.</p>}
           {design?.assets?.map((asset) => <div className="s-row" key={asset.id}><span>{asset.originalFileName}</span><Button type="button" variant="text" disabled={busy} onClick={() => removeArtwork(asset.id)}>Remove</Button></div>)}
           <div className="s-actions"><Button type="button" variant="secondary" disabled={busy || !quote} onClick={save}>{busy ? 'Saving…' : 'Save design'}</Button><Button type="button" disabled={busy || !quote} onClick={addToCart}>Save and add to cart</Button></div>

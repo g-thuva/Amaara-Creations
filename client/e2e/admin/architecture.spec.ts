@@ -218,12 +218,14 @@ test("every permitted admin navigation target survives direct entry and reload",
     exact: true,
   });
   await expect(navigation).toBeVisible();
-  await expect(navigation.getByRole("link")).toHaveCount(19);
+  await expect(navigation.getByRole("link")).toHaveCount(21);
   const links = await navigation
     .getByRole("link")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
-  expect(links).toHaveLength(19);
+  expect(links).toHaveLength(21);
   const headings: Record<string, string> = {
+    "quote-requests": "Quote requests",
+    "privacy-requests": "Privacy requests",
     payments: "Payments and refunds",
     inventory: "Inventory ledger",
     promotions: "Promotions",

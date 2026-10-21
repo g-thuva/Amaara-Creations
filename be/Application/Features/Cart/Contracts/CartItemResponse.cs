@@ -25,6 +25,7 @@ namespace be.Application.Features.Cart
         public string? Finish { get; set; }
         public string? CustomText { get; set; }
         public string? EditUrl { get; set; }
+        public string? ArtworkDownloadUrl { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

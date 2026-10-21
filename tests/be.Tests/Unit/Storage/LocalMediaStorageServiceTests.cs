@@ -34,6 +34,23 @@ public sealed class LocalMediaStorageServiceTests : IDisposable
         Assert.Empty(Directory.GetFiles(_contentRoot, "*", SearchOption.AllDirectories));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RejectedOrUnavailableSecurityScanCannotPersistAnyUpload(bool unavailable)
+    {
+        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        var service = CreateService(scanner: new RejectingScanner(unavailable));
+        if (unavailable) await Assert.ThrowsAsync<be.Domain.Common.CommerceException>(() => service.UploadPrivateAsync(CreateFile(bytes, "private.png", "image/png"), "artwork"));
+        else await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadPrivateAsync(CreateFile(bytes, "private.png", "image/png"), "artwork"));
+        Assert.Empty(Directory.GetFiles(_contentRoot, "*", SearchOption.AllDirectories));
+    }
+
+    private sealed class RejectingScanner(bool unavailable) : IUploadScanner
+    {
+        public Task ScanAsync(byte[] bytes, CancellationToken ct) => Task.FromException(unavailable ? new be.Domain.Common.CommerceException("UPLOAD_SCAN_UNAVAILABLE", "Test outage", 503) : new InvalidOperationException("Test rejection"));
+    }
+
     [Fact]
     public async Task UploadAsyncStoresValidPngWithPortableMetadata()
     {
@@ -158,11 +175,11 @@ public sealed class LocalMediaStorageServiceTests : IDisposable
         }
     }
 
-    private LocalMediaStorageService CreateService(long maxFileSize = 5 * 1024 * 1024, int maxImagePixels = 24_000_000)
+    private LocalMediaStorageService CreateService(long maxFileSize = 5 * 1024 * 1024, int maxImagePixels = 24_000_000, IUploadScanner? scanner = null)
     {
         Directory.CreateDirectory(_contentRoot);
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Uploads:MaxFileSizeBytes"] = maxFileSize.ToString(), ["Uploads:MaxImagePixels"] = maxImagePixels.ToString() }).Build();
-        return new LocalMediaStorageService(new TestEnvironment(_contentRoot), configuration);
+        return new LocalMediaStorageService(new TestEnvironment(_contentRoot), configuration, scanner);
     }
 
     private static MediaUpload CreateFile(byte[] bytes, string fileName, string contentType) => new(fileName, contentType, bytes.Length, () => new MemoryStream(bytes, writable: false));

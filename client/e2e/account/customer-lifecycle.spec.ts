@@ -41,8 +41,8 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
   await expect(page.getByRole('button', { name: 'View image 2' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Product option').selectOption({ label: 'Large format' });
   await expect(page.locator('.s-pdp-info > .s-price')).toContainText('250.00');
-  await expect(page.getByRole('button', { name: 'Contact us to order', exact: true })).toBeDisabled();
-  await expect(page.getByRole('link', { name: 'Contact us to order this option.', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add to cart', exact: true })).toBeEnabled();
+  await expect(page.getByRole('link', { name: 'Contact us to order this option.', exact: true })).toHaveCount(0);
   await page.getByLabel('Product option').selectOption('');
   await page.getByRole('button', { name: 'Increase quantity', exact: true }).click();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();

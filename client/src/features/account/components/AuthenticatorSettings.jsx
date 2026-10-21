@@ -63,7 +63,7 @@ export default function AuthenticatorSettings({ staff = false }) {
         <div className="s-actions">{enrollment ? <Button disabled={pending} name="action" value="confirm">{pending ? 'Verifying…' : 'Verify and enable'}</Button> : <>
           <Button disabled={pending} name="action" value="enrollment">{status.enabled ? 'Replace authenticator' : 'Set up authenticator'}</Button>
           {status.enabled && <Button disabled={pending} variant="secondary" name="action" value="recovery-codes">Replace recovery codes</Button>}
-          {status.enabled && !staff && <Button disabled={pending} variant="secondary" name="action" value="disable">Disable two-step verification</Button>}
+          {status.enabled && !staff && !status.mandatory && <Button disabled={pending} variant="secondary" name="action" value="disable">Disable two-step verification</Button>}
         </>}</div></form>
     </> : <p role="status">Loading security settings…</p>}
   </section>;

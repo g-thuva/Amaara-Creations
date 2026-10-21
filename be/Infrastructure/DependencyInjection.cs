@@ -54,6 +54,7 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
         builder.Services.AddScoped<IPasswordValidator<User>, PassphraseValidator>();
+        builder.Services.AddSingleton<FilePasswordBlocklist>();
         builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromMinutes(30));
         // Register TokenService
         builder.Services.AddScoped<ITokenService, TokenService>();
@@ -73,6 +74,8 @@ public static class DependencyInjection
         builder.Services.AddScoped<IAuditService, AuditService>();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
+        builder.Services.AddHttpClient<IUploadScanner, HttpUploadScanner>(client => client.Timeout = TimeSpan.FromSeconds(10))
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         builder.Services.AddScoped<be.Application.Abstractions.Storage.IAvatarStorage, be.Infrastructure.Storage.LocalAvatarStorage>();
         builder.Services.Configure<CheckoutOptions>(builder.Configuration.GetSection("Checkout"));
         builder.Services.Configure<DatatransOptions>(builder.Configuration.GetSection("Datatrans"));

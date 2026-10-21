@@ -4,4 +4,5 @@ export const storefrontNavigation = [
 export const accountNavigation = [
   ['/profile', 'user', 'Profile'], ['/addresses', 'mapPin', 'Addresses'], ['/orders', 'package', 'Orders'],
   ['/account/designs', 'edit', 'Saved designs'], ['/wishlist', 'heart', 'Wishlist'], ['/account/security', 'lock', 'Security'],
+  ['/account/requests', 'file', 'Requests'],
 ];
