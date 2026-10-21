@@ -22,8 +22,8 @@ Body/UI use locally served Inter with system fallbacks. The designer’s Poppins
 | Toast/alert/error/skeleton | Existing shared feedback | Status or alert role, retry where meaningful, no false saved/payment confirmation |
 | Product/media/gallery | Existing catalogue components | Genuine data, explicit dimensions, alt text, fallback and loading behavior |
 | Quote/cart/purchase | Existing server-backed features | Currency-labeled amounts, price refresh, quantity, pending/declined/paid distinctions |
-| Preview/guides | Shape helper and BuilderPreview | Correct bounding ratio and configured shape; contour uncertainty stated; illustrative guides labeled |
-| Profile | Initial-based fallback and existing upload | No clipped image placeholder; dirty save state; unloading warning; safe failure feedback |
+| Preview/guides | Versioned bounded editor and BuilderPreview | Correct shape/ratio, image fit/crop/zoom/rotation, text placement, transparency, low-resolution warning, layout export, labeled illustrative guides and production-proof qualification |
+| Profile | Initial fallback, crop dialog and existing upload service | Cancel before save, bounded square output, failed-upload retry, dirty-state protection and verified email-change controls |
 | Staff tables/pagination | Existing operational feature components | Role-specific rows/actions, labels, independent pagination, mutation feedback and audit |
 
 Motion stays short and purposeful; reduced-motion disables nonessential animation/transitions. No new scroll effects or autoplay are introduced. Existing CMS carousel behavior remains compatible, including its pause control and reduced-motion handling.

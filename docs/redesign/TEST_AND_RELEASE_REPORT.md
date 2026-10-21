@@ -1,74 +1,73 @@
-# Boutique redesign — implementation and release report
+# Amaara boutique redesign — implementation and release evidence
 
-Date: 22 October 2026 (Asia/Colombo). Starting commit `8c7bf54`, clean `develop`; fetched `origin/develop` matched. Working branch `feature/boutique-redesign-security`. Stack, existing history, business data and migrations preserved. No external deployment, secret rotation, real payment or live-data change performed.
+22 October 2026, Asia/Colombo. Branch `feature/boutique-redesign-security`, starting from clean `develop` at `8c7bf54`. [Draft PR](https://github.com/g-thuva/Amaara-Creations/pull/1). React/Vite, ASP.NET Core 8 Identity, EF Core and SQL Server are preserved. No production deployment, merge, real payment, external secret rotation or existing business-database migration was performed.
 
-## Implementation map
+## Delivered scope
 
-| Phase | Result | Evidence / remaining scope |
+| Phase | Result | Implementation and evidence |
 | --- | --- | --- |
-| 0 discovery | Implemented | Markdown + all 18 PDF pages read, branch/remotes/baseline verified, reference access recorded, local before evidence, threat/design/IA docs |
-| 1 security | Implemented local controls; administrative rollout closed | MFA policies, stamp/family-bound JWTs, origin checks, password policy/toggles, no shop staff imports. Replay-safe MFA enrollment/recovery and broader upload processing remain release gaps |
-| 2 foundation/shell | Implemented | Storefront theme/tokens, shared password control, nav/account/footer/help, focus and reduced motion; genuine business content remains owner supplied |
-| 3 storefront | Implemented local redesign | Split hero, genuine-data sections, separate empty-inventory/no-match states, published-count contract, existing product journey preserved. Real photos/catalogue and unsupported variant purchase remain limitations |
-| 4 custom designer | Implemented core corrections | Shape/ratio helper, quantity grammar, server quote, private artwork reload and visible session draft. Advanced production editor/export and new quote workflows are not claimed |
-| 5 commerce | Existing validated workflows preserved | Configured server checkout/payment/refund boundaries; no new unapproved Sri Lankan gateway, guest path, COD or transfer workflow |
-| 6 account | Implemented scoped improvements | Initial-based avatar, readable nav, dirty/unload state, security form/toggles and real logout revocation. Email change, customer MFA, privacy tools/crop are still product work |
-| 7 staff | Separate deployable implemented | Existing operational modules preserved, backend capability/MFA gate and noindex. Production host/gateway/provisioning remain disabled/unapproved |
-| 8 hardening | Local verification complete; release not approved | Actual results below; independent/manual/provider/production gates remain |
+| Discovery | Complete locally | Attached Markdown and all 18 PDF pages reviewed; baseline, threat model, route/permission audit, design direction and responsive before evidence recorded |
+| Security | Implemented | Recent-MFA staff policies, session/stamp-bound JWT validation, immediate revocation, authentication origin protection, passphrases, optional offline compromised-password corpus, object authorization and isolated customer/staff artifacts |
+| Foundation and storefront | Implemented | Ivory/navy editorial shell, local licensed fonts, accessible password controls, genuine-data product/search/filter/empty states, truthful help/contact/policy boundaries and responsive account navigation |
+| Designer and media | Implemented | Correct shapes/proportions and server quotes; persisted text/artwork layout, crop/fit/position/rotation, transparent PNG layout export, low-resolution/substitution warnings, account-scoped draft/conflict recovery, private artwork restore and cancellable/retryable upload status |
+| Commerce | Implemented | Selected variants persist as distinct cart lines with authoritative prices and transactional variant stock/reservation; cart drawer, protected artwork thumbnails, remove confirmation/restoration, existing validated checkout/payment/refund/proof workflows |
+| Accounts | Implemented | Profile dirty protection and photo crop/retry, TOTP enrollment/replacement/replay protection, hashed one-use recovery codes, device/session revocation, reauthenticated export, verified email change and scoped quote/deletion-review requests |
+| Staff | Implemented locally, rollout closed | Independent staff entry/build, capability gating before operational imports, existing modules plus permission-scoped quote/privacy queues, audit redaction and deny-only identity-gateway template |
+| Hardening and release | Verification in progress | Current observed checks below. Genuine provider, manual accessibility and protected production-host evidence remain explicit release gates |
 
-## Observed checks
+The editor PNG is a layout preview at bounded output resolution. Physical bleed, cutpaths, exact production fonts/material finish and the final proof require production approval; the interface does not call a browser PNG a printer-ready file. Deletion requests request review and do not erase records or promise automatic erasure.
 
-| Check | Observation |
+## Current verification
+
+The final feature source is committed as `1f4c845`, following `bc5d7cd` (raster processing), `23ec2ca` (MFA/devices) and `54478a6` (editor/variants). Documentation-only updates may follow without changing this tested feature source.
+
+| Check | Observed result |
 | --- | --- |
-| Baseline .NET | 241 passed, 11 skipped, 0 failed |
-| Baseline frontend | 111 tests passed in 21 files |
-| Current .NET without SQL | 257 passed, 11 skipped, 0 failed (268 total) |
-| Current .NET with real SQL | **268 passed, 0 skipped, 0 failed**, 58 seconds. A uniquely named new local `AmaaraPhase6Tests_Redesign_20261022_*` database was used via Windows authentication; existing development/production databases were not migrated |
-| Frontend unit tests | 121 passed in 22 files under Node 22.23.4 after geometry cases added; repeated successfully with Vitest 4.1.12 |
-| ESLint / TypeScript | Both passed on the checked source; staff output is excluded as generated build output |
-| Production storefront build | Passed; 215 transformed modules in the recorded run |
-| Separate staff build | Passed; 237 transformed modules in the recorded run |
-| Customer artifact isolation | Passed: 33 manifest entries, 34 emitted assets; no staff-only modules/clients or source maps found by checker |
-| Bundle budgets | Initial JS 115,152 gzip bytes / 128,000 budget; largest route 5,185 / 40,000 gzip bytes; total CSS 74,705 / 100,000 bytes in recorded build |
-| Secret scan | Passed: 796 text files, zero candidates at recorded run; ignored private config excluded |
-| npm audit | Zero vulnerabilities from current feed |
-| NuGet audit | No vulnerable packages reported by current configured feed |
-| EF model | No pending model changes; no migration added or applied to an existing database |
-| Focused browser checks | Six cases individually passed: public axe, all password controls, empty catalogue distinction, shape/private-art reload, absent shop staff navigation, separate staff builder |
-| Full browser / production browser | 74 development cases passed under Node 22.23.4 (6.7 minutes); 3 production-build cases passed (24.8 seconds), followed by a final expanded 9-case production run (58.1 seconds) covering 320px accounts, public axe and password/designer/isolation journeys. An earlier comprehensive Node 20 run passed 77 cases; the final configuration correctly reserves its 3 lab cases for production mode |
-| Lighthouse mobile lab | Three production-build runs: performance 98/95/96 (median 96), accessibility 100, Best Practices 96, SEO 100; median LCP 2.533s, CLS 0, TBT 104ms. See exceptions below |
-| Published package/rehearsal | Seven-step package build and checksum/privacy verification passed (105 files). The Production API passed real-SQL, HTTPS loopback, MFA-positive/negative, private-file, paused-payment and browser-isolation checks. This was an explicitly labeled dirty local rehearsal, not a deployable production approval |
-| Dependency inventory | Frontend CycloneDX SBOM generated locally from the updated lockfile; current npm/NuGet vulnerability feeds reported no project vulnerabilities |
-| Other regression checks | 3 webhook proxy tests and 8 release-tool tests passed; final JWT-type restriction additionally passed all 15 focused authentication/security tests |
-| External reference browsers | All 27 reference/viewport attempts blocked by sandbox network policy; several web-reader pages retrieved |
-| Manual screen reader / genuine gateway / field vitals | Not performed; no certification or production payment claim |
+| Backend, real SQL | **316 passed, 0 skipped, 0 failed**, 1m42s; a uniquely named new local `AmaaraPhase6Tests_Redesign_20261022_Verified_*` database, Windows authentication; no existing customer database used |
+| Frontend unit | **125 passed in 23 files**, Vitest 4.1.12 on Node 22.23.4 |
+| Lint / TypeScript | Passed |
+| Focused browser regression | **19 passed**, artwork failure/ownership cases, editor restoration/export/conflict recovery, cart drawer/Escape focus/removal restoration and private thumbnails |
+| Additional browser cases | Full customer lifecycle, profile crop/retry and cart checks passed together (4 cases); privacy export/email verification/request/reply checks passed (2 cases); upload cancellation/reconciliation/retry passed its focused case |
+| Full development browser suite | Previous expanded run: 81 passed, 1 failed because a lifecycle assertion still expected variants to be unavailable. Assertion corrected for the implemented purchase path; full lifecycle passed afterward. A clean final aggregate run is pending; this is not represented as an 85-case pass |
+| Production-build browser suite | Expanded 20-case runner prepared; final result pending |
+| Secret scan | **852 text files, zero candidates**; ignored private configuration excluded |
+| EF model | No pending model changes |
+| Migration behavior | Both additive migrations exercised on disposable SQL: existing cart rows preserved; variant stock cannot oversell; rollback guards refuse to discard selected variants or customer requests |
+| Release tools / webhook proxy | **10 Python tests and 3 Node tests passed** |
+| Dependency audits | Final feed results pending; restricted NuGet attempt could not reach its feed and is not a successful audit |
+| Current artifacts / package rehearsal | Final builds, isolation, size budgets and clean package rehearsal pending |
 
-The first focused browser run found a low-contrast custom CTA and staff route nesting regression. Both were corrected before the passing focused run. Two new test locators were made unambiguous. Windows sandbox process teardown left a test runner alive after cases completed; only the verified owned process tree was terminated, then full verification was rerun with normal process permissions. Interrupted runs are not counted as completed-suite passes.
+The baseline was 241 backend passes plus 11 SQL skips and 111 frontend passes. Earlier feature revisions passed 268 real-SQL cases, 74 development browser cases and an expanded 9-case production run. Earlier hosted browser and SQL/API workflows at `1458849` passed, including a clean Linux package/HTTPS rehearsal. Those earlier passes do not substitute for the final source checks listed above.
 
-## Evidence and approvals
+Raw logs remain ignored under `.runtime`, including `master-prompt-backend-final.log`, `master-prompt-upload-cart-browser.log` and `master-prompt-production-final.log`. No credentials, enrollment secrets, recovery codes or full exports are committed as evidence. Windows sandbox teardown interrupted the focused upload runner after its case passed; the production run uses normal process permissions and fresh owned servers.
 
-Source paths and repro details: CURRENT_UX_AUDIT.md. Screenshots: `evidence/before` and `evidence/after`; they use disposable acceptance content, not live customer information. 39 responsive PNG captures cover baseline and redesigned routes; the added journey captures include product, profile, checkout, help and the separate staff app. Raw test logs/TRX remain ignored under `.runtime` and test output directories. This report records concise reproducible results rather than committing synthetic account credentials or full logs.
+## Schema, configuration and operations
 
-Release gates: owner-approved real imagery/catalogue/prices/contact/policies; production-ready media decoding/metadata/scanning; replay-safe staff MFA enrollment/recovery and protected gateway; genuine configured payment/email sandbox; privacy/export/deletion scope; manual accessibility; exact production header/CORS/cookie/backup custody and explicit deployment approval. See OWNER_DECISIONS.md, PAGE_ACCEPTANCE_CRITERIA.md and ADMIN_ISOLATION_DEPLOYMENT.md. The full master-prompt definition of production readiness is **not** declared achieved.
+Two additive migrations are documented in [variant migration guidance](VARIANT_MIGRATION.md) and [account/request/media operations](ACCOUNT_REQUESTS_AND_MEDIA.md):
 
+- `20261021225400_BoutiqueCartVariants`: nullable variant selection on existing cart records, restricted foreign key and option-aware uniqueness; rollback raises 51003 if variant cart lines exist.
+- `20261021230822_BoutiqueCustomerRequests`: scoped quote/privacy-review records with restricted relationships and concurrency; rollback raises 51004 if any request exists.
 
-## Performance evidence and exceptions
+Historical migrations are unchanged. The current model snapshot and reviewed compatibility fixture advance with the two additions. Existing financial/order data is preserved. Staging/production migration requires the backup, restore and approval process in the cutover runbook.
 
-The first exploratory Lighthouse probe used an unapproved preview origin and hit CORS rejection; it is not a valid baseline or release sample. The three retained runs use the configured storefront origin and font-optimized production artifact. A render-blocking external font stylesheet was replaced with two local licensed subsets (48,256 + 8,000 bytes), retained OFL licenses, font-display swap and a preload for the body font. No business imagery was invented to improve a benchmark.
+Email change, quote requests and privacy requests default off until their operational processes are approved. The optional HTTPS scanning adapter fails closed when configured/required and unavailable; no real antivirus service was contacted. The private offline password-corpus importer/checker is implemented and tested; selecting and refreshing an approved corpus remains operational work. No customer password or hash is sent to a third party. See the linked operations document for exact flags and adapter contracts.
 
-The 90 performance / 100 accessibility / 95 SEO lab floors were met. Best Practices remains **96**, due to expected anonymous refresh (401) and optional unpublished home CMS (404) responses appearing as browser network errors. Median LCP **2.533s** narrowly misses the 2.5s target; it is not rounded into a pass. CLS is 0. INP and p75 field vitals were not measured. Automated accessibility scores do not establish WCAG conformance or replace screen-reader review. The small fixture images are not representative of future owner photographs. Full Lighthouse traces are local; the committed summary contains only scores and timings.
+Administration remains disabled by default. The separate `dist-admin` output has an `index.html` entry; it is not included in the public storefront package. The deny-only gateway example protects all staff HTML, deep links and assets until a real identity-aware adapter is configured. Static-asset confidentiality requires that protected host; a separate Vite bundle alone does not establish it.
 
-## Reviewable changes
+## Visual and performance evidence
 
-- `c7e7cc6`: backend staff MFA/policies, session binding and revocation, password rules, private-file policy checks, circular-dimension validation, published-count metadata and regression fixtures/tests. No schema migration.
-- `6fecdc6`: separate staff build, boutique storefront, password controls, help/account/empty states, preview/draft/private-art restoration, build isolation and browser project updates.
-- `2d94c2e`: JWT token-type restriction, self-hosted font CSP boundary and published-release MFA/isolation rehearsal.
-- `b06fa6f`: local licensed font delivery, 320px account coverage, responsive footer tracks and clearer designer copy. Documentation/evidence accompany the same feature branch.
+The existing 39 responsive before/after PNGs use disposable acceptance fixtures. They cover the original/redesigned shell and major routes, with product/profile/checkout/help/staff journey captures. They are local engineering evidence, not genuine customer work or final approved catalogue photography. Source screenshot attachments were not separately available; the supplied prompt/PDF informed the audit. All 27 reference-site browser/viewport attempts were blocked by sandbox network policy; the research record distinguishes retrieved web-reader observations from unavailable visual inspection.
 
-No production deployment or merge is included. The requested work is substantial local implementation with documented incomplete production/editor/privacy functionality, not a declaration that every master-prompt acceptance outcome is finished.
+The earlier font-optimized production revision had three Lighthouse mobile runs: performance **98/95/96** (median **96**), accessibility **100**, Best Practices **96**, SEO **100**. Median LCP **2.533s** narrowly missed 2.5s; CLS **0**, TBT **104ms**. [Retained summary](evidence/lighthouse-summary.json). These are prior-revision fixture measurements, not fresh final-source or field guarantees. Best Practices recorded anonymous refresh 401 and unpublished optional CMS 404 network responses. No response status or audit was disabled to improve a score. INP/p75 field vitals and manual screen-reader conformance were not measured.
 
-The first package attempt overlapped test-server shutdown and hit a Windows esbuild file lock. The failed artifact was retained separately; after all owned servers stopped, the new package and published rehearsal passed. No failed or incomplete artifact was deployed.
+## External release gates
 
-## Pull request verification
+[Owner decisions](OWNER_DECISIONS.md), [page acceptance](PAGE_ACCEPTANCE_CRITERIA.md), [security mapping](../security/ASVS_5_CONTROL_MAPPING.md) and [staff deployment](../security/ADMIN_ISOLATION_DEPLOYMENT.md) identify the remaining evidence:
 
-Draft PR: https://github.com/g-thuva/Amaara-Creations/pull/1 (base `develop`). The first hosted SQL/API workflow passed, including its clean Linux package/rehearsal. The first browser workflow stopped at the dependency audit when its feed reported two moderate Vitest advisories ([GHSA-qxg6-89mg-rqv8](https://github.com/advisories/GHSA-qxg6-89mg-rqv8), [GHSA-xp26-3454-mjgp](https://github.com/advisories/GHSA-xp26-3454-mjgp)). Vitest and its seven matching internal packages were updated from 4.1.11 to the fixed 4.1.12; runtime dependencies were unchanged. A fresh local audit reported zero vulnerabilities and all 121 unit tests passed. Audit enforcement remains enabled. Hosted results for the updated commit are tracked on the PR.
+- Genuine rights-cleared photographs, catalogue/options/prices, contacts, delivery rules and approved policy text.
+- Approved Sri Lankan/LKR provider and genuine sandbox acceptance; actual transactional sender/delivery and security notification operations. Unconfigured methods stay disabled.
+- Separate protected staff origin, approved identities/recovery, TLS/headers/CORS/cookies, private storage/scanner/corpus operation, encrypted backup/key custody and production restore evidence.
+- Qualified retention/erasure policy and responsible request reviewers; manual screen readers/zoom and Sinhala/Tamil review, representative performance and field vitals.
+- Explicit staging/production cutover approval and the reviewed release/rollback runbook.
+
+The local implementation closes the earlier editor, MFA, media, variant and account-workflow gaps. Production definition of done remains dependent on the evidence above; no deployment or merge is implied.
