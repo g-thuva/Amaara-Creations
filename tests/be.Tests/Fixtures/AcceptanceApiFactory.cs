@@ -31,6 +31,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
     private readonly string signingKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
     private readonly string databaseName = "Acceptance-" + Guid.NewGuid();
     public CapturedAcceptanceEmail Email { get; } = new();
+    public TimeProvider Clock { get; init; } = TimeProvider.System;
 
     private readonly FakePaymentGateway gateway = new();
     private readonly string storageRoot = Path.Combine(Path.GetTempPath(), "AmaaraAcceptance", Guid.NewGuid().ToString("N"));
@@ -64,6 +65,8 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
         builder.ConfigureLogging(c => c.ClearProviders());
         builder.ConfigureServices(services =>
         {
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton(Clock);
             // This shared disposable host runs many upload cases in one minute.
             // Keep finite limits in the fixture without changing production limits.
             services.RemoveAll<IConfigureOptions<RateLimiterOptions>>();

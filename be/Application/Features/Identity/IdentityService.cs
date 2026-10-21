@@ -11,6 +11,7 @@ public sealed class IdentityService(
         SignInManager<User> signIn,
         ITokenService tokens,
         IRefreshSessionService sessions,
+        ISecondFactorService secondFactor,
         IEmailService email,
         IConfiguration configuration,
         IRequestActor actor)
@@ -63,17 +64,15 @@ public sealed class IdentityService(
             throw new CommerceException("EMAIL_CONFIRMATION_REQUIRED", "Email verification is required before signing in.", 401, new Dictionary<string, object?> { ["requiresEmailConfirmation"] = true });
         var roles = await users.GetRolesAsync(user);
         DateTimeOffset? secondFactorAt = null;
-        if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode))
+        if (user.TwoFactorEnabled)
         {
-            if (!user.TwoFactorEnabled || !await users.VerifyTwoFactorTokenAsync(user, users.Options.Tokens.AuthenticatorTokenProvider, request.AuthenticatorCode.Replace(" ", "").Replace("-", "")))
-            {
-                await users.AccessFailedAsync(user);
-                throw InvalidLogin();
-            }
-            secondFactorAt = DateTimeOffset.UtcNow;
+            if (!await secondFactor.VerifyAsync(user, request.AuthenticatorCode, request.RecoveryCode, ct)) throw InvalidLogin();
+            // Recovery permits account repair but cannot authorize staff operations.
+            if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode)) secondFactorAt = DateTimeOffset.UtcNow;
         }
+        else if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode) || !string.IsNullOrWhiteSpace(request.RecoveryCode)) throw InvalidLogin();
         // Do not reset failed-factor counts until the complete submitted flow succeeds.
-        if (!user.TwoFactorEnabled || secondFactorAt.HasValue) await users.ResetAccessFailedCountAsync(user);
+        await users.ResetAccessFailedCountAsync(user);
         var session = await sessions.CreateSessionAsync(user, actor.Session, ct);
         var assurance = secondFactorAt.HasValue ? new StaffAssurance(user.Id, user.SecurityStamp!, session.Session.FamilyId, secondFactorAt.Value.ToUnixTimeSeconds()) : null;
         return new(CreateResponse(user, roles, session.Session.FamilyId, secondFactorAt), session.RawToken, session.Session.ExpiresAt, assurance);
@@ -116,6 +115,25 @@ public sealed class IdentityService(
         return ToUserDto(user, await users.GetRolesAsync(user));
     }
 
+    public async Task<SecondFactorStatus> SecondFactorStatusAsync(CancellationToken ct) => await secondFactor.StatusAsync(await CurrentUser(), ct);
+    public async Task<AuthenticatorEnrollment> BeginSecondFactorAsync(SecondFactorRequest request, CancellationToken ct) =>
+        await secondFactor.BeginAsync(await CurrentUser(), request.Password, request.AuthenticatorCode, request.RecoveryCode, ct) ?? throw InvalidSecondFactor();
+    public async Task<IReadOnlyList<string>> ConfirmSecondFactorAsync(SecondFactorRequest request, CancellationToken ct)
+    {
+        var user = await CurrentUser();
+        var codes = await secondFactor.ConfirmAsync(user, request.Password, request.AuthenticatorCode ?? "", ct) ?? throw InvalidSecondFactor();
+        await sessions.RevokeAllForUserAsync(user.Id, ct);
+        return codes;
+    }
+    public async Task<IReadOnlyList<string>> RegenerateRecoveryAsync(SecondFactorRequest request, CancellationToken ct) =>
+        await secondFactor.RegenerateAsync(await CurrentUser(), request.Password, request.AuthenticatorCode ?? "", ct) ?? throw InvalidSecondFactor();
+    public async Task DisableSecondFactorAsync(SecondFactorRequest request, CancellationToken ct)
+    {
+        var user = await CurrentUser();
+        if (!await secondFactor.DisableAsync(user, request.Password, request.AuthenticatorCode, request.RecoveryCode, ct)) throw InvalidSecondFactor();
+        await sessions.RevokeAllForUserAsync(user.Id, ct);
+    }
+
     public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct)
     {
         var user = await users.FindByEmailAsync(request.Email);
@@ -146,6 +164,7 @@ public sealed class IdentityService(
     }
 
     private static CommerceException InvalidLogin() => new("LOGIN_FAILED", "Invalid email or password.", 401);
+    private static CommerceException InvalidSecondFactor() => new("SECOND_FACTOR_VERIFICATION_FAILED", "Unable to verify these security details. Check your password and use a new code. If setup expired, start again.");
     private static void EnsureSuccess(IdentityResult result, string code, string message)
     {
         if (!result.Succeeded)

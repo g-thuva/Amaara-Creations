@@ -3,7 +3,7 @@ import { test, expect, acceptanceApi } from '../fixtures';
 test.describe('Custom Builder live custom sticker workflow', () => {
   test.beforeEach(async ({ context, fixture }) => {
     const response = await context.request.post(`${acceptanceApi}/api/v1/auth/login`, {
-      data: { email: fixture.adminEmail, password: fixture.password },
+      data: { email: fixture.customerEmail, password: fixture.password },
     });
     expect(response.ok()).toBeTruthy();
   });

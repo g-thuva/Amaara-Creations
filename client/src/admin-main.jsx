@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider.jsx';
 import { ToastProvider } from '@/shared/components/feedback/ToastProvider.jsx';
 import { PasswordField } from '@/shared/components/ui/PasswordField.jsx';
+import AuthenticatorSettings from '@/features/account/components/AuthenticatorSettings.jsx';
 import http from '@/shared/api/httpClient.js';
 import '@/shared/styles/fonts.css';
 import '@/shared/styles/tokens.css';
@@ -19,6 +20,8 @@ export function StaffApp() {
   const [verified, setVerified] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const [manageSecurity, setManageSecurity] = useState(false);
+  const [useRecovery, setUseRecovery] = useState(false);
   useEffect(() => {
     document.title = 'Amaara studio operations';
     let meta = document.querySelector('meta[name="robots"]');
@@ -51,7 +54,8 @@ export function StaffApp() {
     finally { setPending(false); }
   }
   if (authStatus === 'loading') return <p role="status">Restoring session…</p>;
-  if (!verified || pathname === '/login') return <div className="storefront"><main className="s-staff-signin"><p className="s-eyebrow">Amaara Creations · Studio operations</p><h1>Staff sign in</h1><p>Use your staff credentials and current authenticator code. Reauthenticate to renew access after 15 minutes.</p>{error && <p role="alert">{error}</p>}<form className="s-form" onSubmit={submit}><label>Email Address<input type="email" name="email" autoComplete="username" required /></label><PasswordField label="Password" name="password" autoComplete="current-password" required /><label>Authenticator code<input name="authenticatorCode" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required /></label><button className="s-button s-button-primary" disabled={pending}>{pending ? 'Signing in…' : 'Sign In'}</button></form></main></div>;
+  if (user && manageSecurity) return <div className="storefront"><main className="s-staff-signin"><h1>Authenticator settings</h1><p>Verify your password and current factor to replace an authenticator. Recovery codes restore account access; a new authenticator code is required before entering operations.</p><AuthenticatorSettings staff /><button className="s-button s-button-secondary" onClick={() => setManageSecurity(false)}>Back to sign in</button></main></div>;
+  if (!verified || pathname === '/login') return <div className="storefront"><main className="s-staff-signin"><p className="s-eyebrow">Amaara Creations · Studio operations</p><h1>Staff sign in</h1><p>Use your staff credentials and current authenticator code. Reauthenticate to renew access after 15 minutes.</p>{error && <p role="alert">{error}</p>}<form className="s-form" onSubmit={submit}><label>Email Address<input type="email" name="email" autoComplete="username" required /></label><PasswordField label="Password" name="password" autoComplete="current-password" required />{useRecovery ? <PasswordField label="Recovery code" name="recoveryCode" autoComplete="off" required maxLength={64} /> : <div><label htmlFor="staff-code">Authenticator code</label><input id="staff-code" name="authenticatorCode" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} aria-describedby="staff-code-help" /><p id="staff-code-help" className="s-meta">Required for enrolled accounts. Leave blank only to sign in before initial setup.</p></div>}<button className="s-button s-button-primary" disabled={pending}>{pending ? 'Signing in…' : 'Sign In'}</button><button className="s-button s-button-secondary" type="button" onClick={() => setUseRecovery(value => !value)}>{useRecovery ? 'Use authenticator code' : 'Use a recovery code'}</button></form>{user && <div className="s-actions"><button className="s-button s-button-secondary" onClick={() => setManageSecurity(true)}>Manage authenticator</button><button className="s-button s-button-secondary" onClick={() => logout()}>Sign out</button></div>}</main></div>;
   if (!pathname.startsWith('/admin')) return <Navigate to="/admin" replace />;
   return <div className="admin-app"><a className="s-skip" href="#store-main" onClick={event => { event.preventDefault(); document.getElementById('store-main')?.focus(); }}>Skip to main content</a><button className="staff-reauth" onClick={() => { setVerified(false); logout(); }}>Sign out / reauthenticate</button><main id="store-main" tabIndex={-1}><Suspense fallback={<p role="status">Loading operations…</p>}><Routes><Route path="/admin/*" element={<StaffRoutes />} /></Routes></Suspense></main></div>;
 }

@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<be.Application.Features.Identity.AccountService>();
         services.AddScoped<be.Application.Features.Wishlist.WishlistService>();
         services.AddScoped<be.Application.Features.Identity.IdentityService>();
+        services.AddScoped<be.Application.Features.Identity.AccountSessionService>();
         services.AddScoped<be.Application.Features.Cms.PublicSeoService>();
         services.AddScoped<InventoryOperations>();
         services.AddScoped<CustomStickerPricingService>();

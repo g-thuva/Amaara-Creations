@@ -14,7 +14,8 @@ async function login(
   await page.goto(`http://127.0.0.1:${email.startsWith("acceptance-customer-") ? 5178 : 5179}/Amaara-Creations/login`);
   await page.getByLabel("Email Address", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await fillAuthenticator(page); await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  if (!email.startsWith('acceptance-customer-')) await fillAuthenticator(page);
+  await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login$/);
 }
 
@@ -73,9 +74,8 @@ test("support sees customer/order operations while financial and security endpoi
   await expect(
     page.getByRole("link", { name: "Staff", exact: true }),
   ).toHaveCount(0);
-  const token = await request.post(api + "/api/v1/auth/login", {
-    data: { email: f.supportEmail, password: f.basic.password },
-  });
+  const token = await page.request.post(api + "/api/v1/auth/refresh");
+  expect(token.ok()).toBeTruthy();
   const auth = await token.json();
   for (const path of ["staff", "reports", "audit", "payments", "settings"])
     expect(

@@ -121,16 +121,7 @@ test("extracted product form, variants, media and archive actions persist throug
     // The acceptance host shares a disposable catalog across browser tests.
     // Keep generated products out of later storefront result sets, even on failure.
     if (productId) {
-      const login = await request.post(
-        "http://127.0.0.1:5198/api/v1/auth/login",
-        {
-          data: {
-            email: fixture.superAdminEmail,
-            password: fixture.basic.password,
-            authenticatorCode: (await (await request.get('http://127.0.0.1:5198/__fixture/authenticator-code')).json()).code,
-          },
-        },
-      );
+      const login = await page.request.post("http://127.0.0.1:5198/api/v1/auth/refresh");
       expect(login.ok()).toBeTruthy();
       const auth = await login.json();
       const archived = await request.post(

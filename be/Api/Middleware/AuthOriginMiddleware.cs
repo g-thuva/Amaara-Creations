@@ -9,7 +9,7 @@ public sealed class AuthOriginMiddleware(RequestDelegate next, IOptions<CorsOpti
 {
     public async Task InvokeAsync(HttpContext context)
     {
-        if (HttpMethods.IsPost(context.Request.Method) && context.Request.Path.StartsWithSegments("/api/v1/auth"))
+        if (!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method) && !HttpMethods.IsOptions(context.Request.Method) && context.Request.Path.StartsWithSegments("/api/v1/auth"))
         {
             var origin = context.Request.Headers.Origin.ToString();
             var fetchSite = context.Request.Headers["Sec-Fetch-Site"].ToString();

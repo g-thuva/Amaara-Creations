@@ -158,9 +158,8 @@ public static class RehearsalRunner
             await Login(user);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.OK);
             await Status(client, "/api/v1/admin/reports", HttpStatusCode.Forbidden);
-            await Login(admin);
-            await Status(client, "/api/v1/admin/reports", HttpStatusCode.Forbidden);
-            await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.NotFound);
+            using (var missingFactor = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = admin.Email, password }))
+                if (missingFactor.StatusCode != HttpStatusCode.Unauthorized) throw new InvalidOperationException("Staff login without its enrolled factor was accepted.");
             await Login(admin, secondFactor: true);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.OK);
             foreach (var path in new[] { "dashboard", "orders", "customers", "inventory", "custom-designs", "reports", "operational-health" })
@@ -172,7 +171,7 @@ public static class RehearsalRunner
             await Status(client, "/api/v1/admin/reports", HttpStatusCode.Forbidden);
             var node = new ProcessStartInfo("node") { WorkingDirectory = repository, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (var argument in new[] { "client/scripts/smoke-release.mjs", origin, product.Id.ToString() }) node.ArgumentList.Add(argument);
-            node.Environment["AMAARA_REHEARSAL_EMAIL"] = admin.Email;
+            node.Environment["AMAARA_REHEARSAL_EMAIL"] = user.Email;
             node.Environment["AMAARA_REHEARSAL_PASSWORD"] = password;
             using var browser = Process.Start(node) ?? throw new InvalidOperationException("Browser smoke did not start.");
             var browserOutput = browser.StandardOutput.ReadToEndAsync(); var browserError = browser.StandardError.ReadToEndAsync();

@@ -69,6 +69,31 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
 
     [HttpGet("me"), Authorize]
     public async Task<IActionResult> GetCurrentUser() => Ok(await identity.CurrentUserAsync());
+
+    [HttpGet("second-factor"), Authorize]
+    public async Task<IActionResult> SecondFactor(CancellationToken ct) => Ok(await identity.SecondFactorStatusAsync(ct));
+
+    [HttpPost("second-factor/enrollment"), Authorize, EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> BeginSecondFactor([FromBody] SecondFactorRequest request, CancellationToken ct) => Ok(await identity.BeginSecondFactorAsync(request, ct));
+
+    [HttpPost("second-factor/confirm"), Authorize, EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> ConfirmSecondFactor([FromBody] SecondFactorRequest request, CancellationToken ct)
+    {
+        var codes = await identity.ConfirmSecondFactorAsync(request, ct);
+        cookie.Clear(Response);
+        return Ok(new { recoveryCodes = codes, requiresSignIn = true });
+    }
+
+    [HttpPost("second-factor/recovery-codes"), Authorize, EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> RegenerateRecovery([FromBody] SecondFactorRequest request, CancellationToken ct) => Ok(new { recoveryCodes = await identity.RegenerateRecoveryAsync(request, ct) });
+
+    [HttpPost("second-factor/disable"), Authorize, EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> DisableSecondFactor([FromBody] SecondFactorRequest request, CancellationToken ct)
+    {
+        await identity.DisableSecondFactorAsync(request, ct);
+        cookie.Clear(Response);
+        return Ok(new { requiresSignIn = true });
+    }
     [HttpPost("forgot-password"), EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {

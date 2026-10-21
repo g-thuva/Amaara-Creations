@@ -63,7 +63,9 @@ test('preview matches shape and proportion, uses singular quantity and restores 
 });
 
 test('customer and staff shoppers have no staff links or routes in the storefront', async ({ page, fixture }) => {
-  await page.request.post(`${acceptanceApi}/api/v1/auth/login`, { data: { email: fixture.adminEmail, password: fixture.password } });
+  const code = (await (await page.request.get(`${acceptanceApi}/__fixture/authenticator-code`)).json()).code;
+  const signedIn = await page.request.post(`${acceptanceApi}/api/v1/auth/login`, { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
+  expect(signedIn.ok()).toBeTruthy();
   await page.goto('./profile');
   await expect(page.getByRole('heading', { name: 'Your profile', exact: true })).toBeVisible();
   expect(await page.locator('a[href*="/admin"]').count()).toBe(0);

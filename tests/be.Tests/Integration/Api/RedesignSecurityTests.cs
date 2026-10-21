@@ -30,8 +30,7 @@ public sealed class RedesignSecurityTests
         using var client = factory.CreateClient();
         var email = fixture.GetProperty("adminEmail").GetString()!;
         var password = fixture.GetProperty("password").GetString()!;
-        client.DefaultRequestHeaders.Authorization = new("Bearer", await Login(client, email, password));
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password })).StatusCode);
         client.DefaultRequestHeaders.Authorization = new("Bearer", await Login(client, email, password, TotpFixture.Code));
         var originalToken = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(client.DefaultRequestHeaders.Authorization.Parameter);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
@@ -80,7 +79,15 @@ public sealed class RedesignSecurityTests
         var proof = await uploaded.Content.ReadFromJsonAsync<JsonElement>();
         var url = proof.GetProperty("downloadUrl").GetString()!;
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(url)).StatusCode);
-        client.DefaultRequestHeaders.Authorization = new("Bearer", await Login(client, email, password));
+        // Missing factor cannot establish a new session; a role-bearing token
+        // without verified MFA is independently denied on the owner file route.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password })).StatusCode);
+        using var scope = factory.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<User>>();
+        var staffUser = (await users.FindByEmailAsync(email))!;
+        var tokenService = scope.ServiceProvider.GetRequiredService<be.Application.Abstractions.Identity.ITokenService>();
+        var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(client.DefaultRequestHeaders.Authorization!.Parameter);
+        client.DefaultRequestHeaders.Authorization = new("Bearer", tokenService.GenerateToken(staffUser, await users.GetRolesAsync(staffUser), jwt.Claims.Single(c => c.Type == "session_family").Value));
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(url)).StatusCode);
     }
 

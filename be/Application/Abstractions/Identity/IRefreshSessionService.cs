@@ -10,6 +10,7 @@ namespace be.Application.Abstractions.Identity
         Task<RefreshTokenRotationResult?> RotateAsync(string rawRefreshToken, SessionMetadata metadata, CancellationToken cancellationToken = default);
         Task RevokeAsync(string? rawRefreshToken, CancellationToken cancellationToken = default);
         Task RevokeAllForUserAsync(string userId, CancellationToken cancellationToken = default);
+        Task<bool> RevokeFamilyForUserAsync(string userId, string familyId, CancellationToken cancellationToken = default);
         string GenerateRawRefreshToken();
         string HashRefreshToken(string rawRefreshToken);
     }

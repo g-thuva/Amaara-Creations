@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useLogin } from '@/features/auth/hooks/useLogin.js';
 
 export default function LoginForm() {
-  const { email, setEmail, password, setPassword, error, isLoading, message, handleLogin } = useLogin();
+  const { email, setEmail, password, setPassword, authenticatorCode, setAuthenticatorCode, recoveryCode, setRecoveryCode, error, isLoading, message, handleLogin } = useLogin();
   return (
     <>
       <div className="auth-card">
@@ -48,6 +48,8 @@ export default function LoginForm() {
               placeholder="Enter your password"
             />
           </div>
+
+          <details className="form-group"><summary>Two-step verification</summary><p>Required if you enabled an authenticator. Use a current code or one unused recovery code.</p><label className="form-label" htmlFor="login-authenticator">Authenticator code</label><input className="form-control" id="login-authenticator" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={authenticatorCode} onChange={event => { setAuthenticatorCode(event.target.value); setRecoveryCode(''); }} /><label className="form-label" htmlFor="login-recovery">Recovery code</label><input className="form-control" id="login-recovery" autoComplete="off" spellCheck={false} maxLength={64} value={recoveryCode} onChange={event => { setRecoveryCode(event.target.value); setAuthenticatorCode(''); }} /></details>
 
           <button type="submit" className="btn-auth" disabled={isLoading}>
             {isLoading ? "Signing In..." : "Sign In"}

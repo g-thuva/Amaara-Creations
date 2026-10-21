@@ -13,5 +13,8 @@ namespace be.Application.Features.Identity
 
         [StringLength(16)]
         public string? AuthenticatorCode { get; set; }
+
+        [StringLength(64)]
+        public string? RecoveryCode { get; set; }
     }
 }

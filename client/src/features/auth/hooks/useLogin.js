@@ -6,6 +6,8 @@ import { customerError } from '@/shared/api/apiError.ts';
 export function useLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authenticatorCode, setAuthenticatorCode] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -21,7 +23,7 @@ export function useLogin() {
     setIsLoading(true);
 
     try {
-      await login({ email, password });
+      await login({ email, password, authenticatorCode, recoveryCode });
 
       // On successful login, redirect to intended page or profile
       const from = location.state?.from;
@@ -35,5 +37,5 @@ export function useLogin() {
     }
   };
 
-  return { email, setEmail, password, setPassword, error, isLoading, message, handleLogin };
+  return { email, setEmail, password, setPassword, authenticatorCode, setAuthenticatorCode, recoveryCode, setRecoveryCode, error, isLoading, message, handleLogin };
 }

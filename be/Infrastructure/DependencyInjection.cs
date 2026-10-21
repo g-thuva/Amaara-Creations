@@ -58,6 +58,8 @@ public static class DependencyInjection
         // Register TokenService
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddScoped<ISecondFactorService, SecondFactorService>();
         if (builder.Configuration.GetValue<bool?>("Email:Enabled") == false)
             builder.Services.AddScoped<IEmailService, DisabledEmailService>();
         else if (builder.Configuration["Email:Provider"] == "DevelopmentCapture")
