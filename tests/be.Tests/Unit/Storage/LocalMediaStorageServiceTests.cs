@@ -94,6 +94,62 @@ public sealed class LocalMediaStorageServiceTests : IDisposable
         Assert.Contains("dimensions", exception.Message);
     }
 
+    [Fact]
+    public async Task RejectsStructurallyValidPngWithoutDecodablePixelData()
+    {
+        var service = CreateService();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadAsync(CreateFile(CreatePngHeader(2, 2), "incomplete.png", "image/png"), "products"));
+        Assert.Empty(Directory.GetFiles(_contentRoot, "*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task RemovesAncillaryMetadataAndPreservesPixels()
+    {
+        var source = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        using var decorated = new MemoryStream();
+        decorated.Write(source[..33]);
+        WriteChunk(decorated, "tEXt", System.Text.Encoding.ASCII.GetBytes("Comment\0private-location-and-script-marker"));
+        decorated.Write(source[33..]);
+        var service = CreateService();
+        var stored = await service.UploadPrivateAsync(CreateFile(decorated.ToArray(), "metadata.png", "image/png"), "art");
+        await using var stream = await service.OpenReadAsync(stored.StorageKey);
+        using var output = new MemoryStream();
+        await stream.CopyToAsync(output);
+        Assert.DoesNotContain("private-location", System.Text.Encoding.ASCII.GetString(output.ToArray()));
+        using var before = SkiaSharp.SKBitmap.Decode(source);
+        using var after = SkiaSharp.SKBitmap.Decode(output.ToArray());
+        Assert.Equal(before.GetPixel(0, 0), after.GetPixel(0, 0));
+        Assert.Equal(output.Length, stored.FileSize);
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(3, false)]
+    [InlineData(4, false)]
+    [InlineData(5, true)]
+    [InlineData(6, true)]
+    [InlineData(7, true)]
+    [InlineData(8, true)]
+    public async Task AppliesExifOrientationBeforeStrippingMetadata(int orientation, bool exchangesAxes)
+    {
+        using var bitmap = new SkiaSharp.SKBitmap(20, 30);
+        using (var canvas = new SkiaSharp.SKCanvas(bitmap)) canvas.Clear(SkiaSharp.SKColors.Red);
+        using var encoded = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Jpeg, 95);
+        var jpeg = encoded.ToArray();
+        // An APP1 EXIF block with one little-endian Orientation entry.
+        byte[] exif = [0xff, 0xe1, 0, 34, 69, 120, 105, 102, 0, 0, 73, 73, 42, 0, 8, 0, 0, 0, 1, 0, 18, 1, 3, 0, 1, 0, 0, 0, (byte)orientation, 0, 0, 0, 0, 0, 0, 0];
+        var input = jpeg[..2].Concat(exif).Concat(jpeg[2..]).ToArray();
+        var stored = await CreateService().UploadAsync(CreateFile(input, "camera.jpg", "image/jpeg"), "products");
+        Assert.Equal("image/png", stored.ContentType);
+        Assert.Equal(exchangesAxes ? 30 : 20, stored.Width);
+        Assert.Equal(exchangesAxes ? 20 : 30, stored.Height);
+        await using var stream = await CreateService().OpenReadAsync(stored.StorageKey);
+        using var decoded = SkiaSharp.SKBitmap.Decode(stream);
+        var pixel = decoded.GetPixel(decoded.Width / 2, decoded.Height / 2);
+        Assert.True(pixel.Red > 240 && pixel.Green < 10 && pixel.Blue < 10);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_contentRoot))

@@ -45,6 +45,10 @@ namespace be.Infrastructure.Storage
                 throw new InvalidOperationException("Image dimensions are invalid or too large.");
             }
 
+            bytes = await SafeRasterImage.NormalizeAsync(bytes, _maxImagePixels, _maxFileSize, cancellationToken);
+            // Orientation can exchange width and height; use the normalized contract.
+            imageInfo = ImageUploadValidator.Validate(bytes, "image/png", ".png");
+
             var safeArea = string.Join('-', area.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(safeArea))
             {

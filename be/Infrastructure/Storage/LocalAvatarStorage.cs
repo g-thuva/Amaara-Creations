@@ -26,6 +26,7 @@ public sealed class LocalAvatarStorage(IWebHostEnvironment environment, IConfigu
             var maximumPixels = configuration.GetValue<int?>("Uploads:MaxImagePixels") ?? 24_000_000;
             if (image.Width <= 0 || image.Height <= 0 || (long)image.Width * image.Height > maximumPixels)
                 throw new InvalidOperationException("Image dimensions are invalid or too large.");
+            bytes = await SafeRasterImage.NormalizeAsync(bytes, maximumPixels, maximum, cancellationToken);
         }
         catch (InvalidOperationException exception)
         {
@@ -33,7 +34,7 @@ public sealed class LocalAvatarStorage(IWebHostEnvironment environment, IConfigu
         }
         var directory = Path.Combine(environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot"), "uploads", "avatars");
         Directory.CreateDirectory(directory);
-        var fileName = $"{userId}_{Guid.NewGuid()}{extension}";
+        var fileName = $"{userId}_{Guid.NewGuid()}.png";
         var path = Path.GetFullPath(Path.Combine(directory, fileName));
         if (!path.StartsWith(Path.GetFullPath(directory) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new CommerceException("AVATAR_UPLOAD_INVALID", "Invalid upload owner.");
