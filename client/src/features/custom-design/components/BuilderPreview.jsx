@@ -13,7 +13,7 @@ export default function BuilderPreview({ builder }) {
 
         <section className="s-preview-area" aria-label="Sticker preview" aria-live="polite">
           <span className="s-eyebrow">Live preview</span>
-          <div className="s-preview-stage"><div className={`s-sticker-preview s-shape-${geometry.shape} ${guides ? 'has-guides' : ''}`} data-shape={geometry.shape} style={{ fontFamily, color: colour, textAlign: form.textAlignment, aspectRatio: geometry.ratio, width: `${geometry.width}%`, height: `${geometry.height}%` }}>
+          <div className="s-preview-stage"><div className={`s-sticker-preview s-shape-${geometry.shape} ${guides ? 'has-guides' : ''}`} data-shape={geometry.shape} style={{ fontFamily, fontWeight: form.fontCode === 'poppins' ? 600 : 400, color: colour, textAlign: form.textAlignment, aspectRatio: geometry.ratio, width: `${geometry.width}%`, height: `${geometry.height}%` }}>
             {artworkPreview && <img src={artworkPreview} alt="Selected artwork preview" />}
             <span>{form.customText || 'Your sticker'}</span>
           </div></div>

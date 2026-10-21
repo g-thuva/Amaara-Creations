@@ -19,7 +19,7 @@ export default function CustomBuilderPage() {
   return (
     <div className="s-container s-page s-custom-page">
       <PageHeader eyebrow="Custom sticker builder" title={design ? `Edit ${design.name}` : 'Build a custom sticker'}>
-        Configure a sticker, receive a server-calculated item quote, upload private artwork and save the design to your account.
+        Choose your shape and size, add your text or artwork, and review a quote before saving. Uploaded artwork stays private in your account.
       </PageHeader>
       {error && <p className="s-error-text" role="alert">{artworkError(error)}</p>}
       <div className="s-builder">

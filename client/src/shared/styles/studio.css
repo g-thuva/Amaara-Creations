@@ -95,7 +95,7 @@
 .storefront .s-how-grid .s-step-icon { background: var(--surface-muted); color: var(--brand-navy-700); border-radius: 3px; }
 .storefront .s-footer { background: var(--brand-navy-900); }
 .storefront .s-footer-pattern { display: none; }
-.storefront .s-footer-top { grid-template-columns: 1.4fr repeat(auto-fit, minmax(9rem, 1fr)); }
+.storefront .s-footer-top { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
 .storefront .s-footer h2::after { display: none; }
 .storefront .s-footer nav a { min-height: 32px; }
 .storefront .s-footer-brand { font-family: var(--font-display); font-weight: 400; }

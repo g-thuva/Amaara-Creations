@@ -7,7 +7,7 @@ test('protected customer pages remain responsive and staff routes are absent', a
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   await expect(page).toHaveURL(/\/profile$/);
-  for (const width of [375, 430, 768, 1024, 1440]) {
+  for (const width of [320, 375, 430, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const route of ['profile', 'addresses', 'orders', 'wishlist', 'cart', 'account/security']) {
       await page.goto(`./${route}`);

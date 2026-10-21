@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '@/features/auth/AuthProvider.jsx';
 import { ToastProvider } from '@/shared/components/feedback/ToastProvider.jsx';
 import { PasswordField } from '@/shared/components/ui/PasswordField.jsx';
 import http from '@/shared/api/httpClient.js';
+import '@/shared/styles/fonts.css';
 import '@/shared/styles/tokens.css';
 import '@/shared/styles/globals.css';
 import '@/features/auth/auth.css';

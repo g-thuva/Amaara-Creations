@@ -24,7 +24,7 @@ export default function BuilderControls({ builder }) {
           {config.artworkRequired && <p className="s-meta">Artwork is required before this design can be added to the cart.</p>}
           {design?.assets?.map((asset) => <div className="s-row" key={asset.id}><span>{asset.originalFileName}</span><Button type="button" variant="text" disabled={busy} onClick={() => removeArtwork(asset.id)}>Remove</Button></div>)}
           <div className="s-actions"><Button type="button" variant="secondary" disabled={busy || !quote} onClick={save}>{busy ? 'Saving…' : 'Save design'}</Button><Button type="button" disabled={busy || !quote} onClick={addToCart}>Save and add to cart</Button></div>
-          <p className="s-meta">The server validates every option and recalculates the price when saving, adding to cart and creating an order.</p>
+          <p className="s-meta">Your quote updates with your options. The current order total is confirmed at checkout.</p>
           <Link className="s-text-link" to="/account/designs">View saved designs <Icon name="arrow" /></Link>
         </form>
   );

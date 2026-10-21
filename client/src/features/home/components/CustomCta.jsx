@@ -17,7 +17,7 @@ export default function CustomCta() {
       </ul>
       <div>
         <Link className="s-button s-button-light" to="/custom">Start designing <Icon name="arrow" /></Link>
-        <small>Available options and prices come from the current studio configuration.</small>
+        <small>Explore available shapes and review a quote before you save.</small>
       </div>
     </section>
   );
