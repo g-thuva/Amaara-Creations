@@ -135,7 +135,7 @@ client/src/
 client/e2e/{account,admin,checkout,production,storefront}
 ```
 
-The [frontend architecture](../architecture/frontend.md), [admin architecture](../architecture/admin.md) and [full frontend file audit](frontend-file-audit.md) retain the exact detailed ownership/tree evidence. The current frontend filesystem is listed in the repository ledger.
+The [frontend architecture](../architecture/frontend.md) and [admin architecture](../architecture/admin.md) retain the exact detailed ownership/tree evidence. The current frontend filesystem is listed in the repository ledger.
 
 ## Admin / storefront / API / hooks / CSS result
 
@@ -143,7 +143,7 @@ Both storefront and admin retain feature APIs, hooks that return state/actions, 
 
 ## Files moved / renamed / merged
 
-The [631-file ledger](full-repository-file-audit.md) accounts for every baseline path. The migration inventory records 198 move entries (including intermediate moves) and 57 entity declaration splits/merges. These are operation records, not a claim of 255 distinct deleted files. Controller workflows, phase-named entities, context configuration, contracts, test fixtures and release/architecture documentation moved to their owners. OrderQueries became OrderService because it also mutates orders; the duplicated CustomBuilderCustomBuilderTests name became CustomDesignWorkflowTests. `be.http` moved to API requests and replaced the obsolete weatherforecast example.
+The 631-file ledger accounts for every baseline path. The migration inventory records 198 move entries (including intermediate moves) and 57 entity declaration splits/merges. These are operation records, not a claim of 255 distinct deleted files. Controller workflows, phase-named entities, context configuration, contracts, test fixtures and release/architecture documentation moved to their owners. OrderQueries became OrderService because it also mutates orders; the duplicated CustomBuilderCustomBuilderTests name became CustomDesignWorkflowTests. `be.http` moved to API requests and replaced the obsolete weatherforecast example.
 
 ## Files / declarations removed
 

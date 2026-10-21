@@ -6,7 +6,7 @@ Verification: 20–21 October 2026. Branch: `develop` only. This report separate
 
 | Gate | Status and evidence |
 | --- | --- |
-| A — full repository architecture | **PASS**, completed before Phase 8. [Full result](full-repository-refactor-result.md), [all 631 original tracked paths audited](full-repository-file-audit.md). Baseline `ae6e4cc`: 220 backend / 8 real SQL, 110 frontend, 70 browser, 3 production-browser, 3 webhook tests passed. |
+| A — full repository architecture | **PASS**, completed before Phase 8. [Full result](full-repository-refactor-result.md), all 631 original tracked paths audited. Baseline `ae6e4cc`: 220 backend / 8 real SQL, 110 frontend, 70 browser, 3 production-browser, 3 webhook tests passed. |
 | B — Phase 8 quality | **PASS**, completed before Phase 9 on `1ca40d8`. [Quality result](phase8-quality-result.md), [green SQL CI](https://github.com/g-thuva/Amaara-Creations/actions/runs/39481076018), [green browser CI](https://github.com/g-thuva/Amaara-Creations/actions/runs/39481076017). Baseline 235 backend / 10 SQL, 111 frontend, 70 browser, 3 production-browser, 3 webhook. |
 | C — Phase 9 engineering | **PASS** on implementation commit `7b3e709`. Complete local regression, a clean-source package/rehearsal, [SQL/published-app CI](https://github.com/g-thuva/Amaara-Creations/actions/runs/39493736606) and [browser CI](https://github.com/g-thuva/Amaara-Creations/actions/runs/39493736607) all passed. |
 | Actual external production cutover | **BLOCKED — EXTERNAL INPUTS REQUIRED**. No production action or genuine PSP acceptance is claimed. |
