@@ -14,6 +14,8 @@ try {
     for (const route of ['', 'products', 'custom', 'login']) {
       const response = await page.goto(`http://127.0.0.1:5178/Amaara-Creations/${route}`);
       await page.locator('h1').first().waitFor();
+      await page.waitForFunction(() => !document.querySelector('[aria-label="Loading content"]'));
+      if (route === 'custom') await page.getByText('Custom item subtotal', { exact: true }).waitFor();
       await page.screenshot({ path: `${directory}/${route || 'home'}-${width}.png`, fullPage: true });
       notes.push({ route: route || 'home', width, status: response.status(), overflow: await page.evaluate(() => document.documentElement.scrollWidth > innerWidth) });
     }

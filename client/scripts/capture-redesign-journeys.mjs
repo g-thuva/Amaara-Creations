@@ -21,7 +21,7 @@ try {
     for (const [name, route] of [['product', `products/${fixture.products[0]}`], ['profile', 'profile'], ['checkout', 'checkout'], ['help', 'help']]) {
       await page.goto(`http://127.0.0.1:5178/Amaara-Creations/${route}`);
       await page.locator('main h1').waitFor();
-      await page.locator('[aria-label="Loading content"]').waitFor({ state: 'hidden' }).catch(() => {});
+      await page.waitForFunction(() => !document.querySelector('[aria-label="Loading content"]'));
       // Only the disposable fixture email is masked; no real customer data is read.
       if (name === 'profile') await page.locator('input[type=email]').evaluate(input => { input.value = 'capture@example.test'; });
       await page.screenshot({ path: `${directory}/${name}-${width}.png`, fullPage: true });

@@ -24,7 +24,7 @@ Date: 22 October 2026 (Asia/Colombo). Starting commit `8c7bf54`, clean `develop`
 | Baseline frontend | 111 tests passed in 21 files |
 | Current .NET without SQL | 257 passed, 11 skipped, 0 failed (268 total) |
 | Current .NET with real SQL | **268 passed, 0 skipped, 0 failed**, 58 seconds. A uniquely named new local `AmaaraPhase6Tests_Redesign_20261022_*` database was used via Windows authentication; existing development/production databases were not migrated |
-| Frontend unit tests | 121 passed in 22 files under Node 22.23.4 after geometry cases added |
+| Frontend unit tests | 121 passed in 22 files under Node 22.23.4 after geometry cases added; repeated successfully with Vitest 4.1.12 |
 | ESLint / TypeScript | Both passed on the checked source; staff output is excluded as generated build output |
 | Production storefront build | Passed; 215 transformed modules in the recorded run |
 | Separate staff build | Passed; 237 transformed modules in the recorded run |
@@ -38,7 +38,7 @@ Date: 22 October 2026 (Asia/Colombo). Starting commit `8c7bf54`, clean `develop`
 | Full browser / production browser | 74 development cases passed under Node 22.23.4 (6.7 minutes); 3 production-build cases passed (24.8 seconds), followed by a final expanded 9-case production run (58.1 seconds) covering 320px accounts, public axe and password/designer/isolation journeys. An earlier comprehensive Node 20 run passed 77 cases; the final configuration correctly reserves its 3 lab cases for production mode |
 | Lighthouse mobile lab | Three production-build runs: performance 98/95/96 (median 96), accessibility 100, Best Practices 96, SEO 100; median LCP 2.533s, CLS 0, TBT 104ms. See exceptions below |
 | Published package/rehearsal | Seven-step package build and checksum/privacy verification passed (105 files). The Production API passed real-SQL, HTTPS loopback, MFA-positive/negative, private-file, paused-payment and browser-isolation checks. This was an explicitly labeled dirty local rehearsal, not a deployable production approval |
-| Dependency inventory | Frontend CycloneDX SBOM generated locally from the unchanged lockfile; current npm/NuGet vulnerability feeds reported no project vulnerabilities |
+| Dependency inventory | Frontend CycloneDX SBOM generated locally from the updated lockfile; current npm/NuGet vulnerability feeds reported no project vulnerabilities |
 | Other regression checks | 3 webhook proxy tests and 8 release-tool tests passed; final JWT-type restriction additionally passed all 15 focused authentication/security tests |
 | External reference browsers | All 27 reference/viewport attempts blocked by sandbox network policy; several web-reader pages retrieved |
 | Manual screen reader / genuine gateway / field vitals | Not performed; no certification or production payment claim |
@@ -68,3 +68,7 @@ The 90 performance / 100 accessibility / 95 SEO lab floors were met. Best Practi
 No production deployment or merge is included. The requested work is substantial local implementation with documented incomplete production/editor/privacy functionality, not a declaration that every master-prompt acceptance outcome is finished.
 
 The first package attempt overlapped test-server shutdown and hit a Windows esbuild file lock. The failed artifact was retained separately; after all owned servers stopped, the new package and published rehearsal passed. No failed or incomplete artifact was deployed.
+
+## Pull request verification
+
+Draft PR: https://github.com/g-thuva/Amaara-Creations/pull/1 (base `develop`). The first hosted SQL/API workflow passed, including its clean Linux package/rehearsal. The first browser workflow stopped at the dependency audit when its feed reported two moderate Vitest advisories ([GHSA-qxg6-89mg-rqv8](https://github.com/advisories/GHSA-qxg6-89mg-rqv8), [GHSA-xp26-3454-mjgp](https://github.com/advisories/GHSA-xp26-3454-mjgp)). Vitest and its seven matching internal packages were updated from 4.1.11 to the fixed 4.1.12; runtime dependencies were unchanged. A fresh local audit reported zero vulnerabilities and all 121 unit tests passed. Audit enforcement remains enabled. Hosted results for the updated commit are tracked on the PR.
