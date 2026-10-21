@@ -22,6 +22,7 @@ export default function CustomBuilderPage() {
         Choose your shape and size, add your text or artwork, and review a quote before saving. Uploaded artwork stays private in your account.
       </PageHeader>
       {error && <p className="s-error-text" role="alert">{artworkError(error)}</p>}
+      {builder.draftConflict && <section className="s-alert" aria-label="Conflicting design edits"><h2>Review your saved changes</h2><p>This design has a different saved version. Your local edits are still available. Recover them to review and save, or reload the account version. Uploaded artwork remains attached to the account design.</p><div className="s-actions"><Button onClick={builder.recoverDraft}>Recover local edits</Button><Button variant="secondary" onClick={builder.discardDraft}>Use account version</Button></div></section>}
       <div className="s-builder">
         <BuilderControls builder={builder} />
         <BuilderPreview builder={builder} />

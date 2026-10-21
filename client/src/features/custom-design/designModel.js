@@ -1,4 +1,5 @@
 import { safeJson } from '@/shared/utils/safeJson.ts';
+import { readEditorState } from './editorState.js';
 export function optionsByGroup(options = []) {
   return options.filter((option) => option.isActive).reduce((groups, option) => {
     (groups[option.group] ||= []).push(option);
@@ -7,12 +8,13 @@ export function optionsByGroup(options = []) {
 }
 
 export function customDesignRequest(form) {
+  const { editor, name, shapeCode, materialCode, finishCode, fontCode, colourCode, customText, textAlignment, rowVersion } = form;
   return {
-    ...form,
+    name, shapeCode, materialCode, finishCode, fontCode, colourCode, customText, textAlignment, rowVersion,
     width: Number(form.width),
     height: Number(form.height),
     quantity: Number(form.quantity),
-    editorStateJson: JSON.stringify({ schemaVersion: 1, preview: { text: form.customText, alignment: form.textAlignment } }),
+    editorStateJson: JSON.stringify(readEditorState(editor)),
   };
 }
 

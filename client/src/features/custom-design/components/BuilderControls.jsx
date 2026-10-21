@@ -2,9 +2,11 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button.jsx';
 import Icon from '@/shared/components/ui/Icon.jsx';
 import { optionField } from '@/features/custom-design/builderDraft.js';
+import { readEditorState } from '@/features/custom-design/editorState.js';
 
 export default function BuilderControls({ builder }) {
   const { config, form, groups, change, busy, quote, design, save, upload, removeArtwork, addToCart } = builder;
+  const editor = readEditorState(form.editor);
   return (
         <form className="s-form s-builder-controls" onSubmit={(event) => event.preventDefault()}>
           <h2>Design specification</h2>
@@ -20,6 +22,12 @@ export default function BuilderControls({ builder }) {
           ) : null)}
           <label>Sticker text (optional)<input value={form.customText} maxLength="160" onChange={(event) => change('customText', event.target.value)} /></label>
           <label>Text alignment<select value={form.textAlignment} onChange={(event) => change('textAlignment', event.target.value)}><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select></label>
+          <details><summary>Adjust text and artwork</summary><div className="s-form">
+            <label>Preview background<select value={editor.background} onChange={event => builder.changeEditor('background', event.target.value)}><option value="white">White</option><option value="transparent">Transparent</option></select></label>
+            <label>Artwork fit<select value={editor.artworkFit} onChange={event => builder.changeEditor('artworkFit', event.target.value)}><option value="contain">Fit entire image</option><option value="cover">Fill and crop</option></select></label>
+            {Object.entries({ artworkScale: ['Artwork zoom', .25, 4, .05], artworkX: ['Artwork horizontal position', 0, 100, 1], artworkY: ['Artwork vertical position', 0, 100, 1], artworkRotation: ['Artwork rotation', -180, 180, 1], textSize: ['Text size', 2, 40, 1], textX: ['Text horizontal position', 0, 100, 1], textY: ['Text vertical position', 0, 100, 1] }).map(([field, [label, min, max, step]]) => <label key={field}>{label}<input type="range" min={min} max={max} step={step} value={editor[field]} onChange={event => builder.changeEditor(field, Number(event.target.value))} /><output aria-hidden="true">{editor[field]}{field === 'artworkRotation' ? '°' : field === 'artworkScale' ? '×' : '%'}</output></label>)}
+            <Button variant="text" type="button" onClick={() => builder.change('editor', readEditorState(null))}>Reset layout adjustments</Button>
+          </div></details>
           <label>Artwork (JPEG, PNG or WebP)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={upload} /></label>
           {config.artworkRequired && <p className="s-meta">Artwork is required before this design can be added to the cart.</p>}
           {design?.assets?.map((asset) => <div className="s-row" key={asset.id}><span>{asset.originalFileName}</span><Button type="button" variant="text" disabled={busy} onClick={() => removeArtwork(asset.id)}>Remove</Button></div>)}

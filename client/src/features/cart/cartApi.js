@@ -8,9 +8,10 @@ export const cartApi = {
   },
 
   // Add item to cart
-  addToCart: async (productId, quantity = 1) => {
+  addToCart: async (productId, quantity = 1, productVariantId = null) => {
     const response = await api.post('/cart', {
       productId,
+      productVariantId,
       quantity,
     });
     return response.data;

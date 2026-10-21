@@ -256,7 +256,7 @@ public class CustomDesignService
         if (!await _storage.ExistsAsync(asset.StorageKey, cancellationToken))
             throw new CommerceException("CUSTOM_DESIGNS_NOT_FOUND", "Resource not found.", 404);
         var stream = await _storage.OpenReadAsync(asset.StorageKey, cancellationToken);
-        return new DownloadContent(stream, asset.ContentType ?? "application/octet-stream", Path.GetFileName(asset.OriginalFileName ?? $"asset-{asset.Id}"), true);
+        return new DownloadContent(stream, asset.ContentType ?? "application/octet-stream", DownloadName(asset.OriginalFileName, asset.ContentType, $"asset-{asset.Id}"), true);
     }
 
     public async Task DeleteAsset(int id, int assetId, CancellationToken cancellationToken)
@@ -345,7 +345,7 @@ public class CustomDesignService
         if (!await CanAccess(proof.CustomDesign?.UserId))
             throw new CommerceException("CUSTOM_DESIGNS_NOT_FOUND", "Resource not found.", 404);
         var stream = await _storage.OpenReadAsync(proof.Asset.StorageKey, cancellationToken);
-        return new DownloadContent(stream, proof.Asset.ContentType ?? "application/octet-stream", Path.GetFileName(proof.Asset.OriginalFileName ?? $"proof-{revision}"), true);
+        return new DownloadContent(stream, proof.Asset.ContentType ?? "application/octet-stream", DownloadName(proof.Asset.OriginalFileName, proof.Asset.ContentType, $"proof-{revision}"), true);
     }
 
     private async Task<CustomDesignDto> RespondToProof(int id, ProofResponseRequest request, bool approve, CancellationToken cancellationToken)
@@ -412,7 +412,7 @@ public class CustomDesignService
         CustomQuoteResponse quote)
     {
         design.Name = request.Name.Trim();
-        design.DesignSchemaVersion = 1;
+        design.DesignSchemaVersion = EditorLayout.Version(request.EditorStateJson);
         design.BuilderConfigurationVersionId = configuration.Id;
         design.Width = quote.Width;
         design.Height = quote.Height;
@@ -450,8 +450,13 @@ public class CustomDesignService
     };
     private static void ValidateEditorState(string? json)
     {
-        if (!string.IsNullOrWhiteSpace(json))
-            JsonDocument.Parse(json).Dispose();
+        EditorLayout.Validate(json);
+    }
+
+    private static string DownloadName(string? original, string? contentType, string fallback)
+    {
+        var name = Path.GetFileName(original ?? fallback);
+        return contentType == "image/png" ? Path.ChangeExtension(name, ".png") : name;
     }
 
     private readonly IRequestActor _actor;

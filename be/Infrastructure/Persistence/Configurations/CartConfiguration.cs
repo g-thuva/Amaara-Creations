@@ -15,8 +15,9 @@ internal sealed class CartConfiguration : IEntityTypeConfiguration<CartItem>
         entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Cascade);
         entity.HasOne(e => e.Product).WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.Restrict);
         // Index for faster queries
-        entity.HasIndex(e => new { e.UserId, e.ProductId }).IsUnique().HasFilter("[ProductId] IS NOT NULL");
-        entity.ToTable("CartItems", table => table.HasCheckConstraint("CK_CartItems_ItemType", "([ItemType] = 0 AND [ProductId] IS NOT NULL AND [CustomDesignId] IS NULL) OR ([ItemType] = 1 AND [ProductId] IS NULL AND [CustomDesignId] IS NOT NULL)"));
+        entity.HasIndex(e => new { e.UserId, e.ProductId, e.ProductVariantId }).IsUnique().HasFilter("[ProductId] IS NOT NULL");
+        entity.HasOne(e => e.ProductVariant).WithMany().HasForeignKey(e => e.ProductVariantId).OnDelete(DeleteBehavior.Restrict);
+        entity.ToTable("CartItems", table => table.HasCheckConstraint("CK_CartItems_ItemType", "([ItemType] = 0 AND [ProductId] IS NOT NULL AND [CustomDesignId] IS NULL) OR ([ItemType] = 1 AND [ProductId] IS NULL AND [ProductVariantId] IS NULL AND [CustomDesignId] IS NOT NULL)"));
         entity.Property(x => x.ItemType).HasConversion<int>();
         entity.Property(x => x.UnitPriceSnapshot).HasColumnType("decimal(18,2)");
         entity.HasIndex(x => new { x.UserId, x.CustomDesignId }).IsUnique().HasFilter("[CustomDesignId] IS NOT NULL");

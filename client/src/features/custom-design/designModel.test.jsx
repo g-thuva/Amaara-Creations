@@ -16,7 +16,7 @@ describe('Custom Builder custom builder presentation adapters', () => {
     const request = customDesignRequest({ name: 'Labels', width: '10', height: '5', quantity: '25', customText: 'Amaara', textAlignment: 'center' });
     expect(request).toMatchObject({ width: 10, height: 5, quantity: 25 });
     expect(request).not.toHaveProperty('price');
-    expect(JSON.parse(request.editorStateJson).schemaVersion).toBe(1);
+    expect(JSON.parse(request.editorStateJson).schemaVersion).toBe(2);
   });
 
   it('accepts versioned order snapshots and rejects malformed or unknown versions', () => {

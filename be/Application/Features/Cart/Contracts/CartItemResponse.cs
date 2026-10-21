@@ -5,6 +5,8 @@ namespace be.Application.Features.Cart
         public int Id { get; set; }
         public string ItemType { get; set; } = "Product";
         public int? ProductId { get; set; }
+        public int? ProductVariantId { get; set; }
+        public string? VariantName { get; set; }
         public int? CustomDesignId { get; set; }
         public string ProductName { get; set; } = string.Empty;
         public decimal ProductPrice { get; set; }
