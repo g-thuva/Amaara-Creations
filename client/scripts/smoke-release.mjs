@@ -24,14 +24,20 @@ try {
   await page.waitForURL(url => !url.pathname.endsWith('/login'));
   const session = (await context.cookies()).find(cookie => cookie.name === 'amaara_refresh');
   if (!session?.secure || !session.httpOnly || session.sameSite !== 'Lax') throw new Error('Published refresh cookie is missing required protections.');
-  for (const path of ['/profile', '/cart', '/orders', '/admin/orders', '/admin/inventory', '/admin/reports']) {
+  for (const path of ['/profile', '/cart', '/orders']) {
     stage = path;
     await page.goto(new URL(path, origin).href);
     await page.locator('main h1, main h2').first().waitFor();
     if (page.url().endsWith('/login')) throw new Error('Published secure session did not survive reload.');
   }
+  for (const path of ['/admin/orders', '/admin/inventory', '/admin/reports']) {
+    stage = 'storefront staff isolation: ' + path;
+    await page.goto(new URL(path, origin).href);
+    await page.getByRole('heading', { name: 'Page not found', exact: true }).waitFor();
+    if (await page.getByRole('navigation', { name: 'Administration' }).count()) throw new Error('Staff modules appeared in the packaged storefront.');
+  }
   if (errors.length) throw new Error('Published artifact reported browser runtime errors.');
-  console.log('Published browser smoke: PASS; public routes, CMS, builder availability, secure session, account/cart/orders and admin reads.');
+  console.log('Published browser smoke: PASS; public routes, CMS, builder availability, secure session, account/cart/orders and staff isolation.');
 } catch (error) {
   console.error(`Published browser smoke: FAIL; stage=${stage}; type=${error.name}`);
   process.exitCode = 1;

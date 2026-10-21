@@ -41,6 +41,7 @@ public static class AuthenticationExtensions
                 ValidAudience = jwtAudience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
                 ClockSkew = TimeSpan.FromSeconds(30),
+                ValidTypes = ["JWT"],
                 ValidAlgorithms = [SecurityAlgorithms.HmacSha256]
             };
             options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
