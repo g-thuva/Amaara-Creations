@@ -13,7 +13,7 @@
 | Commerce | Implemented | Selected variants persist as distinct cart lines with authoritative prices and transactional variant stock/reservation; cart drawer, protected artwork thumbnails, remove confirmation/restoration, existing validated checkout/payment/refund/proof workflows |
 | Accounts | Implemented | Profile dirty protection and photo crop/retry, TOTP enrollment/replacement/replay protection, hashed one-use recovery codes, device/session revocation, reauthenticated export, verified email change and scoped quote/deletion-review requests |
 | Staff | Implemented locally, rollout closed | Independent staff entry/build, capability gating before operational imports, existing modules plus permission-scoped quote/privacy queues, audit redaction and deny-only identity-gateway template |
-| Hardening and release | Verification in progress | Current observed checks below. Genuine provider, manual accessibility and protected production-host evidence remain explicit release gates |
+| Hardening and release | Local checks passing; package verification in progress | Current observed checks below. Genuine provider, manual accessibility and protected production-host evidence remain explicit release gates |
 
 The editor PNG is a layout preview at bounded output resolution. Physical bleed, cutpaths, exact production fonts/material finish and the final proof require production approval; the interface does not call a browser PNG a printer-ready file. Deletion requests request review and do not erase records or promise automatic erasure.
 
@@ -29,13 +29,15 @@ The final feature source is committed as `1f4c845`, following `bc5d7cd` (raster 
 | Focused browser regression | **19 passed**, artwork failure/ownership cases, editor restoration/export/conflict recovery, cart drawer/Escape focus/removal restoration and private thumbnails |
 | Additional browser cases | Full customer lifecycle, profile crop/retry and cart checks passed together (4 cases); privacy export/email verification/request/reply checks passed (2 cases); upload cancellation/reconciliation/retry passed its focused case |
 | Full development browser suite | Previous expanded run: 81 passed, 1 failed because a lifecycle assertion still expected variants to be unavailable. Assertion corrected for the implemented purchase path; full lifecycle passed afterward. A clean final aggregate run is pending; this is not represented as an 85-case pass |
-| Production-build browser suite | Expanded 20-case runner prepared; final result pending |
+| Production-build browser suite | **20 passed (4.3m)** on Node 22.23.4, including both built applications, axe, 320px accounts, private artwork, editor/export/conflicts, variants, MFA/devices, privacy/email, photo crop and upload cancellation |
 | Secret scan | **852 text files, zero candidates**; ignored private configuration excluded |
 | EF model | No pending model changes |
 | Migration behavior | Both additive migrations exercised on disposable SQL: existing cart rows preserved; variant stock cannot oversell; rollback guards refuse to discard selected variants or customer requests |
 | Release tools / webhook proxy | **10 Python tests and 3 Node tests passed** |
-| Dependency audits | Final feed results pending; restricted NuGet attempt could not reach its feed and is not a successful audit |
-| Current artifacts / package rehearsal | Final builds, isolation, size budgets and clean package rehearsal pending |
+| Dependency audits | npm: **zero vulnerabilities**; NuGet: **zero known vulnerable packages** after retrying with feed access. Restricted attempts failed connectivity and are not counted as successful audits |
+| Current artifacts | Both production builds passed; customer isolation passed (37 manifest entries, 38 assets, no staff modules/source maps). Initial JS **115,565 / 128,000** gzip bytes; largest route **8,321 / 40,000** gzip bytes; CSS **76,337 / 100,000** bytes |
+| Production desktop lab | LCP **616ms**, CLS **0**, measured by the production browser case; fixture-based local evidence, not mobile Lighthouse or field performance |
+| Current package rehearsal | Clean package/rehearsal pending |
 
 The baseline was 241 backend passes plus 11 SQL skips and 111 frontend passes. Earlier feature revisions passed 268 real-SQL cases, 74 development browser cases and an expanded 9-case production run. Earlier hosted browser and SQL/API workflows at `1458849` passed, including a clean Linux package/HTTPS rehearsal. Those earlier passes do not substitute for the final source checks listed above.
 
