@@ -1,5 +1,5 @@
 export const storefrontNavigation = [
-  ['/', 'Home'], ['/products', 'Shop'], ['/custom', 'Custom stickers'], ['/about', 'About'], ['/contact', 'Contact'],
+  ['/products', 'Shop'], ['/custom', 'Custom design'], ['/about', 'About'], ['/help', 'Help'],
 ];
 export const accountNavigation = [
   ['/profile', 'user', 'Profile'], ['/addresses', 'mapPin', 'Addresses'], ['/orders', 'package', 'Orders'],

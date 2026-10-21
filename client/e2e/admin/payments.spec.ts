@@ -1,3 +1,4 @@
+import { fillAuthenticator } from '../staffAuth';
 import { type APIRequestContext, type Page } from "@playwright/test";
 import { test, expect, acceptanceApi } from "../fixtures";
 
@@ -23,7 +24,7 @@ async function openRefundOrder(
     .getByLabel("Email Address", { exact: true })
     .fill(fixture.adminEmail);
   await page.getByLabel("Password", { exact: true }).fill(fixture.password);
-  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await fillAuthenticator(page); await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login$/);
   await page.goto(`./admin/orders/${fixture.orderId}`);
   await expect(page.getByLabel("Refund amount")).toBeEnabled();

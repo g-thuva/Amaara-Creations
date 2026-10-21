@@ -43,8 +43,8 @@ export default function ContentPage({ page }) {
         ) : resource.data ? (
           <CmsSections sections={resource.data.sections} />
         ) : !contact && (
-          <EmptyState to="/products" label="Explore products" title={missing ? 'This page is not available' : 'This page is being prepared'}>
-            <p>{missing ? 'The link may be old, or the page may no longer be published.' : 'Explore the current product catalogue while this content is completed.'}</p>
+          <EmptyState to="/custom" label="Explore custom design" title={missing ? 'This page is not available' : 'A personal touch, in print'}>
+            <p>{missing ? 'The link may be old, or the page may no longer be published.' : 'Explore custom stickers and printed details through the designer and the currently published shop. For help with files and ordering, visit Help.'}</p>
           </EmptyState>
         )}
 

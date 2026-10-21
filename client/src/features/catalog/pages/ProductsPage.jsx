@@ -12,6 +12,7 @@ import { useCatalog } from '@/features/catalog/hooks/useCatalog.js';
 export default function ProductsPage() {
   const catalog = useCatalog();
   const { params, open, setOpen, filterError, query, categories, collections, currency, clear, apply } = catalog;
+  const emptyCatalogue = !catalog.data.loading && !catalog.data.error && catalog.data.data?.publishedCount === 0;
   const filters = (
     <>
       <ProductFilters
@@ -39,17 +40,17 @@ export default function ProductsPage() {
       </div>
 
       <div className="s-container s-page s-catalog-page">
-        <CatalogToolbar catalog={catalog} />
+        {!emptyCatalogue && <CatalogToolbar catalog={catalog} />}
 
         {(categories.error || collections.error) && (
           <div className="s-alert">Some filters are unavailable. <Button variant="text" onClick={() => { categories.reload(); collections.reload(); }}>Retry filters</Button></div>
         )}
 
-        <div className="s-catalog-layout">
-          <aside className="s-desktop-filters" aria-label="Product filters">
+        <div className={emptyCatalogue ? 's-catalog-empty' : 's-catalog-layout'}>
+          {!emptyCatalogue && <aside className="s-desktop-filters" aria-label="Product filters">
             <h2>Filter products</h2>
             {filters}
-          </aside>
+          </aside>}
           <CatalogResults catalog={catalog} />
         </div>
 

@@ -1,3 +1,4 @@
+import { PasswordField } from '@/shared/components/ui/PasswordField.jsx';
 import { Link } from 'react-router-dom';
 import { useLogin } from '@/features/auth/hooks/useLogin.js';
 
@@ -10,10 +11,10 @@ export default function LoginForm() {
           <h1 className="auth-title">Welcome Back</h1>
           <p className="auth-subtitle">Sign in to continue to Amaara Creations</p>
         </div>
-        
+
         {message && <div className="success-message" role="status" style={{ color: 'green', marginBottom: '1rem' }}>{message}</div>}
         {error && <div className="error-message" role="alert" id="form-error">{error}</div>}
-        
+
         <form aria-describedby={error ? "form-error" : undefined} className="auth-form" onSubmit={handleLogin}>
           <div className="form-group">
             <label htmlFor="email" className="form-label">Email Address</label>
@@ -36,9 +37,9 @@ export default function LoginForm() {
                 Forgot password?
               </Link>
             </div>
-            <input
+            <PasswordField
               id="password"
-              type="password"
+
               autoComplete="current-password"
               className="form-control"
               required

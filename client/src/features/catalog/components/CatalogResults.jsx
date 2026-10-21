@@ -19,10 +19,10 @@ export default function CatalogResults({ catalog }) {
                     {data.data.products.map((product, index) => <ProductCard key={product.id} product={product} eager={index < 3} />)}
                   </div>
                 ) : (
-                  <EmptyState title="No products match those filters" to={null}>
-                    <p>Try a broader search, clear the active filters, or preview a custom sticker idea.</p>
+                  <EmptyState title={data.data?.publishedCount === 0 ? 'Begin with your own design' : 'No products match those filters'} to={null}>
+                    <p>{data.data?.publishedCount === 0 ? 'The ready-made collection is currently empty. The designer shows the shapes, materials and pricing currently configured by the studio.' : 'Try a broader search, clear the active filters, or preview a custom sticker idea.'}</p>
                     <div className="s-actions">
-                      <Button onClick={clear}>Clear filters</Button>
+                      {data.data?.publishedCount !== 0 && <Button onClick={clear}>Clear filters</Button>}
                       <Link className="s-button s-button-secondary" to="/custom">Design a custom sticker</Link>
                     </div>
                   </EmptyState>

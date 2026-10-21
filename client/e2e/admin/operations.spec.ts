@@ -1,3 +1,4 @@
+import { fillAuthenticator } from '../staffAuth';
 import { test, expect } from "@playwright/test";
 const api = "http://127.0.0.1:5198";
 async function fixture(request: import("@playwright/test").APIRequestContext) {
@@ -10,10 +11,10 @@ async function login(
   email: string,
   password: string,
 ) {
-  await page.goto("./login");
+  await page.goto(`http://127.0.0.1:${email.startsWith("acceptance-customer-") ? 5178 : 5179}/Amaara-Creations/login`);
   await page.getByLabel("Email Address", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await fillAuthenticator(page); await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login$/);
 }
 
@@ -136,7 +137,7 @@ test("proof approval unlocks validated production and shipment progress reaches 
   try {
     await login(admin, f.basic.adminEmail, f.basic.password);
     await admin.goto(
-      `http://127.0.0.1:5178/Amaara-Creations/admin/custom-designs/${f.designId}`,
+      `http://127.0.0.1:5179/Amaara-Creations/admin/custom-designs/${f.designId}`,
     );
     await expect(
       admin.getByText("No transition available.", { exact: false }),
@@ -187,7 +188,7 @@ test("proof approval unlocks validated production and shipment progress reaches 
       ).toBeVisible();
     }
     await admin.goto(
-      `http://127.0.0.1:5178/Amaara-Creations/admin/orders/${f.basic.orderId}`,
+      `http://127.0.0.1:5179/Amaara-Creations/admin/orders/${f.basic.orderId}`,
     );
     for (const state of ["Packed", "Shipped", "Delivered"]) {
       await admin

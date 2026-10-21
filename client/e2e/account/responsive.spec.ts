@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-test('protected customer pages and admin remain responsive', async ({ page, fixture }) => {
+test('protected customer pages remain responsive and staff routes are absent', async ({ page, fixture }) => {
   test.setTimeout(180000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('./login');
@@ -18,6 +18,6 @@ test('protected customer pages and admin remain responsive', async ({ page, fixt
   }
   await page.goto('./admin/dashboard');
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
-  await expect(page.locator('main')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /not found|couldn.t find|page isn.t here/i })).toBeVisible();
   expect(errors).toEqual([]);
 });

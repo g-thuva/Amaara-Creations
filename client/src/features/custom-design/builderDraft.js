@@ -11,7 +11,7 @@ export function readBuilderDraft(storage = sessionStorage) {
   } catch { return null; }
 }
 export function saveBuilderDraft(form, storage = sessionStorage) {
-  try { storage.setItem(draftKey, JSON.stringify(form)); } catch { /* Storage may be unavailable. */ }
+  try { storage.setItem(draftKey, JSON.stringify(form)); return true; } catch { return false; }
 }
 export function clearBuilderDraft(storage = sessionStorage) {
   try { storage.removeItem(draftKey); } catch { /* A saved design remains authoritative. */ }

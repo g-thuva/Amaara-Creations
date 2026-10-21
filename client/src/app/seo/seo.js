@@ -5,8 +5,9 @@ const pages = {
   '/custom': ['Custom sticker builder', 'Create a custom sticker with dimensions, materials, finishes and private artwork.'],
   '/about': ['About Amaara', 'Learn about Amaara Creations and our custom printed products.'],
   '/contact': ['Contact Amaara', 'Contact Amaara Creations about products and custom printing.'],
+  '/help': ['Design & ordering help', 'Help with sticker sizes, artwork files, saved designs, proofs and ordering.'],
 };
-const privateTitles = { login: 'Sign in', register: 'Create account', cart: 'Shopping cart', checkout: 'Checkout', orders: 'Your orders', profile: 'Your profile', addresses: 'Your addresses', wishlist: 'Wishlist', admin: 'Administration', account: 'Your account', 'forgot-password': 'Reset your password', 'reset-password': 'Reset your password', 'verify-email': 'Verify email' };
+const privateTitles = { login: 'Sign in', register: 'Create account', cart: 'Shopping cart', checkout: 'Checkout', orders: 'Your orders', profile: 'Your profile', addresses: 'Your addresses', wishlist: 'Wishlist', account: 'Your account', 'forgot-password': 'Reset your password', 'reset-password': 'Reset your password', 'verify-email': 'Verify email' };
 export function seoForRoute(path, base) {
   const isProduct = /^\/products\/\d+$/.test(path);
   // Resource routes opt into indexing only after a published resource loads.

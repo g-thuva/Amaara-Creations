@@ -10,6 +10,7 @@ import { artworkError, createArtworkActions } from '@/features/custom-design/art
 import { customDesignRequest, optionsByGroup } from '@/features/custom-design/designModel.js';
 import { blank, optionField, readBuilderDraft, saveBuilderDraft, clearBuilderDraft } from '@/features/custom-design/builderDraft.js';
 import { useBuilderQuote } from '@/features/custom-design/hooks/useBuilderQuote.js';
+import { changePreviewSpecification } from '@/features/custom-design/previewGeometry.js';
 
 export function useCustomBuilder(id) {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export function useCustomBuilder(id) {
   const [artworkPending, setArtworkPending] = useState(false);
   const [error, setError] = useState(null);
   const [artworkPreview, setArtworkPreview] = useState('');
+  const [draftStatus, setDraftStatus] = useState('');
   const loadedDesignId = useRef(undefined);
   const saving = useRef(false);
   const adding = useRef(false);
@@ -92,9 +94,32 @@ export function useCustomBuilder(id) {
 
   const { quote, quoteError } = useBuilderQuote(config, form, loading);
 
+  useEffect(() => {
+    if (loading || id) return undefined;
+    setDraftStatus('Saving draft on this device…');
+    const timer = window.setTimeout(() => {
+      const saved = saveBuilderDraft(form);
+      setDraftStatus(saved ? 'Draft saved for this browser session. Artwork is saved separately to your account.' : 'Device storage is unavailable. Save to your account to keep this design.');
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [form, loading, id]);
+
+  useEffect(() => {
+    if (!design?.assets?.length) return undefined;
+    const asset = design.assets[design.assets.length - 1];
+    const url = asset.downloadUrl;
+    if (!url) return undefined;
+    let active = true; let objectUrl;
+    customDesignApi.downloadPrivate(url).then(blob => {
+      if (!active) return;
+      objectUrl = URL.createObjectURL(blob); setArtworkPreview(objectUrl);
+    }).catch(() => { if (active) setError(new Error('Unable to restore the private artwork preview. Retry opening this design.')); });
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [design?.id, design?.assets]);
+
   useEffect(() => () => { if (artworkPreview) URL.revokeObjectURL(artworkPreview); }, [artworkPreview]);
 
-  const change = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const change = (field, value) => setForm((current) => changePreviewSpecification(current, field, value));
 
   const save = async () => {
     if (saving.current) return null;
@@ -143,5 +168,5 @@ export function useCustomBuilder(id) {
   };
 
 
-  return { config, form, design, quote, loading, busy, error, quoteError, artworkPreview, groups, change, save, upload, removeArtwork, addToCart, reload: () => navigate(0) };
+  return { config, form, design, quote, loading, busy, error, quoteError, draftStatus, artworkPreview, groups, change, save, upload, removeArtwork, addToCart, reload: () => navigate(0) };
 }

@@ -1,3 +1,4 @@
+import { fillAuthenticator } from '../staffAuth';
 import { test, expect, type Page } from "@playwright/test";
 
 const api = "http://127.0.0.1:5198";
@@ -5,7 +6,7 @@ async function login(page: Page, email: string, password: string) {
   await page.goto("./login");
   await page.getByLabel("Email Address", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await fillAuthenticator(page); await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login$/);
 }
 

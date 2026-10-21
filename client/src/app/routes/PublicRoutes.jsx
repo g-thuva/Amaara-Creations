@@ -10,6 +10,7 @@ const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage.jsx')
 const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage.jsx'));
 const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage.jsx'));
 const VerifyEmailPage = lazy(() => import('@/features/auth/pages/VerifyEmailPage.jsx'));
+const HelpPage = lazy(() => import('@/features/content/pages/HelpPage.jsx'));
 
 export const publicRoutes = [
   { path: '/', element: <HomePage /> },
@@ -18,6 +19,7 @@ export const publicRoutes = [
   { path: '/custom/:id?', element: <CustomBuilderPage /> },
   { path: '/about', element: <ContentPage page="about" /> },
   { path: '/contact', element: <ContentPage page="contact" /> },
+  { path: '/help', element: <HelpPage /> },
   { path: '/pages/:slug', element: <ContentPage /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },

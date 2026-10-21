@@ -15,6 +15,7 @@ import '@/features/account/account.css';
 import '@/features/orders/orders.css';
 import '@/features/content/content.css';
 import '@/features/custom-design/customDesign.css';
+import '@/shared/styles/studio.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode><AppProviders><App /></AppProviders></React.StrictMode>

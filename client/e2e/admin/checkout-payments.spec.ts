@@ -29,5 +29,5 @@ test('admin refund requires confirmation, preserves pending status and supports 
 });
 
 test('customer cannot open admin payment operations', async ({ page }) => {
-  await checkoutFixture(page); await page.goto('./admin/orders/1'); await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible();
+  await checkoutFixture(page); await page.goto('./admin/orders/1'); await expect(page.getByRole('heading', { name: 'Staff sign in' })).toBeVisible();
 });

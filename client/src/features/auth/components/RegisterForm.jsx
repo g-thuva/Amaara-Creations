@@ -1,3 +1,4 @@
+import { PasswordField } from '@/shared/components/ui/PasswordField.jsx';
 import { Link } from 'react-router-dom';
 import { useRegister } from '@/features/auth/hooks/useRegister.js';
 
@@ -10,9 +11,9 @@ export default function RegisterForm() {
           <h1 className="auth-title">Create Account</h1>
           <p className="auth-subtitle">Join Amaara Creations today</p>
         </div>
-        
+
         {error && <div className="error-message" role="alert" id="form-error">{error}</div>}
-        
+
         <form aria-describedby={error ? "form-error" : undefined} className="auth-form" onSubmit={handleRegister}>
           <div className="form-group">
             <label htmlFor="name" className="form-label">Full Name</label>
@@ -29,7 +30,7 @@ export default function RegisterForm() {
               placeholder="Enter your full name"
             />
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="email" className="form-label">Email Address</label>
             <input
@@ -48,40 +49,38 @@ export default function RegisterForm() {
 
           <div className="form-group">
             <label htmlFor="password" className="form-label">Password</label>
-            <input
-              id="password"
-              type="password"
+            <PasswordField
+              id="password" guidance
+
               name="password"
               autoComplete="new-password"
-              aria-describedby="password-help"
               className="form-control"
               required
-              minLength="6"
+              minLength="15" maxLength="128"
               value={form.password}
               onChange={handleChange}
-              placeholder="Create a password (min 6 characters)"
+              placeholder="Create a unique passphrase"
             />
-            <p id="password-help" className="s-meta">At least 6 characters, including uppercase, lowercase and a number.</p>
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
-            <input
+            <PasswordField
               id="confirmPassword"
-              type="password"
+
               name="confirmPassword"
               autoComplete="new-password"
               className="form-control"
               required
-              minLength="6"
+              minLength="15" maxLength="128"
               value={form.confirmPassword}
               onChange={handleChange}
               placeholder="Confirm your password"
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn-auth"
             disabled={isLoading}
           >

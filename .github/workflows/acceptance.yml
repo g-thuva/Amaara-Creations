@@ -33,6 +33,8 @@ jobs:
         working-directory: client
       - run: npm audit --audit-level=moderate
         working-directory: client
+      - run: npm run build && npm run build:admin && npm run check:isolation
+        working-directory: client
       - run: npm run test:e2e
         working-directory: client
       - run: npm run test:e2e:production && npm run check:performance

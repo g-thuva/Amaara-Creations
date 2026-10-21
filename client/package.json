@@ -9,6 +9,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:admin": "vite build --mode admin",
+    "dev:admin": "vite --mode admin --port 5179",
+    "check:isolation": "node scripts/check-storefront-isolation.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

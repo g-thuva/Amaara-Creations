@@ -8,6 +8,7 @@ export default function BuilderControls({ builder }) {
   return (
         <form className="s-form s-builder-controls" onSubmit={(event) => event.preventDefault()}>
           <h2>Design specification</h2>
+          <p className="s-meta" role="status">{builder.draftStatus || (design ? 'Saved to your account. Save changes when ready.' : '')}</p>
           <label>Design name<input value={form.name} maxLength="160" required onChange={(event) => change('name', event.target.value)} /></label>
           <div className="s-form-grid">
             <label>Width ({config.measurementUnit})<input type="number" min={config.minimumWidth} max={config.maximumWidth} step={config.widthStep} value={form.width} onChange={(event) => change('width', event.target.value)} /></label>

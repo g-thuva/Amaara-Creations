@@ -1,3 +1,4 @@
+import { fillAuthenticator } from '../staffAuth';
 import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Page } from "@playwright/test";
 
@@ -17,7 +18,7 @@ async function openAdmin(
   await page
     .getByLabel("Password", { exact: true })
     .fill(fixture.basic.password);
-  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await fillAuthenticator(page); await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login$/);
   return fixture;
 }
@@ -126,6 +127,7 @@ test("extracted product form, variants, media and archive actions persist throug
           data: {
             email: fixture.superAdminEmail,
             password: fixture.basic.password,
+            authenticatorCode: (await (await request.get('http://127.0.0.1:5198/__fixture/authenticator-code')).json()).code,
           },
         },
       );

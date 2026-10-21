@@ -1,4 +1,3 @@
-import { can } from '@/app/config/permissions.js';
 import { storefrontNavigation } from '@/app/config/navigation.js';
 import { useCart } from '@/features/cart/CartProvider.jsx';
 import { useWishlist } from '@/features/wishlist/WishlistProvider.jsx';
@@ -25,7 +24,7 @@ function Brand({ name }) {
   );
 }
 
-function AccountLinks({ close, signOut, isAdmin }) {
+function AccountLinks({ close, signOut }) {
   return (
     <>
       <Link to="/profile" onClick={close}><Icon name="user" />Profile</Link>
@@ -33,7 +32,7 @@ function AccountLinks({ close, signOut, isAdmin }) {
       <Link to="/addresses" onClick={close}><Icon name="mapPin" />Addresses</Link>
       <Link to="/wishlist" onClick={close}><Icon name="heart" />Wishlist</Link>
       <Link to="/account/security" onClick={close}><Icon name="lock" />Security</Link>
-      {isAdmin && <Link to="/admin" onClick={close}><Icon name="settings" />Admin panel</Link>}
+      <Link to="/account/designs" onClick={close}><Icon name="edit" />Saved designs</Link>
       <button type="button" onClick={signOut}><Icon name="logout" />Sign out</button>
     </>
   );
@@ -43,7 +42,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { isAuthenticated, authStatus, user, logout } = useAuth();
+  const { isAuthenticated, authStatus, logout } = useAuth();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
   const { values } = useSiteContent();
@@ -56,7 +55,6 @@ export default function Navbar() {
   const [announcementDismissed, setAnnouncementDismissed] = useState(
     () => typeof sessionStorage !== 'undefined' && dismissalKey && sessionStorage.getItem(dismissalKey) === 'dismissed',
   );
-  const isAdmin = can(user, "AdminAccess");
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -139,7 +137,7 @@ export default function Navbar() {
               <summary className="s-icon-link" aria-label={isAuthenticated ? 'Open account menu' : 'Open sign-in menu'}><Icon name="user" /></summary>
               <div className="s-account-popover">
                 {authStatus === 'loading' ? <span>Restoring session…</span> : isAuthenticated ? (
-                  <AccountLinks close={() => {}} signOut={signOut} isAdmin={isAdmin} />
+                  <AccountLinks close={() => document.querySelector('.s-account-menu')?.removeAttribute('open')} signOut={signOut} />
                 ) : (
                   <><Link to="/login">Sign in</Link><Link to="/register">Create an account</Link></>
                 )}
@@ -174,7 +172,7 @@ export default function Navbar() {
           {authStatus === 'loading' ? <p>Restoring session…</p> : isAuthenticated ? (
             <div className="s-mobile-account">
               <p>Your account</p>
-              <AccountLinks close={() => setOpen(false)} signOut={signOut} isAdmin={isAdmin} />
+              <AccountLinks close={() => setOpen(false)} signOut={signOut} />
             </div>
           ) : (
             <div className="s-mobile-account">

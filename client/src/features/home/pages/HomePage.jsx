@@ -5,6 +5,7 @@ import { useResource } from '@/shared/hooks/useResource.js';
 import { contentApi } from '@/features/content/contentApi.js';
 import { catalogApi } from '@/features/catalog/catalogApi.js';
 import HeroCarousel from '@/features/home/components/HeroCarousel.jsx';
+import EditorialHero from '@/features/home/components/EditorialHero.jsx';
 import CategoryCards from '@/features/home/components/CategoryCards.jsx';
 import CollectionCards from '@/features/home/components/CollectionCards.jsx';
 import CustomCta from '@/features/home/components/CustomCta.jsx';
@@ -39,7 +40,7 @@ export default function HomePage() {
   return (
     <>
       <div className="s-container">
-        <HeroCarousel hero={hero} />
+        {hero ? <HeroCarousel hero={hero} /> : <EditorialHero />}
       </div>
 
       {trustItems.length > 0 && (
@@ -80,9 +81,10 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="s-quiet-empty">
-              <h3>Products are being prepared for the shop.</h3>
-              <p>There are no published products yet. You can still preview a custom sticker idea.</p>
-              <Link className="s-button s-button-secondary" to="/custom">Open the sticker preview <Icon name="arrow" /></Link>
+              <p className="s-eyebrow">Start with your own idea</p>
+              <h3>Your next design starts here.</h3>
+              <p>The ready-made collection is currently empty. Explore the sticker designer to see available shapes and options.</p>
+              <Link className="s-button s-button-secondary" to="/custom">Design your sticker <Icon name="arrow" /></Link>
             </div>
           )}
         </section>
