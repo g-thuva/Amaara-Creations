@@ -24,9 +24,19 @@ npm --prefix client ci
 
 Configure backend secrets with `dotnet user-secrets --project be` or the ignored `be/appsettings.Development.Local.json`; use `be/appsettings.Development.Local.example.json` as the key reference. Set the SQL connection and a local JWT signing key of at least 32 characters. Bootstrap accounts are disabled by default and require explicitly configured values. Never put private keys in Vite configuration.
 
+Before starting, check that the configured local development database has all committed migrations. Back up an existing database and review pending migrations before updating it. The update below explicitly targets `localhost/AmaaraCreationsDB`; confirm it is the intended local database. Run these commands in a normal PowerShell terminal so SQL Server Windows authentication can use your account:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = 'Development'
+dotnet ef migrations list --project be
+dotnet ef database update --project be --connection 'Server=localhost;Database=AmaaraCreationsDB;Trusted_Connection=true;TrustServerCertificate=true'
+```
+
 ```powershell
 dotnet run --project be --urls http://localhost:5192
 ```
+
+Open [Swagger UI](http://localhost:5192/swagger/index.html) for interactive API documentation, or [OpenAPI JSON](http://localhost:5192/swagger/v1/swagger.json) for the API definition. [Database readiness](http://localhost:5192/health/ready) must return `200` with `{"status":"ready"}`; a running Swagger page alone does not confirm database connectivity or an up-to-date schema.
 
 In a second terminal:
 
