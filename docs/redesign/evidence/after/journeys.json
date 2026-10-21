@@ -1,0 +1,92 @@
+[
+  {
+    "route": "product",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "profile",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "checkout",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "help",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "product",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "profile",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "checkout",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "help",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "product",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "profile",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "checkout",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "help",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "staff",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "staff",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "staff",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  }
+]

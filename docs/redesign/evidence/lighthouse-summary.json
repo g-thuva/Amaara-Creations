@@ -1,0 +1,52 @@
+{
+  "tool": "Lighthouse 13.5.0",
+  "runtime": "Node 22.23.4",
+  "scope": "Local production build, mobile simulation, disposable acceptance catalogue; not production field evidence",
+  "runs": [
+    {
+      "run": 1,
+      "scores": {
+        "performance": 98,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "lcpMs": 2031.01,
+      "cls": 0,
+      "tbtMs": 71
+    },
+    {
+      "run": 2,
+      "scores": {
+        "performance": 95,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "lcpMs": 2552.65,
+      "cls": 0,
+      "tbtMs": 140
+    },
+    {
+      "run": 3,
+      "scores": {
+        "performance": 96,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "lcpMs": 2532.81,
+      "cls": 0,
+      "tbtMs": 104
+    }
+  ],
+  "medianPerformance": 96,
+  "medianLcpMs": 2532.81,
+  "medianCls": 0,
+  "medianTbtMs": 104,
+  "exceptions": [
+    "Best Practices is 96 because the anonymous refresh and absent optional home CMS page return expected 401/404 responses.",
+    "Median lab LCP is 2.533s, slightly above the 2.5s target; real imagery and production field behavior remain unverified.",
+    "INP was not measured; TBT is a lab metric and is not INP."
+  ]
+}

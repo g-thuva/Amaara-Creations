@@ -1,5 +1,7 @@
 # Testing and architecture checks
 
+Browser tests now use storefront (5178) and staff (5179) projects against the disposable API bridge (5198). Staff login exercises actual TOTP validation using test-only seeded authenticators. Run both builds and `npm --prefix client run check:isolation` to verify emitted customer assets. The production browser command builds both artifacts before its lab checks. See [redesign release report](../redesign/TEST_AND_RELEASE_REPORT.md) for current results and limits.
+
 Use Node 22+ and the .NET SDK selected by `global.json`. Run from the repository root unless noted.
 
 ```powershell

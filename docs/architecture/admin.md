@@ -2,7 +2,7 @@
 
 See [complete frontend architecture](frontend.md) for the current app/shared/customer module map.
 
-The admin application lives in `client/src/features/admin`. Existing `/admin/...` URLs are preserved.
+The admin application lives in `client/src/features/admin`. Existing `/admin/...` URLs are preserved only in the independently built staff app (`src/admin-main.jsx`, `vite --mode admin`, output `dist-admin`). The shop never imports these routes. Staff bootstrap verifies backend capability/MFA before loading operational modules. APIs default to closed through `Administration:Enabled=false`. See [deployment and security limits](../security/ADMIN_ISOLATION_DEPLOYMENT.md).
 
 **Pages compose; features own behavior; APIs own endpoints; shared components remain domain-neutral.**
 
