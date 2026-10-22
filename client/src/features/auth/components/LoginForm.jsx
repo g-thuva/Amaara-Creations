@@ -1,19 +1,23 @@
 import { PasswordField } from '@/shared/components/ui/PasswordField.jsx';
 import { Link } from 'react-router-dom';
 import { useLogin } from '@/features/auth/hooks/useLogin.js';
+import MfaFlow from './MfaFlow.jsx';
 
 export default function LoginForm() {
-  const { email, setEmail, password, setPassword, authenticatorCode, setAuthenticatorCode, recoveryCode, setRecoveryCode, error, isLoading, message, handleLogin } = useLogin();
+  const flow = useLogin();
+  const { email, setEmail, password, setPassword, error, notice, isLoading, message, handleLogin, challenge } = flow;
+  if (challenge) return <MfaFlow {...flow} />;
   return (
     <>
       <div className="auth-card">
         <div className="auth-header">
-          <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Sign in to continue to Amaara Creations</p>
+          <h1 className="auth-title">Welcome back</h1>
+          <p className="auth-subtitle">Sign in to your Amaara Creations account.</p>
         </div>
 
         {message && <div className="success-message" role="status" style={{ color: 'green', marginBottom: '1rem' }}>{message}</div>}
         {error && <div className="error-message" role="alert" id="form-error">{error}</div>}
+        {notice && <p role="status">{notice}</p>}
 
         <form aria-describedby={error ? "form-error" : undefined} className="auth-form" onSubmit={handleLogin}>
           <div className="form-group">
@@ -49,7 +53,6 @@ export default function LoginForm() {
             />
           </div>
 
-          <div className="form-group"><label className="form-label" htmlFor="login-authenticator">Authenticator code</label><input className="form-control" id="login-authenticator" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} aria-describedby="login-code-help" value={authenticatorCode} onChange={event => { setAuthenticatorCode(event.target.value); setRecoveryCode(''); }} /><p id="login-code-help">Enter the current code if your account uses an authenticator. Staff only need to sign in once.</p><details><summary>Use a recovery code instead</summary><label className="form-label" htmlFor="login-recovery">Recovery code</label><input className="form-control" id="login-recovery" autoComplete="off" spellCheck={false} maxLength={64} value={recoveryCode} onChange={event => { setRecoveryCode(event.target.value); setAuthenticatorCode(''); }} /></details></div>
 
           <button type="submit" className="btn-auth" disabled={isLoading}>
             {isLoading ? "Signing In..." : "Sign In"}

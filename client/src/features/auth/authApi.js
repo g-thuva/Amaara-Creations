@@ -9,8 +9,14 @@ export const authApi = {
   },
 
   login: async (credentials) => {
-    const response = await api.post(AUTH_BASE_PATH === '/auth' ? '/auth/sign-in' : `${AUTH_BASE_PATH}/login`, credentials);
+    const response = await api.post('/auth/sign-in', credentials);
     return response.data;
+  },
+  pendingSignIn: async () => (await api.get('/auth/sign-in')).data,
+  advanceSignIn: async (action, values = {}) => {
+    const paths = { verify: 'verify', confirm: 'enrollment/confirm', complete: 'complete', cancel: 'cancel' };
+    if (!paths[action]) throw new Error('Unknown sign-in step');
+    return (await api.post(`/auth/sign-in/${paths[action]}`, values)).data;
   },
 
   logout: async () => {

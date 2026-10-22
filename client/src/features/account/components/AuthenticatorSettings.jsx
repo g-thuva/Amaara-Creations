@@ -5,6 +5,8 @@ import { customerError } from '@/shared/api/apiError.ts';
 import { PasswordField } from '@/shared/components/ui/PasswordField.jsx';
 import { Button } from '@/shared/components/ui/Button.jsx';
 import { useAuth } from '@/features/auth/AuthProvider.jsx';
+import AuthenticatorQrCard from '@/features/auth/components/AuthenticatorQrCard.jsx';
+import RecoveryCodePanel from '@/features/auth/components/RecoveryCodePanel.jsx';
 
 export default function AuthenticatorSettings({ staff = false }) {
   const [status, setStatus] = useState(null);
@@ -54,9 +56,9 @@ export default function AuthenticatorSettings({ staff = false }) {
   return <section className="s-section" aria-labelledby="authenticator-heading"><h2 id="authenticator-heading">Two-step verification</h2>
     <p>Add an authenticator app to protect sign-in. Each code works once; wait for a new code after signing in. {staff && 'Staff operations require a current authenticator code; recovery codes only restore account access.'}</p>
     {error && <p role="alert" className="s-alert s-error">{error}</p>}{message && <p role="status">{message}</p>}
-    {codes ? <div className="s-alert" role="status"><h3>Save your recovery codes</h3><p>Each code works once with your password. Store these privately in a password manager or offline. They are shown only now; replacing them invalidates all previous codes.</p><ul className="s-recovery-codes">{codes.map(code => <li key={code}><code>{code}</code></li>)}</ul><Button onClick={finish}>I have saved these codes{requiresSignIn ? ' — sign in again' : ''}</Button></div> : status ? <>
+    {codes ? <div className="s-alert"><h3>Save your recovery codes</h3><p>These codes can help you sign in if you lose access to your phone.</p><RecoveryCodePanel codes={codes} onFinish={finish} pending={pending} finishLabel={requiresSignIn ? 'Continue to sign in' : 'Finish saving codes'} /></div> : status ? <>
       <p role="status">{status.enabled ? `Enabled · ${status.recoveryCodesLeft} recovery codes remaining` : 'Not enabled'}</p>
-      {enrollment && <div className="s-alert"><h3>Connect your authenticator</h3><p>Add a time-based account in your authenticator app using this setup key. Confirm within 10 minutes. Never share this key.</p><code className="s-setup-key">{enrollment.sharedKey}</code><p><a href={enrollment.authenticatorUri}>Open in an installed authenticator app</a></p></div>}
+      {enrollment && <div className="s-alert"><h3>Connect your authenticator</h3><AuthenticatorQrCard enrollment={enrollment} /></div>}
       <form className="s-form" onSubmit={submit}><PasswordField label="Confirm your password" name="password" autoComplete="current-password" required maxLength={256} />
         {(status.enabled || enrollment) && <label>Authenticator code<input name="authenticatorCode" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required={Boolean(enrollment)} /></label>}
         {status.enabled && !enrollment && <label>Or an unused recovery code<input name="recoveryCode" autoComplete="off" maxLength={64} spellCheck={false} /><span className="s-meta">Enter one factor only. To replace recovery codes, use your authenticator.</span></label>}
