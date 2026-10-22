@@ -41,7 +41,7 @@ try {
     }
   }
   const code = (await (await context.request.get(api + '/__fixture/authenticator-code')).json()).code;
-  const staff = await context.request.post(api + '/api/v1/auth/login', { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
+  const staff = await context.request.post(api + '/api/v1/auth/staff/login', { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
   if (!staff.ok()) throw new Error('Disposable staff capture login failed');
   for (const width of [390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 });

@@ -24,6 +24,12 @@ public static class ProductionSettings
                 throw new InvalidOperationException("Enabled email requires a valid sender and SMTP port.");
         }
         if (!environment.IsProduction()) return;
+        if (configuration.GetValue<bool>("Administration:Enabled"))
+        {
+            var origins = StartupSettings.GetManagementOrigins(configuration, environment);
+            if (origins.Length == 0 || origins.Any(value => !Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme != "https" || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0 || uri.AbsolutePath != "/" || uri.GetLeftPart(UriPartial.Authority) != value))
+                throw new InvalidOperationException("Enabled production management requires exact approved HTTPS Administration:AllowedOrigins.");
+        }
         var hosts = Require(configuration, "AllowedHosts").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (hosts.Length == 0 || hosts.Any(host => host.Contains('*') || host.Contains('<') || host.Contains('{') || Uri.CheckHostName(host) == UriHostNameType.Unknown))
             throw new InvalidOperationException("Production requires explicit valid AllowedHosts.");

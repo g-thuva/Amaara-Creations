@@ -1,4 +1,5 @@
 const trimTrailingSlash = (value) => value.replace(/\/+$/, '');
+export const AUTH_BASE_PATH = import.meta.env.MODE === 'admin' ? '/auth/staff' : '/auth';
 
 export const API_BASE_URL = trimTrailingSlash(
   import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:5192/api/v1' : '/api/v1')

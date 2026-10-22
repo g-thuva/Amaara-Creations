@@ -74,7 +74,7 @@ test("support sees customer/order operations while financial and security endpoi
   await expect(
     page.getByRole("link", { name: "Staff", exact: true }),
   ).toHaveCount(0);
-  const token = await page.request.post(api + "/api/v1/auth/refresh");
+  const token = await page.request.post(api + "/api/v1/auth/staff/refresh");
   expect(token.ok()).toBeTruthy();
   const auth = await token.json();
   for (const path of ["staff", "reports", "audit", "payments", "settings"])

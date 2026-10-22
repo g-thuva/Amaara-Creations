@@ -178,7 +178,7 @@ test.describe('Private Custom Builder artwork regressions', () => {
     const adminLogin = await request.post(`${acceptanceApi}/api/v1/auth/login`, { data: { email: fixture.adminEmail, password: fixture.password } });
     expect(adminLogin.status()).toBe(401);
     const code = (await (await request.get(`${acceptanceApi}/__fixture/authenticator-code`)).json()).code;
-    const steppedUp = await request.post(`${acceptanceApi}/api/v1/auth/login`, { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
+    const steppedUp = await request.post(`${acceptanceApi}/api/v1/auth/staff/login`, { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
     const steppedUpToken = (await steppedUp.json()).token;
     expect((await request.get(`${acceptanceApi}${asset.downloadUrl}`, { headers: { Authorization: `Bearer ${steppedUpToken}` } })).status()).toBe(200);
   });

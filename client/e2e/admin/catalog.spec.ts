@@ -121,7 +121,7 @@ test("extracted product form, variants, media and archive actions persist throug
     // The acceptance host shares a disposable catalog across browser tests.
     // Keep generated products out of later storefront result sets, even on failure.
     if (productId) {
-      const login = await page.request.post("http://127.0.0.1:5198/api/v1/auth/refresh");
+      const login = await page.request.post("http://127.0.0.1:5198/api/v1/auth/staff/refresh");
       expect(login.ok()).toBeTruthy();
       const auth = await login.json();
       const archived = await request.post(

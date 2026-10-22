@@ -2,9 +2,11 @@
 
 ## Local architecture
 
-`npm --prefix client run build` produces `client/dist` (storefront). `npm --prefix client run build:admin` produces `client/dist-admin` (staff). `check:isolation` inspects the customer manifest and emitted JavaScript for operational modules/clients and source maps. Both applications retain shared low-level presentation, identity and HTTP modules. Storefront routing never imports staff routes. Staff bootstrap has only sign-in until the backend capability request confirms current roles and MFA; operational routes then load lazily.
+`npm --prefix client run build` produces `client/dist` (storefront). `npm --prefix client run build:admin` produces `client/dist-admin` (staff). `check:isolation` inspects the customer manifest and emitted JavaScript for operational modules/clients and source maps. Both applications retain shared low-level presentation, identity and HTTP modules. Storefront routing never imports staff routes. Management uses dedicated `/api/v1/auth/staff/*` endpoints and independently named/protected refresh cookies. The authoritative management-session response confirms current roles, effective permissions and MFA before operational routes load lazily. `Administration:AllowedOrigins` restricts management cookie exchanges independently of the storefront CORS allowlist.
 
 Development uses ports 5178/5179 in the browser harness, with API acceptance bridge 5198. Those are separate test origins, not a claim that a production deployment exists. The server defaults to `Administration:Enabled=false`. Existing staff operations will therefore be intentionally denied until properly provisioned and enabled.
+
+For the verified local account, use [the diagnosis and local operator procedure](admin-login-root-cause.md). Development management uses `http://localhost:5179/Amaara-Creations/login`; the public login stays customer-facing. Enabled production management requires exact HTTPS `Administration:AllowedOrigins`, also present in the normal CORS configuration. Never allow the storefront origin to exchange management cookies. Existing sessions must sign in through the dedicated entry after this change; an older/storefront JWT cannot satisfy the management-session claim.
 
 ## Production proposal — no deployment performed
 

@@ -114,7 +114,8 @@ public static class RehearsalRunner
             ["ReverseProxy__KnownProxies__0"] = "127.0.0.1", ["PublicSite__BaseUrl"] = "https://store.example.test",
             ["Checkout__Currency"] = "CHF", ["Email__Enabled"] = "false", ["Zahls__Enabled"] = "false", ["Datatrans__Enabled"] = "false",
             ["AdminBootstrap__Enabled"] = "false", ["ReleaseControls__AcceptNewPayments"] = "false", ["ReleaseControls__AcceptUploads"] = "false", ["ReleaseControls__AllowAdminChanges"] = "false",
-            ["Administration__Enabled"] = "true" // Disposable rehearsal only; packaged defaults remain closed.
+            ["Administration__Enabled"] = "true", // Disposable rehearsal only; packaged defaults remain closed.
+            ["Administration__AllowedOrigins__0"] = origin
         };
         foreach (var entry in settings) start.Environment[entry.Key] = entry.Value;
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Published API did not start.");
@@ -150,7 +151,7 @@ public static class RehearsalRunner
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.Unauthorized);
             async Task Login(User account, bool secondFactor = false)
             {
-                using var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = account.Email, password, authenticatorCode = secondFactor ? be.Tests.TotpFixture.Code : null });
+                using var response = await client.PostAsJsonAsync(secondFactor ? "/api/v1/auth/staff/login" : "/api/v1/auth/login", new { email = account.Email, password, authenticatorCode = secondFactor ? be.Tests.TotpFixture.Code : null });
                 response.EnsureSuccessStatusCode();
                 var body = await response.Content.ReadFromJsonAsync<JsonElement>();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("token").GetString());
@@ -158,7 +159,7 @@ public static class RehearsalRunner
             await Login(user);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.OK);
             await Status(client, "/api/v1/admin/reports", HttpStatusCode.Forbidden);
-            using (var missingFactor = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = admin.Email, password }))
+            using (var missingFactor = await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email = admin.Email, password }))
                 if (missingFactor.StatusCode != HttpStatusCode.Unauthorized) throw new InvalidOperationException("Staff login without its enrolled factor was accepted.");
             await Login(admin, secondFactor: true);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.OK);

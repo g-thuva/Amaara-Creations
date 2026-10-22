@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider.jsx";
 import { customerError } from '@/shared/api/apiError.ts';
+import { safeReturnDestination } from '@/features/auth/returnDestination.js';
 
 export function useLogin() {
   const [email, setEmail] = useState("");
@@ -27,7 +28,7 @@ export function useLogin() {
 
       // On successful login, redirect to intended page or profile
       const from = location.state?.from;
-      const redirectTo = typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/profile';
+      const redirectTo = safeReturnDestination(from);
       navigate(redirectTo, { replace: true });
     } catch (err) {
       const errorMessage = err.response?.status === 401 ? 'Unable to sign in. Check your details and confirm your email before trying again.' : customerError(err);

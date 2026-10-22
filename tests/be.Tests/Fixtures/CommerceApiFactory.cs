@@ -94,6 +94,9 @@ internal sealed class TestAuthenticationHandler(IOptionsMonitor<AuthenticationSc
         {
             new(ClaimTypes.NameIdentifier, user),
             new(ClaimTypes.Role, role),
+            // Business-operation fixture only; real login/cookie isolation is
+            // exercised by AcceptanceApiFactory and management browser journeys.
+            new("session_kind", AppRoles.AdministrativeRoles.Contains(role) ? "management" : "storefront"),
             new("amr", "mfa"),
             new("mfa_time", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
         };

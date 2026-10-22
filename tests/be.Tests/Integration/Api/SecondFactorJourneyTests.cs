@@ -103,7 +103,7 @@ public sealed class SecondFactorJourneyTests
                 var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
                 Assert.True((await users.AddToRoleAsync((await users.FindByEmailAsync(email))!, AppRoles.Admin)).Succeeded);
             }
-            var recovery = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password, recoveryCode = codes[0].GetString() });
+            var recovery = await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email, password, recoveryCode = codes[0].GetString() });
             recovery.EnsureSuccessStatusCode();
             client.DefaultRequestHeaders.Authorization = new("Bearer", (await recovery.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString());
             Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);

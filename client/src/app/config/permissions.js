@@ -25,6 +25,7 @@ export const permissionRoles = {
   ManageStaff: ["SuperAdmin"],
 };
 export function can(user, permission) {
+  if (Array.isArray(user?.permissions)) return user.permissions.includes(permission);
   const roles = user?.roles || (user?.role ? [user.role] : []);
   return (permissionRoles[permission] || []).some((role) =>
     roles.includes(role),

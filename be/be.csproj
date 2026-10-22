@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="appsettings.*.Local.json;appsettings.Development.json;appsettings.*.example.json" CopyToPublishDirectory="Never" />
+    <Content Update="appsettings.*.Local.json;appsettings.Development.json;appsettings.*.example.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
     <Content Remove="App_Data/**" />
     <None Remove="App_Data/**" />
     <Content Update="wwwroot/uploads/**" CopyToPublishDirectory="Never" />

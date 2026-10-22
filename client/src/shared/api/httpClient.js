@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { API_BASE_URL } from '@/shared/api/requestConfig.js';
-import { getAccessToken, notifyAuthFailure, setAccessToken } from '@/shared/api/authSession.js';
+import { API_BASE_URL, AUTH_BASE_PATH } from '@/shared/api/requestConfig.js';
+import { currentAuthOperation, isCurrentAuthOperation, getAccessToken, notifyAuthFailure, setAccessToken } from '@/shared/api/authSession.js';
 
 // Create axios instance
 const api = axios.create({
@@ -12,19 +12,32 @@ const api = axios.create({
 });
 
 let refreshPromise = null;
+let refreshController = null;
+export const cancelSessionRefresh = () => {
+  const controller = refreshController;
+  refreshPromise = null; refreshController = null;
+  controller?.abort();
+};
 export const refreshSession = () => {
-  refreshPromise ??= api.post('/auth/refresh').finally(() => { refreshPromise = null; });
+  if (!refreshPromise) {
+    refreshController = new AbortController();
+    const request = api.post(`${AUTH_BASE_PATH}/refresh`, undefined, { signal: refreshController.signal }).finally(() => {
+      if (refreshPromise === request) { refreshPromise = null; refreshController = null; }
+    });
+    refreshPromise = request;
+  }
   return refreshPromise;
 };
 
 const isAuthRefreshRequest = (config) => {
   const url = (config?.url || '').toLowerCase();
-  return url.includes('/auth/refresh') || url.includes('/auth/login') || url.includes('/auth/register');
+  return /\/auth\/(?:staff\/)?(?:refresh|login|register)(?:[/?]|$)/.test(url);
 };
 
 // Request interceptor - Add auth token to requests
 api.interceptors.request.use(
   (config) => {
+    config._authGeneration ??= currentAuthOperation();
     const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -43,16 +56,18 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRefreshRequest(originalRequest)) {
+    if (error.response?.status === 401 && originalRequest && originalRequest._authGeneration === currentAuthOperation() && !originalRequest._retry && !isAuthRefreshRequest(originalRequest)) {
       originalRequest._retry = true;
+      const ticket = currentAuthOperation();
 
       try {
         const response = await refreshSession();
+        if (!isCurrentAuthOperation(ticket)) return Promise.reject(error);
         setAccessToken(response.data.token);
         originalRequest.headers.Authorization = `Bearer ${response.data.token}`;
         return api(originalRequest);
       } catch (refreshError) {
-        notifyAuthFailure();
+        if (isCurrentAuthOperation(ticket)) notifyAuthFailure();
         return Promise.reject(refreshError);
       }
     }

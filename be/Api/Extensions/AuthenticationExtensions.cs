@@ -41,6 +41,8 @@ public static class AuthenticationExtensions
                 ValidAudience = jwtAudience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
                 ClockSkew = TimeSpan.FromSeconds(30),
+                NameClaimType = System.Security.Claims.ClaimTypes.Name,
+                RoleClaimType = System.Security.Claims.ClaimTypes.Role,
                 ValidTypes = ["JWT"],
                 ValidAlgorithms = [SecurityAlgorithms.HmacSha256]
             };

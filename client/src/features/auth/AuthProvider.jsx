@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, startTransition } from 'react';
 import { authApi } from '@/features/auth/authApi.js';
 import { reportClientError } from '@/shared/api/clientTelemetry.js';
-import { clearAccessToken, setAccessToken, setAuthFailureHandler } from '@/shared/api/authSession.js';
+import { beginAuthOperation, isCurrentAuthOperation, clearAccessToken, setAccessToken, setAuthFailureHandler } from '@/shared/api/authSession.js';
 
 const AuthContext = createContext(null);
 
@@ -12,21 +12,23 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let active = true;
+    const ticket = beginAuthOperation();
     setAuthFailureHandler(() => {
+      beginAuthOperation();
       clearAccessToken();
       setUser(null);
-      setAuthStatus('unauthenticated');
+      setAuthStatus('expired');
     });
 
     const restoreSession = async () => {
       try {
         const response = await authApi.refresh();
-        if (!active) return;
+        if (!active || !isCurrentAuthOperation(ticket)) return;
         setAccessToken(response.token);
         setUser(response.user);
         setAuthStatus('authenticated');
       } catch {
-        if (!active) return;
+        if (!active || !isCurrentAuthOperation(ticket)) return;
         clearAccessToken();
         setUser(null);
         setAuthStatus('unauthenticated');
@@ -38,7 +40,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
-    const response = await authApi.login(credentials);
+    const ticket = beginAuthOperation();
+    authApi.cancelRefresh();
+    setAuthStatus('authenticating');
+    let response;
+    try { response = await authApi.login(credentials); }
+    catch (error) { if (isCurrentAuthOperation(ticket)) { clearAccessToken(); setUser(null); setAuthStatus('unauthenticated'); } throw error; }
+    if (!isCurrentAuthOperation(ticket)) throw new Error('This sign-in attempt was replaced. Please try again.');
     setAccessToken(response.token);
     setUser(response.user);
     setAuthStatus('authenticated');
@@ -50,21 +58,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async (onSignedOut) => {
+    const ticket = beginAuthOperation();
+    authApi.cancelRefresh();
+    setAuthStatus('signing-out');
     try {
       await authApi.logout();
     } catch (error) {
       reportClientError('auth.logout', error);
     } finally {
-      clearAccessToken();
-      // Complete caller navigation after cookie revocation and before guards
-      // observe the cleared session. Always clear local state if it throws.
-      startTransition(() => {
-        try { onSignedOut?.(); }
-        finally {
-          setUser(null);
-          setAuthStatus('unauthenticated');
-        }
-      });
+      if (isCurrentAuthOperation(ticket)) {
+        clearAccessToken();
+        // Complete caller navigation after cookie revocation and before guards
+        // observe the cleared session. Always clear local state if it throws.
+        startTransition(() => {
+          try { onSignedOut?.(); }
+          finally {
+            setUser(null);
+            setAuthStatus('unauthenticated');
+          }
+        });
+      }
     }
   };
 
@@ -75,7 +88,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     isAuthenticated: authStatus === 'authenticated',
-    isLoading: authStatus === 'loading',
+    isLoading: ['loading', 'authenticating', 'signing-out'].includes(authStatus),
     authStatus,
     login,
     register,

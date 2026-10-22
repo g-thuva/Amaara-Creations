@@ -1,5 +1,7 @@
 import { test, type Page } from '@playwright/test';
-// These fixtures test UI behaviour only. They never call or claim a real Zahls payment.
+// UI-only payment-state fixtures, including mocked session transport. They do not
+// establish authentication/authorization evidence; management authentication specs
+// use the real Identity/JWT API and disposable SQL-backed/in-memory identities.
 export async function checkoutFixture(page: Page, { mixed = false, admin = false, paymentAvailable = true } = {}) {
   const frontend = String(test.info().project.use.baseURL);
   const state = { status: 'Pending', orderStatus: 'PendingPayment', sessions: [] as Record<string, unknown>[], retries: 0, refunds: [] as Record<string, unknown>[], cartReads: 0, quotes: [] as Record<string, unknown>[] };
@@ -15,6 +17,8 @@ export async function checkoutFixture(page: Page, { mixed = false, admin = false
     const reply = (body: unknown, status = 200) => route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify(body) });
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
     if (path === '/admin/capabilities') return reply({}, admin ? 200 : 403);
+    if (path === '/auth/staff/refresh') return reply({ token: 'fixture-only-token', user: { id: 'fixture', name: 'Fixture staff', email: 'fixture@example.test', roles: ['Admin'] } }, admin ? 200 : 401);
+    if (path === '/auth/staff/session') return reply({ status: 'authorized', user: { id: 'fixture', name: 'Fixture staff', email: 'fixture@example.test', roles: ['Admin'] }, permissions: ['AdminAccess', 'ViewOrders', 'ManageOrders', 'ManagePayments', 'RefundPayments'], expiresAt: new Date(Date.now() + 900000).toISOString() }, admin ? 200 : 403);
     if (path === '/auth/refresh') return reply({ token: 'fixture-only-token', user: { id: 'fixture', name: 'Fixture customer', email: 'fixture@example.test', roles: [admin ? 'Admin' : 'Customer'] } });
     if (path === '/content/settings' || path === '/catalog/categories' || path === '/catalog/collections') return reply([]);
     if (path === '/cart') { state.cartReads++; return reply({ totalItems: state.status === 'Paid' ? 0 : mixed ? 6 : 2, items: state.status === 'Paid' ? [] : items.map(i => ({ ...i, id: i.cartItemId, productId: i.cartItemId, productName: i.name })), total: subtotal }); }

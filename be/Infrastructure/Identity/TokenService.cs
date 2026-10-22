@@ -15,7 +15,7 @@ namespace be.Infrastructure.Identity
             _configuration = configuration;
         }
 
-        public string GenerateToken(User user, IList<string> roles, string? sessionFamily = null, DateTimeOffset? secondFactorAt = null)
+        public string GenerateToken(User user, IList<string> roles, string? sessionFamily = null, DateTimeOffset? secondFactorAt = null, bool management = false)
         {
             var claims = new List<Claim>
             {
@@ -26,6 +26,7 @@ namespace be.Infrastructure.Identity
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
             };
             if (sessionFamily != null) claims.Add(new Claim("session_family", sessionFamily));
+            claims.Add(new Claim("session_kind", management ? "management" : "storefront"));
             if (secondFactorAt.HasValue)
             {
                 claims.Add(new Claim("amr", "mfa"));

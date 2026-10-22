@@ -6,6 +6,8 @@ The boutique redesign and security work is documented in [the implementation and
 
 Account security, verified email/export/request workflows and safe media adapters are described in [activation and operations](docs/redesign/ACCOUNT_REQUESTS_AND_MEDIA.md). Review the [variant migration and rollback guard](docs/redesign/VARIANT_MIGRATION.md) before applying the two new additive migrations to an existing environment. The completed feature branch is kept local at the user's request.
 
+For administrator sign-in, see [the verified diagnosis, private local entry and operator commands](docs/security/admin-login-root-cause.md). Customer sign-in remains on the storefront; management uses its own login, session cookies, origin allowlist and MFA gate.
+
 - [Architecture and module ownership](docs/architecture/overview.md)
 - [Backend](docs/architecture/backend.md), [frontend](docs/architecture/frontend.md), [admin](docs/architecture/admin.md)
 - [Domain glossary](CONTEXT.md) and [architecture decisions](docs/adr/0001-modular-monolith.md)

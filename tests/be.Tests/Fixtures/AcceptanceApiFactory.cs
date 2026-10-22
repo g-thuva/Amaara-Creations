@@ -34,6 +34,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
     public TimeProvider Clock { get; init; } = TimeProvider.System;
     public bool RequestsEnabled { get; init; } = true;
     public bool EmailChangeEnabled { get; init; } = true;
+    public bool AdministrationEnabled { get; init; } = true;
 
     private readonly FakePaymentGateway gateway = new();
     private readonly string storageRoot = Path.Combine(Path.GetTempPath(), "AmaaraAcceptance", Guid.NewGuid().ToString("N"));
@@ -45,7 +46,8 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
         ["Jwt:Audience"] = "Acceptance",
         ["Cors:AllowedOrigins:0"] = "http://127.0.0.1:5178",
         ["Cors:AllowedOrigins:1"] = "http://127.0.0.1:5179",
-        ["Administration:Enabled"] = "true",
+        ["Administration:Enabled"] = AdministrationEnabled.ToString(),
+        ["Administration:AllowedOrigins:0"] = "http://127.0.0.1:5179",
         ["CustomerRequests:QuotesEnabled"] = RequestsEnabled.ToString(),
         ["Privacy:RequestsEnabled"] = RequestsEnabled.ToString(),
         ["Authentication:EmailChangeEnabled"] = EmailChangeEnabled.ToString(),

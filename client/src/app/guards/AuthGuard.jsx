@@ -5,7 +5,7 @@ const AuthGuard = ({ children }) => {
   const { authStatus, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  if (authStatus === "loading") {
+  if (["loading", "authenticating", "signing-out"].includes(authStatus)) {
     return (
       <div style={{ minHeight: "50vh", display: "grid", placeItems: "center" }}>
         <p>Restoring session...</p>

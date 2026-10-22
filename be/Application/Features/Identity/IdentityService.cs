@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using be.Application.Abstractions.Email;
 using be.Application.Abstractions.Identity;
+using be.Application.Abstractions.Audit;
 using be.Domain.Common;
 using be.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -14,7 +15,8 @@ public sealed class IdentityService(
         ISecondFactorService secondFactor,
         IEmailService email,
         IConfiguration configuration,
-        IRequestActor actor)
+        IRequestActor actor,
+        IAuditService audit)
 {
     public async Task RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
@@ -48,7 +50,22 @@ public sealed class IdentityService(
             await SendConfirmationAsync(user, ct);
     }
 
-    public async Task<AuthenticatedSession> LoginAsync(LoginRequest request, CancellationToken ct)
+    public async Task<AuthenticatedSession> LoginAsync(LoginRequest request, CancellationToken ct, bool management = false)
+    {
+        try
+        {
+            var result = await LoginCoreAsync(request, ct, management);
+            if (management) await audit.RecordAsync("StaffSignInSucceeded", nameof(User), result.Response.User.Id, null, new { MfaVerified = result.StaffAssurance != null }, actor.Audit with { UserId = result.Response.User.Id }, ct);
+            return result;
+        }
+        catch (CommerceException failure)
+        {
+            if (management) await audit.RecordAsync("StaffSignInFailed", nameof(User), null, null, new { Outcome = failure.Code }, actor.Audit, ct);
+            throw;
+        }
+    }
+
+    private async Task<AuthenticatedSession> LoginCoreAsync(LoginRequest request, CancellationToken ct, bool management)
     {
         var user = await users.FindByEmailAsync(request.Email);
         if (user == null)
@@ -63,6 +80,10 @@ public sealed class IdentityService(
         if (!user.EmailConfirmed)
             throw new CommerceException("EMAIL_CONFIRMATION_REQUIRED", "Email verification is required before signing in.", 401, new Dictionary<string, object?> { ["requiresEmailConfirmation"] = true });
         var roles = await users.GetRolesAsync(user);
+        if (management && !roles.Any(AppRoles.AdministrativeRoles.Contains))
+            throw new CommerceException("MANAGEMENT_ACCESS_DENIED", "This account is not authorized for management.", 403);
+        if (management && !configuration.GetValue<bool>("Administration:Enabled"))
+            throw new CommerceException("MANAGEMENT_DISABLED", "Management access is disabled. Contact the operator.", 503);
         DateTimeOffset? secondFactorAt = null;
         if (user.TwoFactorEnabled)
         {
@@ -75,21 +96,26 @@ public sealed class IdentityService(
         await users.ResetAccessFailedCountAsync(user);
         var session = await sessions.CreateSessionAsync(user, actor.Session, ct);
         var assurance = secondFactorAt.HasValue ? new StaffAssurance(user.Id, user.SecurityStamp!, session.Session.FamilyId, secondFactorAt.Value.ToUnixTimeSeconds()) : null;
-        return new(CreateResponse(user, roles, session.Session.FamilyId, secondFactorAt), session.RawToken, session.Session.ExpiresAt, assurance);
+        return new(CreateResponse(user, roles, session.Session.FamilyId, secondFactorAt, management), session.RawToken, session.Session.ExpiresAt, assurance);
     }
 
-    public async Task<AuthenticatedSession?> RefreshAsync(string? rawToken, CancellationToken ct, StaffAssurance? assurance = null)
+    public async Task<AuthenticatedSession?> RefreshAsync(string? rawToken, CancellationToken ct, StaffAssurance? assurance = null, bool management = false)
     {
         if (string.IsNullOrWhiteSpace(rawToken))
             return null;
         var rotation = await sessions.RotateAsync(rawToken, actor.Session, ct);
         if (rotation == null) return null;
+        if (management && (!configuration.GetValue<bool>("Administration:Enabled") || !rotation.Roles.Any(AppRoles.AdministrativeRoles.Contains)))
+        {
+            await sessions.RevokeAsync(rotation.RawToken, ct);
+            return null;
+        }
         var age = assurance == null ? -1 : DateTimeOffset.UtcNow.ToUnixTimeSeconds() - assurance.VerifiedAt;
         // The protected HttpOnly grant binds assurance to the original session and stamp.
         // Rotation preserves its original time; it can never renew privileged assurance.
         var valid = assurance != null && assurance.UserId == rotation.User.Id && assurance.SecurityStamp == rotation.User.SecurityStamp && assurance.SessionFamily == rotation.Session.FamilyId && age >= 0 && age < 900;
         var secondFactorAt = valid ? DateTimeOffset.FromUnixTimeSeconds(assurance!.VerifiedAt) : (DateTimeOffset?)null;
-        return new(CreateResponse(rotation.User, rotation.Roles, rotation.Session.FamilyId, secondFactorAt), rotation.RawToken, rotation.Session.ExpiresAt, valid ? assurance : null);
+        return new(CreateResponse(rotation.User, rotation.Roles, rotation.Session.FamilyId, secondFactorAt, management), rotation.RawToken, rotation.Session.ExpiresAt, valid ? assurance : null);
     }
 
     public async Task LogoutAsync(string? rawToken, CancellationToken ct)
@@ -171,9 +197,9 @@ public sealed class IdentityService(
             throw new CommerceException(code, message, details: new Dictionary<string, object?> { ["errors"] = result.Errors.Select(e => e.Description).ToArray() });
     }
 
-    private AuthResponse CreateResponse(User user, IList<string> roles, string sessionFamily, DateTimeOffset? secondFactorAt = null) => new()
+    private AuthResponse CreateResponse(User user, IList<string> roles, string sessionFamily, DateTimeOffset? secondFactorAt = null, bool management = false) => new()
     {
-        Token = tokens.GenerateToken(user, roles, sessionFamily, secondFactorAt),
+        Token = tokens.GenerateToken(user, roles, sessionFamily, secondFactorAt, management),
         User = ToUserDto(user, roles),
         ExpiresAt = tokens.GetAccessTokenExpiry()
     };
@@ -186,7 +212,7 @@ public sealed class IdentityService(
         Address = user.Address,
         AvatarUrl = user.AvatarUrl,
         EmailConfirmed = user.EmailConfirmed,
-        Role = roles.FirstOrDefault() ?? AppRoles.Customer,
+        Role = roles.FirstOrDefault() ?? string.Empty,
         Roles = roles.ToList()
     };
     private async Task SendConfirmationAsync(User user, CancellationToken ct)

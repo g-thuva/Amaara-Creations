@@ -63,7 +63,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
     {
         await identity.LogoutAllAsync(cancellationToken);
-        cookie.Clear(Response);
+        cookie.ClearAll(Response);
         return Ok(new { message = "All sessions were revoked." });
     }
 
@@ -80,7 +80,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> ConfirmSecondFactor([FromBody] SecondFactorRequest request, CancellationToken ct)
     {
         var codes = await identity.ConfirmSecondFactorAsync(request, ct);
-        cookie.Clear(Response);
+        cookie.ClearAll(Response);
         return Ok(new { recoveryCodes = codes, requiresSignIn = true });
     }
 
@@ -91,7 +91,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> DisableSecondFactor([FromBody] SecondFactorRequest request, CancellationToken ct)
     {
         await identity.DisableSecondFactorAsync(request, ct);
-        cookie.Clear(Response);
+        cookie.ClearAll(Response);
         return Ok(new { requiresSignIn = true });
     }
     [HttpPost("forgot-password"), EnableRateLimiting("auth-sensitive")]

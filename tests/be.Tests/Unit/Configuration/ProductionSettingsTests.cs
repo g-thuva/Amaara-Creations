@@ -8,6 +8,16 @@ namespace be.Tests;
 
 public sealed class ProductionSettingsTests
 {
+    [Fact]
+    public void ProductionManagementRequiresItsOwnExactHttpsOrigin()
+    {
+        var values = Valid(); values["Administration:Enabled"] = "true";
+        Assert.Throws<InvalidOperationException>(() => ProductionSettings.Validate(Config(values), new TestEnvironment()));
+        values["Administration:AllowedOrigins:0"] = "http://staff.example.test";
+        Assert.Throws<InvalidOperationException>(() => ProductionSettings.Validate(Config(values), new TestEnvironment()));
+        values["Administration:AllowedOrigins:0"] = "https://staff.example.test";
+        ProductionSettings.Validate(Config(values), new TestEnvironment());
+    }
     [Theory]
     [InlineData("AllowedHosts", "*")]
     [InlineData("AllowedHosts", "<APP_HOST>")]
