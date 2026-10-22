@@ -1,5 +1,1 @@
-export function StatusBadge({ status, tone = "warning", className = "" }) {
-  return (
-    <span className={`badge badge-${tone} ${className}`.trim()}>{status}</span>
-  );
-}
+export { StatusChip as StatusBadge } from './StatusChip.jsx';

@@ -6,16 +6,14 @@ import { PromotionRedemptionsTable } from "@/features/admin/features/promotions/
 import { ResourceState } from "@/features/admin/shared/components/ResourceState.jsx";
 import { Pagination } from "@/features/admin/shared/components/Pagination.jsx";
 import { MutationFeedback } from "@/features/admin/shared/components/MutationFeedback.jsx";
+import { PageHeader, Button } from '@/features/admin/shared/components/AdminUi.jsx';
 export default function PromotionsPage() {
   const promotions = usePromotions();
   const { resource, history, editing, setEditing, setHistoryId, mutation } =
     promotions;
   return (
     <div className="admin-page">
-      <h1>Promotions</h1>
-      <button className="btn btn-primary" onClick={() => setEditing(blank)}>
-        Create promotion
-      </button>
+      <PageHeader title="Promotions" description="Create and manage offer rules, limits and committed redemptions." actions={<Button variant="accent" onClick={() => setEditing(blank)}>Create promotion</Button>} />
       <MutationFeedback {...mutation} />
       {editing && (
         <PromotionForm
@@ -30,6 +28,7 @@ export default function PromotionsPage() {
           resource={resource}
           setEditing={setEditing}
           setHistoryId={setHistoryId}
+          create={() => setEditing(blank)}
         />
         <Pagination
           data={resource.data}

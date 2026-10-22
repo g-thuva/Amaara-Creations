@@ -4,8 +4,8 @@ namespace be.Application.Features.Identity
 {
     public class ResetPasswordRequest
     {
-        [Required]
-        public string Token { get; set; } = string.Empty;
+        public string? Token { get; set; }
+        public string? Code { get; set; }
 
         [Required]
         [EmailAddress]

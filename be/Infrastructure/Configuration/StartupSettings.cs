@@ -1,6 +1,11 @@
 namespace be.Infrastructure.Configuration;
 public static class StartupSettings
 {
+    public static string[] GetManagementOrigins(IConfiguration configuration, IHostEnvironment environment)
+    {
+        var origins = configuration.GetSection("Administration:AllowedOrigins").Get<string[]>()?.Where(origin => !string.IsNullOrWhiteSpace(origin)).ToArray() ?? [];
+        return origins.Length > 0 ? origins : environment.IsDevelopment() ? ["http://localhost:5179", "http://127.0.0.1:5179"] : [];
+    }
     public static string RequireConfiguration(WebApplicationBuilder builder, string key)
     {
         var value = builder.Configuration[key];
@@ -39,7 +44,9 @@ public static class StartupSettings
                 return new[]
                 {
                     "http://localhost:5173",
-                    "http://127.0.0.1:5173"
+                    "http://127.0.0.1:5173",
+                    "http://localhost:5179",
+                    "http://127.0.0.1:5179"
                 };
             }
 

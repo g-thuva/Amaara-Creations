@@ -1,4 +1,4 @@
-import { formatDateTime } from "@/shared/utils/formatDate.ts";
+import { formatDateTime } from "@/features/admin/shared/utils/format.js";
 import { DataTable } from "@/features/admin/shared/components/DataTable.jsx";
 export function InventoryMovementsTable({ movements }) {
   return (

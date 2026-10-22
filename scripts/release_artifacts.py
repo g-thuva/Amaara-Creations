@@ -50,10 +50,12 @@ def artifact_files(root):
         relative = path.relative_to(root).as_posix()
         parts = [part.lower() for part in path.relative_to(root).parts]
         name = path.name.lower()
-        if any(part in {'app_data', 'private-media', 'development-email', 'node_modules', 'uploads', 'test-results', '.git'} for part in parts) or '.local.json' in name or name.startswith('.env') or name == 'appsettings.development.json' or '.example.json' in name or 'be.tests' in name or 'be.releaserehearsal' in name or 'acceptancehost' in name or path.suffix.lower() in {'.pfx', '.p12', '.pem', '.key', '.bak', '.mdf', '.ldf'}:
+        if any(part in {'app_data', 'private-media', 'development-email', 'node_modules', 'uploads', 'test-results', '.git'} for part in parts) or '.local.json' in name or name.startswith('.env') or name == 'appsettings.development.json' or '.example.json' in name or 'be.tests' in name or 'be.releaserehearsal' in name or 'acceptancehost' in name or 'paymentsimulator' in name or 'payment-simulator' in name or path.suffix.lower() in {'.pfx', '.p12', '.pem', '.key', '.bak', '.mdf', '.ldf'}:
             raise ValueError('Private/development content found in artifact: ' + relative)
         if path.suffix.lower() in {'.json', '.js', '.mjs', '.css', '.html', '.map', '.sql'}:
             text = path.read_text(encoding='utf-8-sig')
+            if re.search(r'payments\.simulator\.invalid|amaara_local_payment_lab|SIMULATED PAYMENTS', text):
+                raise ValueError('Local payment simulator found in release artifact: ' + relative)
             if LOOPBACK.search(text) or re.search(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\bghp_[A-Za-z0-9]{36}\b|\bAKIA[0-9A-Z]{16}\b', text):
                 raise ValueError('Loopback endpoint or credential material found in artifact: ' + relative)
             if re.search(r'/@vite/client|/@react-refresh|import\.meta\.hot', text):

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace be.Api.Controllers;
 [ApiController, Route("api/v1/auth")]
+[ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
 public sealed class AuthController(IdentityService identity, RefreshCookie cookie) : ControllerBase
 {
     [HttpPost("register"), EnableRateLimiting("auth-sensitive")]
@@ -32,10 +33,33 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     [HttpPost("login"), EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var session = await identity.LoginAsync(request, cancellationToken);
-        cookie.Write(Response, session);
-        return Ok(session.Response);
+        return SignInResponse.Present(this, cookie, await identity.SignInAsync(request, cancellationToken));
     }
+
+    [HttpPost("sign-in"), EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> SignIn([FromBody] LoginRequest request, CancellationToken ct)
+    {
+        return SignInResponse.Present(this, cookie, await identity.SignInAsync(request, ct));
+    }
+
+    [HttpGet("sign-in"), EnableRateLimiting("auth-refresh")]
+    public async Task<IActionResult> SignInState(CancellationToken ct) => SignInResponse.Present(this, cookie, await identity.AdvanceSignInAsync(cookie.ReadPending(Request), "status", null, null, false, ct));
+
+    [HttpPost("sign-in/verify"), EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> VerifySignIn([FromBody] SignInVerification request, CancellationToken ct) =>
+        SignInResponse.Present(this, cookie, await identity.AdvanceSignInAsync(cookie.ReadPending(Request), "verify", request.Code, request.RecoveryCode, false, ct));
+
+    [HttpPost("sign-in/enrollment/confirm"), EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> ConfirmSignInEnrollment([FromBody] SignInVerification request, CancellationToken ct) =>
+        SignInResponse.Present(this, cookie, await identity.AdvanceSignInAsync(cookie.ReadPending(Request), "confirm", request.Code, null, false, ct));
+
+    [HttpPost("sign-in/complete"), EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> CompleteSignIn([FromBody] SignInAcknowledgment request, CancellationToken ct) =>
+        SignInResponse.Present(this, cookie, await identity.AdvanceSignInAsync(cookie.ReadPending(Request), "complete", null, null, request.SavedRecoveryCodes, ct));
+
+    [HttpPost("sign-in/cancel"), EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> CancelSignIn(CancellationToken ct) =>
+        SignInResponse.Present(this, cookie, await identity.AdvanceSignInAsync(cookie.ReadPending(Request), "cancel", null, null, false, ct));
 
     [HttpPost("refresh"), EnableRateLimiting("auth-refresh")]
     public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
@@ -54,8 +78,10 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
+        await identity.CancelPendingSignInAsync(cookie.ReadPending(Request), cancellationToken);
         await identity.LogoutAsync(cookie.Read(Request), cancellationToken);
         cookie.Clear(Response);
+        cookie.ClearPending(Response);
         return Ok(new { message = "Logged out successfully." });
     }
 
@@ -63,7 +89,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
     {
         await identity.LogoutAllAsync(cancellationToken);
-        cookie.Clear(Response);
+        cookie.ClearAll(Response);
         return Ok(new { message = "All sessions were revoked." });
     }
 
@@ -80,7 +106,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> ConfirmSecondFactor([FromBody] SecondFactorRequest request, CancellationToken ct)
     {
         var codes = await identity.ConfirmSecondFactorAsync(request, ct);
-        cookie.Clear(Response);
+        cookie.ClearAll(Response);
         return Ok(new { recoveryCodes = codes, requiresSignIn = true });
     }
 
@@ -91,7 +117,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> DisableSecondFactor([FromBody] SecondFactorRequest request, CancellationToken ct)
     {
         await identity.DisableSecondFactorAsync(request, ct);
-        cookie.Clear(Response);
+        cookie.ClearAll(Response);
         return Ok(new { requiresSignIn = true });
     }
     [HttpPost("forgot-password"), EnableRateLimiting("auth-sensitive")]

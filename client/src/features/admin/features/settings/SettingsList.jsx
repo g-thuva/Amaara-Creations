@@ -1,37 +1,9 @@
-import AppIcon from "@/shared/components/ui/Icon.jsx";
+import AppIcon from '@/shared/components/ui/Icon.jsx';
+import { DataTable } from '@/features/admin/shared/components/DataTable.jsx';
 export function SettingsList({ items, setForm }) {
-  return (
-    <div className="products-table-container">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th scope="col">Key</th>
-            <th scope="col">Value</th>
-            <th scope="col">Type</th>
-            <th scope="col">Public</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.id}>
-              <td>{item.key}</td>
-              <td>{item.value}</td>
-              <td>{item.valueType}</td>
-              <td>{item.isPublic ? "Yes" : "No"}</td>
-              <td>
-                <button
-                  className="btn-edit"
-                  aria-label={`Edit ${item.key}`}
-                  onClick={() => setForm(item)}
-                >
-                  <AppIcon name="edit" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  return <DataTable caption="Site settings" rows={items} empty="No settings yet" emptyDescription="Configured store settings will appear here." columns={[
+    { key: 'key', label: 'Key' }, { key: 'value', label: 'Value', truncate: true }, { key: 'valueType', label: 'Type' },
+    { key: 'isPublic', label: 'Public', render: item => item.isPublic ? 'Yes' : 'No' },
+    { key: 'actions', label: 'Actions', render: item => <button className="btn-edit" aria-label={`Edit ${item.key}`} onClick={() => setForm(item)}><AppIcon name="edit" /></button> },
+  ]} />;
 }

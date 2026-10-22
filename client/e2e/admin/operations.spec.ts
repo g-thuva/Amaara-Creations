@@ -1,5 +1,5 @@
 import { fillAuthenticator } from '../staffAuth';
-import { test, expect } from "@playwright/test";
+import { test, expect, localManagementNavigation } from "../fixtures";
 const api = "http://127.0.0.1:5198";
 async function fixture(request: import("@playwright/test").APIRequestContext) {
   const response = await request.post(api + "/__fixture/operations");
@@ -11,11 +11,12 @@ async function login(
   email: string,
   password: string,
 ) {
+  await localManagementNavigation(page);
   await page.goto(`http://127.0.0.1:${email.startsWith("acceptance-customer-") ? 5178 : 5179}/Amaara-Creations/login`);
   await page.getByLabel("Email Address", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   if (!email.startsWith('acceptance-customer-')) await fillAuthenticator(page);
-  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await page.getByRole("button", { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).not.toHaveURL(/\/login$/);
 }
 
@@ -74,7 +75,7 @@ test("support sees customer/order operations while financial and security endpoi
   await expect(
     page.getByRole("link", { name: "Staff", exact: true }),
   ).toHaveCount(0);
-  const token = await page.request.post(api + "/api/v1/auth/refresh");
+  const token = await page.request.post(api + "/api/v1/auth/staff/refresh");
   expect(token.ok()).toBeTruthy();
   const auth = await token.json();
   for (const path of ["staff", "reports", "audit", "payments", "settings"])
@@ -111,12 +112,14 @@ test("marketing creates a disabled coupon, edits it and opens redemption history
   await expect(
     page.getByRole("cell", { name: code, exact: true }),
   ).toBeVisible();
+  await page.getByRole('button', { name: `Actions for ${code}`, exact: true }).click();
   await page.getByRole("button", { name: `Edit ${code}`, exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("TEST campaign edited");
   await page.getByRole("button", { name: "Save promotion" }).click();
   await expect(
     page.getByRole("cell", { name: "TEST campaign edited", exact: true }),
   ).toBeVisible();
+  await page.getByRole('button', { name: `Actions for ${code}`, exact: true }).click();
   await page
     .getByRole("button", { name: `History ${code}`, exact: true })
     .click();
@@ -235,6 +238,7 @@ test("analyst exports reports while Super Admin can review audit and staff", asy
   await page.getByRole("button", { name: "Export orders CSV" }).click();
   expect((await download).suggestedFilename()).toBe("orders.csv");
   await page.getByRole("button", { name: "Logout", exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();
   await login(page, f.superAdminEmail, f.basic.password);
   await page.goto("./admin/audit");
   await expect(

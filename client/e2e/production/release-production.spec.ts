@@ -38,7 +38,7 @@ test('built storefront meets local lab LCP, CLS and entry-bundle budgets', async
 });
 
 test('built admin and customer forms stay accessible across mobile and desktop', async ({ page, fixture }) => {
-  await page.goto('http://127.0.0.1:5179/Amaara-Creations/login'); await page.getByLabel('Email Address', { exact: true }).fill(fixture.adminEmail); await page.getByLabel('Password', { exact: true }).fill(fixture.password); await fillAuthenticator(page); await page.getByRole('button', { name: 'Sign In', exact: true }).click(); await expect(page).not.toHaveURL(/\/login$/);
+  await page.goto('http://127.0.0.1:5179/Amaara-Creations/login'); await page.getByLabel('Email Address', { exact: true }).fill(fixture.adminEmail); await page.getByLabel('Password', { exact: true }).fill(fixture.password); await fillAuthenticator(page); await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click(); await expect(page).not.toHaveURL(/\/login$/);
   for (const width of [375, 1440]) {
     await page.setViewportSize({ width, height: 900 }); await page.goto('http://127.0.0.1:5179/Amaara-Creations/admin/inventory'); await expect(page.getByRole('heading', { name: 'Inventory ledger', exact: true })).toBeVisible(); await expect(page.getByRole('table', { name: 'Stock balances' })).toBeVisible();
     if (width === 375) {

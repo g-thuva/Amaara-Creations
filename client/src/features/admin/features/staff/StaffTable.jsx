@@ -1,4 +1,5 @@
 import { DataTable } from "@/features/admin/shared/components/DataTable.jsx";
+import { StatusChip } from '@/features/admin/shared/components/StatusChip.jsx';
 export function StaffTable({ resource }) {
   return (
     <DataTable
@@ -7,7 +8,7 @@ export function StaffTable({ resource }) {
       columns={[
         { key: "name", label: "Name" },
         { key: "email", label: "Email" },
-        { key: "roles", label: "Roles", render: (r) => r.roles.join(", ") },
+        { key: "roles", label: "Roles", render: (r) => <span className="action-buttons">{r.roles.map(role => <StatusChip key={role} status={role} />)}</span> },
       ]}
     />
   );

@@ -4,7 +4,9 @@ React/Vite storefront and staff operations backed by an ASP.NET Core 8 / EF Core
 
 The boutique redesign and security work is documented in [the implementation and release report](docs/redesign/TEST_AND_RELEASE_REPORT.md). The storefront and studio operations now have independent build artifacts. Administrative APIs default to disabled; read [staff isolation and rollout](docs/security/ADMIN_ISOLATION_DEPLOYMENT.md) before enabling them. This local implementation is not production deployment approval.
 
-Account security, verified email/export/request workflows and safe media adapters are described in [activation and operations](docs/redesign/ACCOUNT_REQUESTS_AND_MEDIA.md). Review the [variant migration and rollback guard](docs/redesign/VARIANT_MIGRATION.md) before applying the two new additive migrations to an existing environment. The completed feature branch is kept local at the user's request.
+Account security, verified email/export/request workflows and safe media adapters are described in [activation and operations](docs/redesign/ACCOUNT_REQUESTS_AND_MEDIA.md). Review the [variant migration and rollback guard](docs/redesign/VARIANT_MIGRATION.md) before applying the two new additive migrations to an existing environment. The authentication follow-up remains on the local `fix/admin-auth-dashboard` branch.
+
+Use the [shared sign-in and authenticator setup guide](docs/security/staff-mfa-setup.md). Customers normally enter email and password only. Staff enter the same credentials, then their current authenticator code; new staff instead complete one QR setup, verification and recovery-code acknowledgment before going directly to their authorized workspace. No ordinary JWT is issued while staff MFA is pending. See the [architecture](docs/security/mfa-architecture.md), [recovery procedure](docs/security/mfa-recovery.md), [audit](docs/security/authentication-mfa-audit.md) and [verified test evidence](docs/security/mfa-testing.md).
 
 - [Architecture and module ownership](docs/architecture/overview.md)
 - [Backend](docs/architecture/backend.md), [frontend](docs/architecture/frontend.md), [admin](docs/architecture/admin.md)

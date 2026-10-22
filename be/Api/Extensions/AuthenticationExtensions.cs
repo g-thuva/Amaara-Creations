@@ -41,6 +41,8 @@ public static class AuthenticationExtensions
                 ValidAudience = jwtAudience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
                 ClockSkew = TimeSpan.FromSeconds(30),
+                NameClaimType = System.Security.Claims.ClaimTypes.Name,
+                RoleClaimType = System.Security.Claims.ClaimTypes.Role,
                 ValidTypes = ["JWT"],
                 ValidAlgorithms = [SecurityAlgorithms.HmacSha256]
             };
@@ -55,9 +57,14 @@ public static class AuthenticationExtensions
                         var manager = context.HttpContext.RequestServices.GetRequiredService<UserManager<User>>();
                         var id = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                         var user = id == null ? null : await manager.FindByIdAsync(id);
-                        if (user == null || await manager.IsLockedOutAsync(user))
+                        if (user == null || !user.EmailConfirmed || await manager.IsLockedOutAsync(user))
                         {
                             context.Fail("Account unavailable");
+                            return;
+                        }
+                        if (context.Principal!.HasClaim("session_kind", "management") && !user.TwoFactorEnabled)
+                        {
+                            context.Fail("Management verification required");
                             return;
                         }
 

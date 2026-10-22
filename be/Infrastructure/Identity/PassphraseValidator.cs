@@ -11,8 +11,12 @@ public sealed class PassphraseValidator(IConfiguration configuration, FilePasswo
     public Task<IdentityResult> ValidateAsync(UserManager<User> manager, User user, string? password)
     {
         var count = password?.EnumerateRunes().Count() ?? 0;
-        if (count is < 15 or > 128)
-            return Task.FromResult(IdentityResult.Failed(new IdentityError { Code = "PasswordLength", Description = "Use 15 to 128 characters. A longer, unique passphrase works well." }));
+        if (count is < 6 or > 128)
+            return Task.FromResult(IdentityResult.Failed(new IdentityError { Code = "PasswordLength", Description = "Use 6 to 128 characters." }));
+        var characters = password!.EnumerateRunes().ToArray();
+        if (!characters.Any(Rune.IsUpper) || !characters.Any(Rune.IsDigit) ||
+            !characters.Any(character => Rune.IsPunctuation(character) || Rune.IsSymbol(character)))
+            return Task.FromResult(IdentityResult.Failed(new IdentityError { Code = "PasswordComposition", Description = "Include at least one uppercase letter, one number and one symbol." }));
         var normalized = password!.Normalize(NormalizationForm.FormC).ToUpperInvariant();
         var result = (corpus ?? new FilePasswordBlocklist(configuration)).Check(password);
         if (result == PasswordBlocklistResult.Unavailable)

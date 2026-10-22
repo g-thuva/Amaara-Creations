@@ -18,6 +18,7 @@ test('customer enrolls an authenticator, saves one-time recovery and signs in wi
   await page.goto('./account/security');
   await page.getByLabel('Confirm your password', { exact: true }).fill(fixture.password);
   await page.getByRole('button', { name: 'Set up authenticator', exact: true }).click();
+  await page.getByText(/Enter the setup key manually/).click();
   const key = await page.locator('.s-setup-key').innerText();
   await page.getByLabel('Confirm your password', { exact: true }).fill(fixture.password);
   await page.getByLabel('Authenticator code', { exact: true }).fill(totp(key));
@@ -25,13 +26,15 @@ test('customer enrolls an authenticator, saves one-time recovery and signs in wi
   await expect(page.getByRole('heading', { name: 'Save your recovery codes', exact: true })).toBeVisible();
   await expect(page.locator('.s-recovery-codes li')).toHaveCount(10);
   const recoveryCode = await page.locator('.s-recovery-codes code').first().innerText();
-  await page.getByRole('button', { name: /I have saved these codes/ }).click();
+  await page.getByLabel('I have saved my recovery codes somewhere safe.', { exact: true }).check();
+  await page.getByRole('button', { name: 'Continue to sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.customerEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
-  await page.getByText('Two-step verification', { exact: true }).click();
-  await page.getByLabel('Recovery code', { exact: true }).fill(recoveryCode);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await page.getByRole('button', { name: 'Use a recovery code', exact: true }).click();
+  await page.getByLabel('Recovery code', { exact: true }).fill(recoveryCode);
+  await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).toHaveURL(/\/profile$/);
   await page.goto('./account/security');
   await expect(page.getByText('Enabled · 9 recovery codes remaining', { exact: true })).toBeVisible();

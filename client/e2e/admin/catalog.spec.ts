@@ -1,6 +1,6 @@
 import { fillAuthenticator } from '../staffAuth';
 import AxeBuilder from "@axe-core/playwright";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "../fixtures";
 
 async function openAdmin(
   page: Page,
@@ -18,7 +18,7 @@ async function openAdmin(
   await page
     .getByLabel("Password", { exact: true })
     .fill(fixture.basic.password);
-  await fillAuthenticator(page); await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await fillAuthenticator(page); await page.getByRole("button", { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).not.toHaveURL(/\/login$/);
   return fixture;
 }
@@ -107,10 +107,12 @@ test("extracted product form, variants, media and archive actions persist throug
       })),
     ).toEqual([]);
     await row.getByRole("button", { name: "Archive", exact: true }).click();
+    await page.getByRole('dialog', { name: 'Archive product', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
     await expect(
       row.getByRole("button", { name: "Reactivate", exact: true }),
     ).toBeVisible();
     await row.getByRole("button", { name: "Reactivate", exact: true }).click();
+    await page.getByRole('dialog', { name: 'Reactivate product', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
     await expect(
       row.getByRole("button", { name: "Archive", exact: true }),
     ).toBeVisible();
@@ -121,7 +123,7 @@ test("extracted product form, variants, media and archive actions persist throug
     // The acceptance host shares a disposable catalog across browser tests.
     // Keep generated products out of later storefront result sets, even on failure.
     if (productId) {
-      const login = await page.request.post("http://127.0.0.1:5198/api/v1/auth/refresh");
+      const login = await page.request.post("http://127.0.0.1:5198/api/v1/auth/staff/refresh");
       expect(login.ok()).toBeTruthy();
       const auth = await login.json();
       const archived = await request.post(
@@ -172,7 +174,7 @@ test("catalog and content editors retain their form behavior and accessible labe
     "settings",
   ]) {
     await page.goto("./admin/" + route);
-    await expect(page.locator(".admin-content h2").first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(
       page.getByText("Loading configuration…", { exact: true }),
     ).toHaveCount(0);

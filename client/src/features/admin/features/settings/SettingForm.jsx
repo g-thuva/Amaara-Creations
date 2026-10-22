@@ -3,7 +3,7 @@ export function SettingForm({ form, setForm, save, pending }) {
   return (
     <div className="card">
       <div className="card-header">
-        <h3 className="card-title">Edit Setting</h3>
+        <h2 className="card-title">Edit Setting</h2>
       </div>
       <form className="add-product-form" onSubmit={save}>
         <div className="form-row">

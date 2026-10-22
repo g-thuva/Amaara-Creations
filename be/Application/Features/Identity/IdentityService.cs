@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using be.Application.Abstractions.Email;
 using be.Application.Abstractions.Identity;
+using be.Application.Abstractions.Audit;
 using be.Domain.Common;
 using be.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -12,9 +13,11 @@ public sealed class IdentityService(
         ITokenService tokens,
         IRefreshSessionService sessions,
         ISecondFactorService secondFactor,
+        IPendingSignInService pendingSignIn,
         IEmailService email,
         IConfiguration configuration,
-        IRequestActor actor)
+        IRequestActor actor,
+        IAuditService audit)
 {
     public async Task RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
@@ -36,9 +39,19 @@ public sealed class IdentityService(
 
     public async Task ConfirmEmailAsync(ConfirmEmailRequest request)
     {
-        var user = await users.FindByIdAsync(request.UserId);
-        if (user == null || !(await users.ConfirmEmailAsync(user, Uri.UnescapeDataString(request.Token))).Succeeded)
-            throw new CommerceException("EMAIL_CONFIRMATION_INVALID", "Invalid or expired verification link.");
+        var tokenOrCode = !string.IsNullOrWhiteSpace(request.Code) ? request.Code.Trim() : (!string.IsNullOrWhiteSpace(request.Token) ? request.Token.Trim() : string.Empty);
+        if (string.IsNullOrWhiteSpace(tokenOrCode))
+            throw new CommerceException("EMAIL_CONFIRMATION_INVALID", "Verification code is required.");
+
+        User? user = null;
+        if (!string.IsNullOrWhiteSpace(request.Email))
+            user = await users.FindByEmailAsync(request.Email.Trim());
+
+        if (user == null && !string.IsNullOrWhiteSpace(request.UserId))
+            user = await users.FindByIdAsync(request.UserId.Trim());
+
+        if (user == null || !(await users.ConfirmEmailAsync(user, Uri.UnescapeDataString(tokenOrCode))).Succeeded)
+            throw new CommerceException("EMAIL_CONFIRMATION_INVALID", "Invalid or expired verification code.");
     }
 
     public async Task ResendConfirmationAsync(ResendConfirmationRequest request, CancellationToken ct)
@@ -48,7 +61,90 @@ public sealed class IdentityService(
             await SendConfirmationAsync(user, ct);
     }
 
-    public async Task<AuthenticatedSession> LoginAsync(LoginRequest request, CancellationToken ct)
+    public async Task<SignInResult> SignInAsync(LoginRequest request, CancellationToken ct, bool managementEntry = false)
+    {
+        VerifiedLogin verified;
+        try { verified = await VerifyPasswordAsync(request, ct, managementEntry); }
+        catch (CommerceException failure)
+        {
+            await audit.RecordAsync(managementEntry ? "StaffSignInFailed" : "SignInFailed", nameof(User), null, null, new { Outcome = failure.Code }, actor.Audit, ct);
+            throw;
+        }
+        if (verified.User.TwoFactorEnabled || verified.Roles.Any(AppRoles.AdministrativeRoles.Contains))
+        {
+            // Compatibility for existing clients that submit both factors at
+            // once: use the same verifier/policies, without creating a pending
+            // challenge that could race another complete sign-in attempt.
+            var privileged = verified.Roles.Any(AppRoles.AdministrativeRoles.Contains);
+            if (verified.User.TwoFactorEnabled && !await secondFactor.RecoveryRequiredAsync(verified.User, ct) && ((!string.IsNullOrWhiteSpace(request.AuthenticatorCode) && string.IsNullOrWhiteSpace(request.RecoveryCode)) || (!privileged && !string.IsNullOrWhiteSpace(request.RecoveryCode))))
+            {
+                if (!await secondFactor.VerifyAsync(verified.User, request.AuthenticatorCode, request.RecoveryCode, ct)) throw InvalidLogin();
+                await users.ResetAccessFailedCountAsync(verified.User);
+                return new(Sessions: await IssueSignInAsync(verified with { SecondFactorAt = string.IsNullOrWhiteSpace(request.AuthenticatorCode) ? null : DateTimeOffset.UtcNow }, ct, managementEntry));
+            }
+            var pending = await pendingSignIn.BeginSignInAsync(verified.User, verified.Roles, ct);
+            // Existing API clients may supply both factors in one request. They
+            // use this same transaction and cannot obtain a pending JWT.
+            if (pending.View.Status == "verify" && (!string.IsNullOrWhiteSpace(request.AuthenticatorCode) || !string.IsNullOrWhiteSpace(request.RecoveryCode)))
+            {
+                var advanced = await AdvanceSignInAsync(pending.Ticket, "verify", request.AuthenticatorCode, request.RecoveryCode, false, ct);
+                return advanced.Pending is { Ticket: null } next ? advanced with { Pending = next with { Ticket = pending.Ticket } } : advanced;
+            }
+            return new(Pending: pending);
+        }
+        if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode) || !string.IsNullOrWhiteSpace(request.RecoveryCode)) throw InvalidLogin();
+        await users.ResetAccessFailedCountAsync(verified.User);
+        return new(Sessions: await IssueSignInAsync(verified, ct));
+    }
+
+    public async Task<SignInResult> AdvanceSignInAsync(string? ticket, string operation, string? code, string? recovery, bool savedCodes, CancellationToken ct)
+    {
+        var step = await pendingSignIn.AdvanceSignInAsync(ticket, operation, code, recovery, savedCodes, ct);
+        if (step.ErrorCode != null) throw new CommerceException(step.ErrorCode, step.ErrorCode == "MFA_CHALLENGE_EXPIRED" ? "Your sign-in expired. Please start again." : "That code didn't work. Check your authenticator app and try the current code.", step.ErrorCode == "MFA_CHALLENGE_EXPIRED" ? 401 : 400);
+        if (step.SecurityChanged)
+        {
+            // The MFA transaction has already rotated the stamp and revoked
+            // refresh families before allowing the saved-code acknowledgment.
+            var user = await users.FindByIdAsync(step.ChangedUserId ?? "");
+            if (user != null) await NotifyAuthenticatorChangedAsync(user, ct);
+        }
+        if (step.VerifiedUser == null) return new(Pending: step);
+        var current = await users.FindByIdAsync(step.VerifiedUser.Id) ?? throw InvalidLogin();
+        var roles = await users.GetRolesAsync(current);
+        if (step.Management != roles.Any(AppRoles.AdministrativeRoles.Contains)) throw InvalidLogin();
+        if (!current.EmailConfirmed || await users.IsLockedOutAsync(current) || !current.TwoFactorEnabled || current.SecurityStamp != step.VerifiedUser.SecurityStamp) throw InvalidLogin();
+        if (roles.Any(AppRoles.AdministrativeRoles.Contains) && !configuration.GetValue<bool>("Administration:Enabled")) throw new CommerceException("MANAGEMENT_DISABLED", "Staff sign-in is unavailable in this environment.", 503);
+        if (!roles.Any(AppRoles.AdministrativeRoles.Contains) && !roles.Contains(AppRoles.Customer)) throw InvalidLogin();
+        return new(Sessions: await IssueSignInAsync(new(current, roles, step.VerifiedAt, current.SecurityStamp), ct));
+    }
+
+    private async Task<RoutedSignIn> IssueSignInAsync(VerifiedLogin verified, CancellationToken ct, bool managementOnly = false)
+    {
+        if (verified.Stamp != verified.User.SecurityStamp || !verified.Roles.Order(StringComparer.Ordinal).SequenceEqual((await users.GetRolesAsync(verified.User)).Order(StringComparer.Ordinal))) throw InvalidLogin();
+        var staff = verified.Roles.Any(AppRoles.AdministrativeRoles.Contains);
+        if (staff && !verified.SecondFactorAt.HasValue) throw InvalidLogin();
+        var storefront = managementOnly ? null : await CreateSessionAsync(verified, ct, management: false);
+        AuthenticatedSession? management = null;
+        try
+        {
+            if (staff)
+            {
+                management = await CreateSessionAsync(verified, ct, management: true);
+                await audit.RecordAsync("StaffSignInSucceeded", nameof(User), verified.User.Id, null, new { MfaVerified = management.StaffAssurance != null, Entry = managementOnly ? "management-compatibility" : "shared" }, actor.Audit with { UserId = verified.User.Id }, ct);
+            }
+            return new(storefront, management);
+        }
+        catch
+        {
+            if (storefront != null) await sessions.RevokeAsync(storefront.RefreshToken, CancellationToken.None);
+            if (management != null) await sessions.RevokeAsync(management.RefreshToken, CancellationToken.None);
+            throw;
+        }
+    }
+
+    private sealed record VerifiedLogin(User User, IList<string> Roles, DateTimeOffset? SecondFactorAt, string? Stamp);
+
+    private async Task<VerifiedLogin> VerifyPasswordAsync(LoginRequest request, CancellationToken ct, bool management)
     {
         var user = await users.FindByEmailAsync(request.Email);
         if (user == null)
@@ -63,39 +159,59 @@ public sealed class IdentityService(
         if (!user.EmailConfirmed)
             throw new CommerceException("EMAIL_CONFIRMATION_REQUIRED", "Email verification is required before signing in.", 401, new Dictionary<string, object?> { ["requiresEmailConfirmation"] = true });
         var roles = await users.GetRolesAsync(user);
-        DateTimeOffset? secondFactorAt = null;
-        if (user.TwoFactorEnabled)
-        {
-            if (!await secondFactor.VerifyAsync(user, request.AuthenticatorCode, request.RecoveryCode, ct)) throw InvalidLogin();
-            // Recovery permits account repair but cannot authorize staff operations.
-            if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode)) secondFactorAt = DateTimeOffset.UtcNow;
-        }
-        else if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode) || !string.IsNullOrWhiteSpace(request.RecoveryCode)) throw InvalidLogin();
-        // Do not reset failed-factor counts until the complete submitted flow succeeds.
-        await users.ResetAccessFailedCountAsync(user);
-        var session = await sessions.CreateSessionAsync(user, actor.Session, ct);
-        var assurance = secondFactorAt.HasValue ? new StaffAssurance(user.Id, user.SecurityStamp!, session.Session.FamilyId, secondFactorAt.Value.ToUnixTimeSeconds()) : null;
-        return new(CreateResponse(user, roles, session.Session.FamilyId, secondFactorAt), session.RawToken, session.Session.ExpiresAt, assurance);
+        if (management && !roles.Any(AppRoles.AdministrativeRoles.Contains))
+            throw new CommerceException("MANAGEMENT_ACCESS_DENIED", "This account is not authorized for management.", 403);
+        if (roles.Count == 0 || roles.Any(role => role != AppRoles.Customer && !AppRoles.AdministrativeRoles.Contains(role)))
+            throw new CommerceException("ACCOUNT_ACCESS_DENIED", "This account is not available for sign-in.", 403);
+        if (roles.Any(AppRoles.AdministrativeRoles.Contains) && !configuration.GetValue<bool>("Administration:Enabled"))
+            throw new CommerceException("MANAGEMENT_DISABLED", "Management access is disabled. Contact the operator.", 503);
+        return new(user, roles, null, user.SecurityStamp);
     }
 
-    public async Task<AuthenticatedSession?> RefreshAsync(string? rawToken, CancellationToken ct, StaffAssurance? assurance = null)
+    private async Task<AuthenticatedSession> CreateSessionAsync(VerifiedLogin verified, CancellationToken ct, bool management)
+    {
+        var session = await sessions.CreateSessionAsync(verified.User, actor.Session, ct);
+        var assurance = verified.SecondFactorAt.HasValue ? new StaffAssurance(verified.User.Id, verified.User.SecurityStamp!, session.Session.FamilyId, verified.SecondFactorAt.Value.ToUnixTimeSeconds()) : null;
+        return new(CreateResponse(verified.User, verified.Roles, session.Session.FamilyId, verified.SecondFactorAt, management), session.RawToken, session.Session.ExpiresAt, assurance);
+    }
+
+    public async Task<AuthenticatedSession?> RefreshAsync(string? rawToken, CancellationToken ct, StaffAssurance? assurance = null, bool management = false)
     {
         if (string.IsNullOrWhiteSpace(rawToken))
             return null;
         var rotation = await sessions.RotateAsync(rawToken, actor.Session, ct);
         if (rotation == null) return null;
+        if (management && (!configuration.GetValue<bool>("Administration:Enabled") || !rotation.Roles.Any(AppRoles.AdministrativeRoles.Contains)))
+        {
+            await sessions.RevokeAsync(rotation.RawToken, ct);
+            return null;
+        }
         var age = assurance == null ? -1 : DateTimeOffset.UtcNow.ToUnixTimeSeconds() - assurance.VerifiedAt;
         // The protected HttpOnly grant binds assurance to the original session and stamp.
         // Rotation preserves its original time; it can never renew privileged assurance.
         var valid = assurance != null && assurance.UserId == rotation.User.Id && assurance.SecurityStamp == rotation.User.SecurityStamp && assurance.SessionFamily == rotation.Session.FamilyId && age >= 0 && age < 900;
+        // Old limited sessions and expired assurance must return to shared MFA,
+        // rather than minting an ordinary JWT while staff verification is absent.
+        if (rotation.Roles.Any(AppRoles.AdministrativeRoles.Contains) && (!rotation.User.TwoFactorEnabled || !valid))
+        {
+            await sessions.RevokeAsync(rotation.RawToken, ct);
+            return null;
+        }
         var secondFactorAt = valid ? DateTimeOffset.FromUnixTimeSeconds(assurance!.VerifiedAt) : (DateTimeOffset?)null;
-        return new(CreateResponse(rotation.User, rotation.Roles, rotation.Session.FamilyId, secondFactorAt), rotation.RawToken, rotation.Session.ExpiresAt, valid ? assurance : null);
+        return new(CreateResponse(rotation.User, rotation.Roles, rotation.Session.FamilyId, secondFactorAt, management), rotation.RawToken, rotation.Session.ExpiresAt, valid ? assurance : null);
     }
 
     public async Task LogoutAsync(string? rawToken, CancellationToken ct)
     {
         await sessions.RevokeAsync(rawToken, ct);
         await signIn.SignOutAsync();
+    }
+
+    public async Task CancelPendingSignInAsync(string? ticket, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(ticket)) return;
+        try { await pendingSignIn.AdvanceSignInAsync(ticket, "cancel", null, null, false, ct); }
+        catch (CommerceException error) when (error.Code == "MFA_CHALLENGE_EXPIRED") { /* Already invalid; logout stays idempotent. */ }
     }
 
     public async Task LogoutAllAsync(CancellationToken ct)
@@ -122,8 +238,14 @@ public sealed class IdentityService(
     {
         var user = await CurrentUser();
         var codes = await secondFactor.ConfirmAsync(user, request.Password, request.AuthenticatorCode ?? "", ct) ?? throw InvalidSecondFactor();
-        await sessions.RevokeAllForUserAsync(user.Id, ct);
+        await NotifyAuthenticatorChangedAsync(user, ct);
         return codes;
+    }
+
+    private async Task NotifyAuthenticatorChangedAsync(User user, CancellationToken ct)
+    {
+        try { await email.SendTransactionAsync(user, "Your Amaara authenticator was updated", "Your authenticator setup was completed and previous sessions were revoked. If this was not you, contact your account administrator immediately.", ct); }
+        catch (Exception error) when (error is not OperationCanceledException) { await audit.RecordAsync("AuthenticatorNotificationDeferred", nameof(User), user.Id, null, new { Type = error.GetType().Name }, actor.Audit, ct); }
     }
     public async Task<IReadOnlyList<string>> RegenerateRecoveryAsync(SecondFactorRequest request, CancellationToken ct) =>
         await secondFactor.RegenerateAsync(await CurrentUser(), request.Password, request.AuthenticatorCode ?? "", ct) ?? throw InvalidSecondFactor();
@@ -136,17 +258,21 @@ public sealed class IdentityService(
 
     public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct)
     {
-        var user = await users.FindByEmailAsync(request.Email);
+        var user = await users.FindByEmailAsync(request.Email.Trim());
         if (user is not { EmailConfirmed: true })
             return;
         var token = await users.GeneratePasswordResetTokenAsync(user);
-        await email.SendPasswordResetAsync(user, FrontendUrl("/reset-password", new Dictionary<string, string?> { ["email"] = user.Email, ["token"] = Uri.EscapeDataString(token) }), ct);
+        await email.SendPasswordResetAsync(user, FrontendUrl("/reset-password", new Dictionary<string, string?> { ["email"] = user.Email, ["token"] = Uri.EscapeDataString(token), ["code"] = token }), ct);
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct)
     {
-        var user = await users.FindByEmailAsync(request.Email) ?? throw new CommerceException("PASSWORD_RESET_INVALID", "Invalid or expired password reset link.");
-        EnsureSuccess(await users.ResetPasswordAsync(user, Uri.UnescapeDataString(request.Token), request.NewPassword), "PASSWORD_RESET_INVALID", "Invalid or expired password reset link.");
+        var tokenOrCode = !string.IsNullOrWhiteSpace(request.Code) ? request.Code.Trim() : (!string.IsNullOrWhiteSpace(request.Token) ? request.Token.Trim() : string.Empty);
+        if (string.IsNullOrWhiteSpace(tokenOrCode))
+            throw new CommerceException("PASSWORD_RESET_INVALID", "Password reset code is required.");
+
+        var user = await users.FindByEmailAsync(request.Email.Trim()) ?? throw new CommerceException("PASSWORD_RESET_INVALID", "Invalid or expired password reset code.");
+        EnsureSuccess(await users.ResetPasswordAsync(user, Uri.UnescapeDataString(tokenOrCode), request.NewPassword), "PASSWORD_RESET_INVALID", "Invalid or expired password reset code.");
         await sessions.RevokeAllForUserAsync(user.Id, ct);
     }
 
@@ -171,9 +297,9 @@ public sealed class IdentityService(
             throw new CommerceException(code, message, details: new Dictionary<string, object?> { ["errors"] = result.Errors.Select(e => e.Description).ToArray() });
     }
 
-    private AuthResponse CreateResponse(User user, IList<string> roles, string sessionFamily, DateTimeOffset? secondFactorAt = null) => new()
+    private AuthResponse CreateResponse(User user, IList<string> roles, string sessionFamily, DateTimeOffset? secondFactorAt = null, bool management = false) => new()
     {
-        Token = tokens.GenerateToken(user, roles, sessionFamily, secondFactorAt),
+        Token = tokens.GenerateToken(user, roles, sessionFamily, secondFactorAt, management),
         User = ToUserDto(user, roles),
         ExpiresAt = tokens.GetAccessTokenExpiry()
     };
@@ -186,13 +312,13 @@ public sealed class IdentityService(
         Address = user.Address,
         AvatarUrl = user.AvatarUrl,
         EmailConfirmed = user.EmailConfirmed,
-        Role = roles.FirstOrDefault() ?? AppRoles.Customer,
+        Role = roles.FirstOrDefault() ?? string.Empty,
         Roles = roles.ToList()
     };
     private async Task SendConfirmationAsync(User user, CancellationToken ct)
     {
         var token = await users.GenerateEmailConfirmationTokenAsync(user);
-        await email.SendEmailConfirmationAsync(user, FrontendUrl("/verify-email", new Dictionary<string, string?> { ["userId"] = user.Id, ["token"] = Uri.EscapeDataString(token), ["email"] = user.Email }), ct);
+        await email.SendEmailConfirmationAsync(user, FrontendUrl("/verify-email", new Dictionary<string, string?> { ["userId"] = user.Id, ["token"] = Uri.EscapeDataString(token), ["code"] = token, ["email"] = user.Email }), ct);
     }
 
     private string FrontendUrl(string path, IDictionary<string, string?> query)

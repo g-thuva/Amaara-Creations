@@ -3,12 +3,13 @@ import { PaymentsTable } from "@/features/admin/features/payments/PaymentsTable.
 import { PaymentFilters } from "@/features/admin/features/payments/PaymentFilters.jsx";
 import { ResourceState } from "@/features/admin/shared/components/ResourceState.jsx";
 import { Pagination } from "@/features/admin/shared/components/Pagination.jsx";
+import { PageHeader } from '@/features/admin/shared/components/PageHeader.jsx';
 export default function PaymentsPage() {
   const { page, setPage, status, setStatus, mode, setMode, resource } =
     usePayments();
   return (
     <div className="admin-page">
-      <h1>Payments and refunds</h1>
+      <PageHeader title="Payments and refunds" description="Review payment attempts, verify provider status and open an order to manage refunds." />
       <PaymentFilters
         status={status}
         setStatus={setStatus}
@@ -16,7 +17,7 @@ export default function PaymentsPage() {
         setMode={setMode}
       />
       <ResourceState resource={resource}>
-        <PaymentsTable resource={resource} />
+        <PaymentsTable resource={resource} reset={() => { setStatus(''); setMode(''); }} />
         <Pagination
           page={page}
           data={resource.data}

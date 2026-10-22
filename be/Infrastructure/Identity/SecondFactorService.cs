@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -12,8 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace be.Infrastructure.Identity;
 
-public sealed class SecondFactorService(UserManager<User> users, IUserStore<User> store, ApplicationDbContext db,
-    IDataProtectionProvider protection, IAuditService audit, IRequestActor actor, TimeProvider clock) : ISecondFactorService
+public sealed partial class SecondFactorService(UserManager<User> users, IUserStore<User> store, ApplicationDbContext db,
+    IDataProtectionProvider protection, IAuditService audit, IRequestActor actor, TimeProvider clock, IRefreshSessionService sessions) : ISecondFactorService, IPendingSignInService
 {
     private const string Provider = "Amaara.SecondFactor.v1";
     // Fixed stripes bound memory while serializing unit/in-memory operations.
@@ -21,6 +20,7 @@ public sealed class SecondFactorService(UserManager<User> users, IUserStore<User
     private IDataProtector Protector => protection.CreateProtector(Provider);
     private sealed record Enrollment(string Key, string Stamp, long Expires);
     private sealed record UsedCode(string Hash, long Expires);
+    private sealed record RecoveryApproval(string Stamp, long Expires);
 
     public async Task<SecondFactorStatus> StatusAsync(User user, CancellationToken ct) =>
         new(user.TwoFactorEnabled, (await Read<List<string>>(user, "Recovery") ?? []).Count, (await users.GetRolesAsync(user)).Any(AppRoles.AdministrativeRoles.Contains));
@@ -28,18 +28,32 @@ public sealed class SecondFactorService(UserManager<User> users, IUserStore<User
     public Task<AuthenticatorEnrollment?> BeginAsync(User user, string password, string? code, string? recoveryCode, CancellationToken ct) => Locked(user, async () =>
     {
         if (!await Password(user, password) || (user.TwoFactorEnabled && !await VerifyCore(user, code, recoveryCode))) return null;
-        var key = users.GenerateNewAuthenticatorKey();
-        var expires = clock.GetUtcNow().AddMinutes(10);
-        await Write(user, "Enrollment", new Enrollment(key, user.SecurityStamp!, expires.ToUnixTimeSeconds()));
-        await Record("AuthenticatorEnrollmentStarted", user, ct);
-        return new AuthenticatorEnrollment(key, $"otpauth://totp/{Uri.EscapeDataString("Amaara Creations:" + user.Email)}?secret={key}&issuer=Amaara%20Creations&digits=6&period=30", expires);
+        return await BeginCore(user, ct);
     }, ct);
 
     public Task<IReadOnlyList<string>?> ConfirmAsync(User user, string password, string code, CancellationToken ct) => Locked<IReadOnlyList<string>?>(user, async () =>
     {
         if (!await Password(user, password)) return null;
+        return await ConfirmCore(user, code, ct);
+    }, ct);
+
+    private async Task<AuthenticatorEnrollment> BeginCore(User user, CancellationToken ct)
+    {
         var pending = await Read<Enrollment>(user, "Enrollment");
-        if (pending == null || pending.Stamp != user.SecurityStamp || pending.Expires <= clock.GetUtcNow().ToUnixTimeSeconds() || !Matches(pending.Key, code))
+        if (pending == null || pending.Stamp != user.SecurityStamp || pending.Expires <= clock.GetUtcNow().ToUnixTimeSeconds())
+        {
+            pending = new Enrollment(users.GenerateNewAuthenticatorKey(), user.SecurityStamp!, clock.GetUtcNow().AddMinutes(10).ToUnixTimeSeconds());
+            await Write(user, "Enrollment", pending);
+            await Record("AuthenticatorEnrollmentStarted", user, ct);
+        }
+        return new(pending.Key, $"otpauth://totp/{Uri.EscapeDataString("Amaara Creations:" + user.Email)}?secret={pending.Key}&issuer=Amaara%20Creations&digits=6&period=30", DateTimeOffset.FromUnixTimeSeconds(pending.Expires));
+    }
+
+    private async Task<IReadOnlyList<string>?> ConfirmCore(User user, string code, CancellationToken ct)
+    {
+        var replacing = user.TwoFactorEnabled;
+        var pending = await Read<Enrollment>(user, "Enrollment");
+        if (pending == null || pending.Stamp != user.SecurityStamp || pending.Expires <= clock.GetUtcNow().ToUnixTimeSeconds() || !await Matches(user, pending.Key, code))
         {
             await users.AccessFailedAsync(user);
             return null;
@@ -48,12 +62,14 @@ public sealed class SecondFactorService(UserManager<User> users, IUserStore<User
         Ensure(await users.SetTwoFactorEnabledAsync(user, true));
         Ensure(await users.UpdateSecurityStampAsync(user));
         await users.RemoveAuthenticationTokenAsync(user, Provider, "Enrollment");
+        await users.RemoveAuthenticationTokenAsync(user, Provider, "RecoveryApproval");
         await Write(user, "Used", new List<UsedCode> { new(CodeHash(user, Clean(code)), clock.GetUtcNow().AddMinutes(3).ToUnixTimeSeconds()) });
         var codes = await NewRecovery(user);
+        await sessions.RevokeAllForUserAsync(user.Id, ct);
         Ensure(await users.ResetAccessFailedCountAsync(user));
-        await Record("AuthenticatorEnabled", user, ct);
+        await Record(replacing ? "AuthenticatorReplaced" : "AuthenticatorEnabled", user, ct);
         return codes;
-    }, ct);
+    }
 
     public Task<bool> VerifyAsync(User user, string? code, string? recoveryCode, CancellationToken ct) => Locked(user, () => VerifyCore(user, code, recoveryCode), ct);
 
@@ -97,8 +113,9 @@ public sealed class SecondFactorService(UserManager<User> users, IUserStore<User
             var cleaned = Clean(code);
             var used = (await Read<List<UsedCode>>(user, "Used") ?? []).Where(x => x.Expires > clock.GetUtcNow().ToUnixTimeSeconds()).ToList();
             var hash = CodeHash(user, cleaned);
-            if (key != null && Matches(key, cleaned) && !used.Any(x => x.Hash == hash))
+            if (key != null && await Matches(user, key, cleaned) && !used.Any(x => x.Hash == hash))
             {
+                if (store is ProtectedIdentityUserStore protectedStore) await protectedStore.ProtectExistingKeyAsync(user);
                 used.Add(new(hash, clock.GetUtcNow().AddMinutes(3).ToUnixTimeSeconds()));
                 await Write(user, "Used", used);
                 valid = true;
@@ -120,24 +137,18 @@ public sealed class SecondFactorService(UserManager<User> users, IUserStore<User
         return valid;
     }
 
-    private bool Matches(string key, string? input)
+    private async Task<bool> Matches(User user, string key, string? input)
     {
         var code = Clean(input);
         if (code.Length != 6 || code.Any(x => x is < '0' or > '9')) return false;
-        var secret = DecodeBase32(key);
-        var step = clock.GetUtcNow().ToUnixTimeSeconds() / 30;
-        Span<byte> counter = stackalloc byte[8];
-        // Permit one step of clock drift in each direction; consumption is shared
-        // across API instances and is retained longer than this acceptance window.
-        for (var offset = -1; offset <= 1; offset++)
+        try
         {
-            BinaryPrimitives.WriteInt64BigEndian(counter, step + offset);
-            var mac = HMACSHA1.HashData(secret, counter);
-            var index = mac[^1] & 15;
-            var value = (BinaryPrimitives.ReadUInt32BigEndian(mac.AsSpan(index, 4)) & 0x7fffffff) % 1_000_000;
-            if (CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(value.ToString("D6")), Encoding.ASCII.GetBytes(code))) return true;
+            if (store is ProtectedIdentityUserStore protectedStore) return await protectedStore.VerifyPendingAsync(users, user, key, code);
+            // Compatibility for operator/test stores: validation of an active
+            // key remains framework-supported; enrollment uses the protected store.
+            return key == await users.GetAuthenticatorKeyAsync(user) && await users.VerifyTwoFactorTokenAsync(user, users.Options.Tokens.AuthenticatorTokenProvider, code);
         }
-        return false;
+        catch (Exception error) when (error is FormatException or ArgumentException) { return false; }
     }
 
     private async Task<IReadOnlyList<string>> NewRecovery(User user)
@@ -165,12 +176,13 @@ public sealed class SecondFactorService(UserManager<User> users, IUserStore<User
     {
         if (db.Database.IsSqlServer())
         {
-            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            var ownsTransaction = db.Database.CurrentTransaction == null;
+            await using var transaction = ownsTransaction ? await db.Database.BeginTransactionAsync(ct) : null;
             var resource = "Amaara.SecondFactor." + Hash(user.Id);
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @r int; EXEC @r = sys.sp_getapplock @Resource = {resource}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000; IF @r < 0 THROW 51002, 'Authentication lock unavailable', 1;", ct);
             await db.Entry(user).ReloadAsync(ct);
             var result = await operation();
-            await transaction.CommitAsync(ct);
+            if (transaction != null) await transaction.CommitAsync(ct);
             return result;
         }
         var stripe = Locks[(int)(BitConverter.ToUInt32(SHA256.HashData(Encoding.UTF8.GetBytes(user.Id)), 0) % Locks.Length)];
@@ -179,16 +191,4 @@ public sealed class SecondFactorService(UserManager<User> users, IUserStore<User
         finally { stripe.Release(); }
     }
 
-    private static byte[] DecodeBase32(string key)
-    {
-        var output = new List<byte>(); var buffer = 0; var bits = 0;
-        foreach (var character in key.ToUpperInvariant().TrimEnd('='))
-        {
-            var value = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".IndexOf(character);
-            if (value < 0) throw new InvalidOperationException("Invalid authenticator configuration.");
-            buffer = (buffer << 5) | value; bits += 5;
-            if (bits >= 8) { bits -= 8; output.Add((byte)(buffer >> bits)); }
-        }
-        return output.ToArray();
-    }
 }

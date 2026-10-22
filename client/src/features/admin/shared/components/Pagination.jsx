@@ -11,7 +11,7 @@ export function Pagination({
 }) {
   const info = pagination({ page, pageSize: size, totalCount: total, ...data });
   return (
-    <nav className="action-buttons" aria-label={label}>
+    <nav className="admin-pagination" aria-label={label}>
       <button
         className="btn btn-outline-primary"
         disabled={disabled || !info.hasPrevious}

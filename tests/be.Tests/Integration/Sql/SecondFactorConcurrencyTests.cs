@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace be.Tests;
 
@@ -22,6 +23,8 @@ public sealed class SecondFactorConcurrencyTests
         connection.InitialCatalog = "AmaaraPhase6Tests_MfaRace_" + Guid.NewGuid().ToString("N")[..8];
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        services.AddScoped<IRefreshSessionService, RefreshSessionService>();
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connection.ConnectionString));
         services.AddSingleton<IDataProtectionProvider>(new EphemeralDataProtectionProvider());
         services.AddSingleton(TimeProvider.System);
@@ -29,6 +32,7 @@ public sealed class SecondFactorConcurrencyTests
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<ISecondFactorService, SecondFactorService>();
         services.AddIdentityCore<User>().AddRoles<IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
+        services.AddScoped<IUserStore<User>, ProtectedIdentityUserStore>();
         await using var provider = services.BuildServiceProvider();
         string userId;
         using (var scope = provider.CreateScope())

@@ -130,7 +130,6 @@
 .storefront .s-help-question h2 { font-family: var(--font-body); font-size: 1.05rem; font-weight: 600; }
 .storefront .s-help-question p { max-width: 64ch; }
 .storefront .s-staff-signin { width: min(100% - 2rem, 30rem); margin-inline: auto; padding-block: 4rem; }
-.staff-reauth { position: fixed; z-index: 50; bottom: 1rem; right: 1rem; padding: 0.5rem 1rem; background: white; border: 1px solid #19385f; border-radius: 4px; }
 @media (max-width: 1099px) {
   .storefront .s-custom-cta { grid-template-columns: 1fr 1fr; }
   .storefront .s-custom-cta > div:last-child { grid-column: 1 / -1; }

@@ -31,7 +31,7 @@ public sealed class FilePasswordBlocklistTests : IDisposable
     public async Task RequiredUnavailableCorpusRejectsNewPasswordsWithoutChangingExistingHashes()
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Authentication:RequirePasswordBlocklist"] = "true" }).Build();
-        var result = await new PassphraseValidator(configuration).ValidateAsync(null!, new be.Domain.Identity.User(), "otherwise valid new passphrase");
+        var result = await new PassphraseValidator(configuration).ValidateAsync(null!, new be.Domain.Identity.User(), "Otherwise valid new password 8!");
         Assert.False(result.Succeeded);
         Assert.Contains(result.Errors, error => error.Code == "PasswordCheckUnavailable");
     }

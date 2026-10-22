@@ -36,7 +36,9 @@ public static class DependencyInjection
         // Configure Identity
         builder.Services.AddIdentity<User, IdentityRole>(options =>
         {
-            // Password settings
+            // PassphraseValidator enforces 6–128 Unicode code points plus an
+            // uppercase letter, digit and punctuation/symbol (not whitespace).
+            // Keep the default ASCII-only composition checks disabled.
             options.Password.RequireDigit = false;
             options.Password.RequireLowercase = false;
             options.Password.RequireUppercase = false;
@@ -50,9 +52,12 @@ public static class DependencyInjection
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Authentication:LockoutMinutes") ?? 10);
             options.Lockout.MaxFailedAccessAttempts = builder.Configuration.GetValue<int?>("Authentication:MaxFailedAccessAttempts") ?? 5;
             options.Lockout.AllowedForNewUsers = true;
+            options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+            options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
         })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+        builder.Services.AddScoped<IUserStore<User>, ProtectedIdentityUserStore>();
         builder.Services.AddScoped<IPasswordValidator<User>, PassphraseValidator>();
         builder.Services.AddSingleton<FilePasswordBlocklist>();
         builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromMinutes(30));
@@ -60,7 +65,9 @@ public static class DependencyInjection
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();
         builder.Services.AddSingleton(TimeProvider.System);
-        builder.Services.AddScoped<ISecondFactorService, SecondFactorService>();
+        builder.Services.AddScoped<SecondFactorService>();
+        builder.Services.AddScoped<ISecondFactorService>(services => services.GetRequiredService<SecondFactorService>());
+        builder.Services.AddScoped<IPendingSignInService>(services => services.GetRequiredService<SecondFactorService>());
         if (builder.Configuration.GetValue<bool?>("Email:Enabled") == false)
             builder.Services.AddScoped<IEmailService, DisabledEmailService>();
         else if (builder.Configuration["Email:Provider"] == "DevelopmentCapture")

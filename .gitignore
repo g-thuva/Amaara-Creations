@@ -113,3 +113,6 @@ wwwroot/uploads/
 docs/implementation/
 client/dist-admin/
 tests/**/TestResults/
+# Local .NET operator-tool build artifacts
+tools/**/bin/
+tools/**/obj/

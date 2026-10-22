@@ -8,7 +8,7 @@ export function ProductTools({ product, changed }) {
   return (
     <section className="card">
       <div className="card-header">
-        <h3 className="card-title">{product.name}</h3>
+        <h2 className="card-title">{product.name}</h2>
       </div>
       <div className="card-body">
         <MutationFeedback {...tools.mutation} />

@@ -23,6 +23,7 @@ public class ApiRouteContractTests
     {
         var routes = GetControllerRoutes();
         AssertRoute(routes, "POST", "api/v1/auth/login");
+        AssertRoute(routes, "POST", "api/v1/auth/sign-in");
         AssertRoute(routes, "POST", "api/v1/auth/refresh");
         AssertRoute(routes, "GET", "api/v1/auth/me");
         AssertRoute(routes, "GET", "api/v1/addresses");

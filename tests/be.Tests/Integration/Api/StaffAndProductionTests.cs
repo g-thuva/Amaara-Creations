@@ -11,7 +11,7 @@ public sealed class StaffAndProductionTests
 {
     private static async Task Login(HttpClient client, string email, string password)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password, authenticatorCode = email.StartsWith("acceptance-customer-", StringComparison.OrdinalIgnoreCase) ? null : TotpFixture.Code });
+        var response = await client.PostAsJsonAsync(email.StartsWith("acceptance-customer-", StringComparison.OrdinalIgnoreCase) ? "/api/v1/auth/login" : "/api/v1/auth/staff/login", new { email, password, authenticatorCode = email.StartsWith("acceptance-customer-", StringComparison.OrdinalIgnoreCase) ? null : TotpFixture.Code });
         response.EnsureSuccessStatusCode();
         var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", payload.GetProperty("token").GetString());

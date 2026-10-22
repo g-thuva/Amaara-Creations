@@ -12,6 +12,7 @@ public sealed class StaffAuthorizationHandler(IConfiguration configuration) : Au
     {
         var seconds = requirement.Sensitive ? 300 : 900;
         if (configuration.GetValue<bool>("Administration:Enabled") &&
+            context.User.HasClaim("session_kind", "management") &&
             context.User.HasClaim("amr", "mfa") &&
             long.TryParse(context.User.FindFirst("mfa_time")?.Value, NumberStyles.None, CultureInfo.InvariantCulture, out var authenticatedAt))
         {

@@ -4,10 +4,12 @@ namespace be.Application.Features.Identity
 {
     public class ConfirmEmailRequest
     {
-        [Required]
-        public string UserId { get; set; } = string.Empty;
+        public string? UserId { get; set; }
 
-        [Required]
-        public string Token { get; set; } = string.Empty;
+        public string? Email { get; set; }
+
+        public string? Token { get; set; }
+
+        public string? Code { get; set; }
     }
 }

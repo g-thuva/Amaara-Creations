@@ -2,7 +2,7 @@ import { test, expect, acceptanceApi } from '../fixtures';
 
 test('a real selected product option keeps its identity and current price in the cart', async ({ page, request, fixture }) => {
   const code = (await (await request.get(`${acceptanceApi}/__fixture/authenticator-code`)).json()).code;
-  const admin = await request.post(`${acceptanceApi}/api/v1/auth/login`, { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
+  const admin = await request.post(`${acceptanceApi}/api/v1/auth/staff/login`, { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
   expect(admin.ok()).toBeTruthy();
   const headers = { Authorization: `Bearer ${(await admin.json()).token}` };
   const productId = fixture.products[0];

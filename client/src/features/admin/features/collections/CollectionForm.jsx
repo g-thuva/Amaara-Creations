@@ -13,9 +13,9 @@ export function CollectionForm({
   return (
     <div className="card">
       <div className="card-header">
-        <h3 className="card-title">
+        <h2 className="card-title">
           {editing ? "Edit Collection" : "Create Collection"}
-        </h3>
+        </h2>
       </div>
       <form className="add-product-form" onSubmit={save}>
         <div className="form-row">

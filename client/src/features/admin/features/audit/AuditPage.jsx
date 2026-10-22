@@ -3,11 +3,13 @@ import { AuditTable } from "@/features/admin/features/audit/AuditTable.jsx";
 import { AuditFilters } from "@/features/admin/features/audit/AuditFilters.jsx";
 import { ResourceState } from "@/features/admin/shared/components/ResourceState.jsx";
 import { Pagination } from "@/features/admin/shared/components/Pagination.jsx";
+import { PageHeader } from '@/features/admin/shared/components/PageHeader.jsx';
+import AppIcon from '@/shared/components/ui/Icon.jsx';
 export default function AuditPage() {
   const { page, setPage, setFilters, resource } = useAudit();
   return (
     <div className="admin-page">
-      <h1>Admin audit log</h1>
+      <PageHeader title="Admin audit log" description="Review recorded staff activity and safe change metadata." eyebrow={<><AppIcon name="lock" />Append-only audit evidence</>} />
       <AuditFilters setFilters={setFilters} setPage={setPage} />
       <ResourceState resource={resource}>
         <AuditTable resource={resource} />

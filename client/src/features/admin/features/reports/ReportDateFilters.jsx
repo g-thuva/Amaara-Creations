@@ -1,3 +1,5 @@
+import AppIcon from '@/shared/components/ui/Icon.jsx';
+import { FilterBar } from '@/features/admin/shared/components/FilterBar.jsx';
 export function ReportDateFilters({
   setDates,
   mutation,
@@ -5,8 +7,7 @@ export function ReportDateFilters({
   exportOrders,
 }) {
   return (
-    <form
-      className="form-row"
+    <div className="card card-body"><h2>Reporting period</h2><p className="admin-helper">Dates are interpreted in UTC. “Before” excludes the chosen date.</p><FilterBar
       onSubmit={(e) => {
         e.preventDefault();
         const f = new FormData(e.currentTarget);
@@ -24,7 +25,7 @@ export function ReportDateFilters({
         Before (UTC, exclusive)
         <input className="form-control" type="date" name="to" />
       </label>
-      <button className="btn btn-primary">Apply dates</button>
+      <div className="action-buttons"><button className="btn btn-primary">Apply dates</button>
       <button
         type="button"
         className="btn btn-outline-primary"
@@ -33,8 +34,8 @@ export function ReportDateFilters({
         }
         onClick={exportOrders}
       >
-        Export orders CSV
-      </button>
-    </form>
+        <AppIcon name="file" />Export orders CSV
+      </button></div>
+    </FilterBar></div>
   );
 }

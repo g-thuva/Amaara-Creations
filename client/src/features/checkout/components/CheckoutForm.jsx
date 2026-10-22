@@ -35,7 +35,7 @@ export default function CheckoutForm({ checkout }) {
         {quote.data?.paymentAvailable && quote.data.paymentProvider === 'Zahls' && quote.data.paymentMode === 'TEST' &&
           <p role="status" className="s-test-payment-banner">Test payment — no real money will be charged.</p>}
         {quote.data?.paymentAvailable
-          ? <p>Payment takes place on the secure Zahls hosted page. Your order is confirmed after our server verifies payment.</p>
+          ? <p>Payment takes place on the payment provider’s hosted page. Your order is confirmed after our server verifies payment.</p>
           : quote.data && <p role="status">Secure online payment is not available for this checkout yet. Your cart has not been charged.</p>}
         {checkout.error && <p role="alert" className="s-error-text">{checkout.error.response?.data?.title || 'Payment could not be started. Check your connection and try again.'}</p>}
         {checkout.session && !checkout.session.redirectUrl && <p role="status">This payment is {checkout.session.status.toLowerCase()}. <Link to={'/checkout/payment/return?paymentId=' + checkout.session.paymentId}>Check payment status</Link></p>}

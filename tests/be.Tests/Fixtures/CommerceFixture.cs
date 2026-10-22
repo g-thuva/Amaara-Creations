@@ -118,7 +118,7 @@ internal sealed class CommerceFixture : IAsyncDisposable
     public ValueTask DisposeAsync() => Db.DisposeAsync();
 }
 
-internal sealed class FakePaymentGateway : IPaymentGateway
+public sealed class FakePaymentGateway : IPaymentGateway
 {
     private long counter = Random.Shared.NextInt64(100000000000000000, 900000000000000000);
     public string Provider { get; set; } = "FakeTestGateway";
@@ -132,6 +132,11 @@ internal sealed class FakePaymentGateway : IPaymentGateway
     public bool RejectRefund { get; set; }
     public bool AmbiguousRefund { get; set; }
     public GatewayStatus? NextStatus { get; set; }
+    public string? HostedBaseUrl { get; init; }
+    public bool StoreTransactions { get; init; }
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, GatewayStatus> transactions = new();
+    public System.Collections.Concurrent.ConcurrentDictionary<Guid, GatewayState> RefundOutcomes { get; } = new();
+    public void SetStatus(GatewayStatus state) => transactions[state.TransactionId] = state;
 
     public void EnsureAvailable(string currency)
     {
@@ -139,7 +144,7 @@ internal sealed class FakePaymentGateway : IPaymentGateway
             throw new CommerceException("PAYMENT_NOT_CONFIGURED", "Test payment is unavailable.", 503);
     }
 
-    public string RedirectUrl(string id) => Provider == "Zahls" ? "https://zahls.ch/fixture/" + id // Synthetic path on an allowed host; no network request is made.
+    public string RedirectUrl(string id) => HostedBaseUrl != null ? HostedBaseUrl.TrimEnd('/') + "/pay/" + id : Provider == "Zahls" ? "https://zahls.ch/fixture/" + id // Synthetic path on an allowed host; no network request is made.
  : "https://pay.sandbox.datatrans.com/v1/start/" + id;
     public Task<GatewayInitialization> InitializeAsync(GatewayPaymentRequest request, CancellationToken ct)
     {
@@ -149,10 +154,11 @@ internal sealed class FakePaymentGateway : IPaymentGateway
         if (FailInitialization)
             throw new HttpRequestException("Test network failure");
         var id = Interlocked.Increment(ref counter).ToString();
+        if (StoreTransactions) SetStatus(new(id, MerchantId, request.Payment.ProviderReference!, request.Payment.Currency, Money.ToMinor(request.Payment.Amount, request.Payment.Currency), null, "payment", "SIMULATED_pending", GatewayState.Pending, "SIMULATED") { GatewayId = id, Mode = Mode, InvoiceTest = true });
         return Task.FromResult(new GatewayInitialization(id, RedirectUrl(id), id));
     }
 
-    public Task<GatewayStatus> StatusAsync(string id, CancellationToken ct) => Task.FromResult(NextStatus ?? throw new HttpRequestException("Test status unavailable"));
+    public Task<GatewayStatus> StatusAsync(string id, CancellationToken ct) => Task.FromResult(transactions.TryGetValue(id, out var state) ? state : NextStatus ?? throw new HttpRequestException("Test status unavailable"));
     public Task CancelAsync(Payment payment, Guid key, CancellationToken ct) => Task.CompletedTask;
     public Task SettleAsync(Payment payment, Guid key, CancellationToken ct) => Task.CompletedTask;
     public Task<string> RefundAsync(Payment payment, Refund refund, CancellationToken ct)
@@ -163,6 +169,12 @@ internal sealed class FakePaymentGateway : IPaymentGateway
         if (AmbiguousRefund)
             throw new HttpRequestException("Test timeout");
         var id = Interlocked.Increment(ref counter).ToString();
+        if (StoreTransactions)
+        {
+            var outcome = RefundOutcomes.GetValueOrDefault(refund.IdempotencyKey, GatewayState.Paid);
+            SetStatus(new(id, MerchantId, refund.ProviderReference, refund.Currency, Money.ToMinor(refund.Amount, refund.Currency), null, "credit", "SIMULATED_" + outcome.ToString().ToLowerInvariant(), outcome, "SIMULATED") { Mode = Mode, InvoiceTest = true, OriginalTransactionId = payment.ProviderTransactionId });
+            return Task.FromResult(id);
+        }
         NextStatus = new(id, MerchantId, refund.ProviderReference, refund.Currency, Money.ToMinor(refund.Amount, refund.Currency), null, "credit", "settled", GatewayState.Paid, null);
         return Task.FromResult(id);
     }

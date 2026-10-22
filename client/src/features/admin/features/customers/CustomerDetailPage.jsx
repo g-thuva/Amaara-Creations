@@ -5,6 +5,7 @@ import { ResourceState } from "@/features/admin/shared/components/ResourceState.
 import { CustomerSummary } from "@/features/admin/features/customers/CustomerSummary.jsx";
 import { CustomerAddresses } from "@/features/admin/features/customers/CustomerAddresses.jsx";
 import { CustomerActivity } from "@/features/admin/features/customers/CustomerActivity.jsx";
+import { PageHeader } from '@/features/admin/shared/components/PageHeader.jsx';
 export default function CustomerDetailPage() {
   const { id } = useParams();
   const resource = useResource(
@@ -14,14 +15,13 @@ export default function CustomerDetailPage() {
   return (
     <div className="admin-page">
       <Link to="/admin/customers">All customers</Link>
-      <h1>Customer details</h1>
+      <PageHeader title="Customer details" description="Review the customer’s account, delivery details and recorded activity." />
       <ResourceState resource={resource}>
         {resource.data && (
-          <>
-            <CustomerSummary data={resource.data} />
+          <div className="admin-detail-grid"><div className="admin-detail-main">
             <CustomerAddresses data={resource.data} />
             <CustomerActivity data={resource.data} />
-          </>
+          </div><aside className="admin-detail-rail" aria-label="Customer summary"><CustomerSummary data={resource.data} /></aside></div>
         )}
       </ResourceState>
     </div>

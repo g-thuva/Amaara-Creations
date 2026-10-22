@@ -1,7 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider.jsx";
 import { can } from "@/app/config/permissions.js";
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
 import { useOrderDetail } from "@/features/admin/features/orders/useOrderDetail.js";
 import { OrderSummary } from "@/features/admin/features/orders/OrderSummary.jsx";
 import { OrderItems } from "@/features/admin/features/orders/OrderItems.jsx";
@@ -11,6 +11,9 @@ import { OrderPayments } from "@/features/admin/features/payments/OrderPayments.
 import { OrderShipments } from "@/features/admin/features/shipping/OrderShipments.jsx";
 import { AdminPage } from "@/features/admin/shared/components/AdminPage.jsx";
 import { PageHeader } from "@/features/admin/shared/components/PageHeader.jsx";
+import { StatusChip } from '@/features/admin/shared/components/StatusChip.jsx';
+import { Skeleton } from '@/features/admin/shared/components/Skeleton.jsx';
+import { ErrorState } from '@/features/admin/shared/components/ErrorState.jsx';
 export default function OrderDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -18,12 +21,9 @@ export default function OrderDetailPage() {
   const order = resource.data;
   if (resource.error && !order)
     return (
-      <p role="alert">
-        Order details could not be loaded.{" "}
-        <button onClick={resource.reload}>Refresh order details</button>
-      </p>
+      <ErrorState title="Order details could not be loaded." retry={resource.reload} />
     );
-  if (!order) return <p role="status">Loading order…</p>;
+  if (!order) return <Skeleton label="Loading order…" />;
   const canManage = can(user, "ManageOrders");
   const stale = resource.loading || Boolean(resource.error);
   return (
@@ -31,14 +31,14 @@ export default function OrderDetailPage() {
       <Link to="/admin/orders">All orders</Link>
       <PageHeader title={order.orderNumber} />
       <p>
-        Order: {order.status} · Payment: {order.paymentStatus} · Fulfilment:{" "}
-        {order.fulfilmentStatus}
+        Order: <StatusChip status={order.status} /> · Payment: <StatusChip status={order.paymentStatus} /> · Fulfilment:{" "}
+        <StatusChip status={order.fulfilmentStatus} />
       </p>
       <p>
         {order.userName} · {order.shippingMethodName}
       </p>
       <p>Total: {checkoutMoney(order.total, order.currency)}</p>
-      <OrderSummary order={order} />
+      <div className="admin-detail-grid"><div className="admin-detail-main">
       <OrderItems order={order} canManageOrders={canManage} />
       {can(user, "ManagePayments") && (
         <OrderPayments payments={order.payments} changed={resource.reload} />
@@ -63,7 +63,7 @@ export default function OrderDetailPage() {
         canManage={canManage}
         stale={stale}
       />
-      <OrderTimeline order={order} />
+      </div><aside className="admin-detail-rail" aria-label="Order summary and history"><OrderSummary order={order} /><OrderTimeline order={order} /></aside></div>
     </AdminPage>
   );
 }

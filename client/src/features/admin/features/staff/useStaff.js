@@ -10,14 +10,19 @@ export function useStaff() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     setIntent({
+      kind: 'roles',
       email: form.get("email"),
       reason: form.get("reason"),
       roles: form.getAll("roles"),
     });
   };
   const confirm = async () => {
-    await mutation.run(() => staffApi.replaceRoles(intent));
+    await mutation.run(() => intent.kind === 'recovery' ? staffApi.approveMfaRecovery({ email: intent.email, reason: intent.reason }) : staffApi.replaceRoles(intent));
     setIntent(null);
   };
-  return { resource, intent, setIntent, mutation, submit, confirm };
+  const submitRecovery = event => {
+    event.preventDefault(); const values = Object.fromEntries(new FormData(event.currentTarget));
+    setIntent({ kind: 'recovery', email: values.email, reason: values.reason });
+  };
+  return { resource, intent, setIntent, mutation, submit, submitRecovery, confirm };
 }

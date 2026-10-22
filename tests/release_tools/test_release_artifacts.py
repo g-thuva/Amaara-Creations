@@ -42,7 +42,7 @@ class ReleaseArtifactTests(unittest.TestCase):
 
     def test_private_content_and_runtime_credentials_fail(self):
         self.package()
-        for name in ['api/App_Data/private-media/test.png', 'api/appsettings.Production.Local.json', 'web/.env', 'api/be.Tests.dll', 'api/be.ReleaseRehearsal.dll', 'api/secret.pfx', 'api/database.bak']:
+        for name in ['api/App_Data/private-media/test.png', 'api/appsettings.Production.Local.json', 'web/.env', 'api/be.Tests.dll', 'api/be.PaymentSimulator.dll', 'web/paymentSimulatorPlugin.js', 'scripts/start-payment-simulator.ps1', 'api/be.ReleaseRehearsal.dll', 'api/secret.pfx', 'api/database.bak']:
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text('fixture', encoding='utf-8')
@@ -55,6 +55,11 @@ class ReleaseArtifactTests(unittest.TestCase):
     def test_loopback_public_endpoint_fails(self):
         self.package()
         (self.root / 'web/index.html').write_text('<script src="http://localhost:5192/api/v1"></script>', encoding='utf-8')
+        with self.assertRaises(ValueError): artifact_files(self.root)
+
+    def test_simulator_marker_fails_even_in_an_ordinary_asset(self):
+        self.package()
+        (self.root / 'web/index.html').write_text('SIMULATED PAYMENTS payments.simulator.invalid', encoding='utf-8')
         with self.assertRaises(ValueError): artifact_files(self.root)
 
     def test_nested_manifest_cannot_bypass_membership_verification(self):

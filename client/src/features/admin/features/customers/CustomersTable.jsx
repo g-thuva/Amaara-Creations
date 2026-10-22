@@ -1,4 +1,4 @@
-import { formatLocalDate as formatDate } from "@/shared/utils/formatDate.ts";
+import { formatLocalDate as formatDate } from "@/features/admin/shared/utils/format.js";
 import { DataTable } from "@/features/admin/shared/components/DataTable.jsx";
 import { Link } from "react-router-dom";
 export function CustomersTable({ resource }) {

@@ -18,7 +18,7 @@ export default defineConfig({
         ? 'node node_modules/vite/bin/vite.js build --mode admin && node node_modules/vite/bin/vite.js preview --mode admin --host 127.0.0.1 --port 5179 --strictPort'
         : 'node node_modules/vite/bin/vite.js --mode admin --host 127.0.0.1 --port 5179 --strictPort',
       url: 'http://127.0.0.1:5179/Amaara-Creations/',
-      env: { VITE_API_BASE_URL: 'http://127.0.0.1:5198/api/v1', VITE_MEDIA_BASE_URL: 'http://127.0.0.1:5198' },
+      env: { VITE_API_BASE_URL: 'http://127.0.0.1:5198/api/v1', VITE_MEDIA_BASE_URL: 'http://127.0.0.1:5198', VITE_PUBLIC_SITE_URL: 'http://127.0.0.1:5178/Amaara-Creations' },
       reuseExistingServer: false,
     },
     {
@@ -26,7 +26,7 @@ export default defineConfig({
         ? 'node node_modules/vite/bin/vite.js build && node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 5178 --strictPort'
         : 'node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5178 --strictPort',
       url: 'http://127.0.0.1:5178/Amaara-Creations/',
-      env: { VITE_API_BASE_URL: 'http://127.0.0.1:5198/api/v1', VITE_MEDIA_BASE_URL: 'http://127.0.0.1:5198', VITE_PUBLIC_SITE_URL: 'https://store.example.test/Amaara-Creations' },
+      env: { VITE_API_BASE_URL: 'http://127.0.0.1:5198/api/v1', VITE_MEDIA_BASE_URL: 'http://127.0.0.1:5198', VITE_PUBLIC_SITE_URL: 'https://store.example.test/Amaara-Creations', VITE_MANAGEMENT_LOGIN_URL: 'https://management.example.test/Amaara-Creations/login' },
       reuseExistingServer: false,
     },
   ],

@@ -113,7 +113,7 @@ public sealed class AccountPrivacyAndRequestTests
 
     private static async Task Login(HttpClient client, JsonElement fixture, string field, bool factor = false, string? password = null)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = fixture.GetProperty(field).GetString(), password = password ?? fixture.GetProperty("password").GetString(), authenticatorCode = factor ? TotpFixture.Code : null });
+        var response = await client.PostAsJsonAsync(factor ? "/api/v1/auth/staff/login" : "/api/v1/auth/login", new { email = fixture.GetProperty(field).GetString(), password = password ?? fixture.GetProperty("password").GetString(), authenticatorCode = factor ? TotpFixture.Code : null });
         response.EnsureSuccessStatusCode();
         client.DefaultRequestHeaders.Authorization = new("Bearer", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString());
     }

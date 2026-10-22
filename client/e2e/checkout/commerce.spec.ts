@@ -4,7 +4,7 @@ test('profile, address, checkout and order history use real APIs', async ({ page
   await page.goto('./login');
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.customerEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).toHaveURL(/\/profile$/);
   await page.getByLabel('Full name', { exact: true }).fill('Storefront QA Updated');
   await page.getByRole('button', { name: 'Save profile', exact: true }).click();

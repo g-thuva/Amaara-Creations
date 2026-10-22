@@ -1,16 +1,24 @@
+:root {
+  --navy-950: #07152A; --navy-900: #0B1F3A; --navy-800: #11294A; --navy-700: #1A3A64; --navy-600: #24508A;
+  --gold-500: #C9A35D; --gold-400: #D9B97E; --gold-100: #F6EDD9; --gold-700: #8A6A2B;
+  --bg-page: #F7F9FC; --bg-surface: #FFFFFF; --bg-subtle: #EEF2F7;
+  --border: #E2E8F0; --border-strong: #CBD5E1; --control-border: #7D8DA3;
+  --text-strong: #0F172A; --text: #334155; --text-muted: #64748B;
+  --text-on-navy: #E8EEF7; --text-on-navy-muted: #9FB0C8;
+  --success-text: #15803D; --success-bg: #DCFCE7; --success-border: #86EFAC;
+  --warning-text: #B45309; --warning-bg: #FEF3C7; --warning-border: #FCD34D;
+  --danger-text: #B91C1C; --danger-bg: #FEE2E2; --danger-border: #FCA5A5;
+  --info-text: #1D4ED8; --info-bg: #DBEAFE; --info-border: #93C5FD;
+  --neutral-text: #475569; --neutral-bg: #EEF2F7; --neutral-border: #CBD5E1;
+  --sidebar-hover: rgba(255,255,255,.06); --sidebar-active: rgba(201,163,93,.14); --overlay: rgba(7,21,42,.48);
+  --shadow-sm: 0 2px 8px rgba(7,21,42,.035); --shadow-md: 0 12px 36px rgba(7,21,42,.12);
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px;
+  --radius-control: 8px; --radius-card: 12px; --radius-dialog: 16px;
+  --admin-transition: 180ms ease; --admin-header-height: 64px; --admin-sidebar-width: 264px; --admin-rail-width: 72px;
+  --admin-z-header: 20; --admin-z-overlay: 30; --admin-z-sidebar: 40; --admin-z-menu: 50; --admin-z-toast: 60;
+}
 .admin-app {
-  --sidebar-width: 250px;
-  --header-height: 60px;
-  --primary-color: #8b5a2b;
-  --primary-light: #d4a76a;
-  --secondary-color: #4a5568;
-  --success-color: #2f855a;
-  --danger-color: #c53030;
-  --warning-color: #9c4221;
-  --bg-color: #f7fafc;
-  --card-bg: #ffffff;
-  --text-color: #2d3748;
-  --text-muted: #596579;
-  --border-color: #e2e8f0;
-  --hover-color: #f7fafc;
+  --primary-color: var(--navy-900); --primary-light: var(--gold-500); --secondary-color: var(--text-muted);
+  --success-color: var(--success-text); --danger-color: var(--danger-text); --warning-color: var(--warning-text);
+  --bg-color: var(--bg-page); --card-bg: var(--bg-surface); --text-color: var(--text); --border-color: var(--border); --hover-color: var(--bg-subtle);
 }

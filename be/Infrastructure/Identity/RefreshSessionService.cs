@@ -188,11 +188,14 @@ namespace be.Infrastructure.Identity
         private async Task<T> WithSessionLockAsync<T>(string userId, Func<Task<T>> operation, CancellationToken cancellationToken)
         {
             if (!_context.Database.IsSqlServer()) return await operation();
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            // Provisioning and role changes may already own an atomic transaction.
+            // Reuse it while retaining the same SQL-owned lock and ownership rules.
+            await using var transaction = _context.Database.CurrentTransaction == null
+                ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
             var resource = "Amaara.RefreshSessions." + HashRefreshToken(userId);
             await _context.Database.ExecuteSqlInterpolatedAsync($"DECLARE @result int; EXEC @result = sys.sp_getapplock @Resource = {resource}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000; IF @result < 0 THROW 51001, 'Session lock unavailable', 1;", cancellationToken);
             var result = await operation();
-            await transaction.CommitAsync(cancellationToken);
+            if (transaction != null) await transaction.CommitAsync(cancellationToken);
             return result;
         }
 

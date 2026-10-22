@@ -5,10 +5,13 @@ export function AdminNavigationItem({ item, active, onNavigate }) {
     <Link
       to={"/admin/" + item.path}
       className={`menu-item ${active ? "active" : ""}`}
+      aria-current={active ? 'page' : undefined}
+      aria-label={item.title}
+      title={item.title}
       onClick={onNavigate}
     >
       <AppIcon name={item.icon} />
-      <span>{item.title}</span>
+      <span className="nav-label">{item.title}</span>
     </Link>
   );
 }

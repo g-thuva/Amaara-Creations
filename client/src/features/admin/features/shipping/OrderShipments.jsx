@@ -1,7 +1,8 @@
-import { formatDateTime } from "@/shared/utils/formatDate.ts";
+import { formatDateTime } from "@/features/admin/shared/utils/format.js";
 import { useState } from "react";
 import { shippingApi } from "@/features/admin/features/shipping/shippingApi.js";
 import { ShipmentForm } from "@/features/admin/features/shipping/ShipmentForm.jsx";
+import { StatusChip } from '@/features/admin/shared/components/StatusChip.jsx';
 export function OrderShipments({ order, changed, canManage, stale = false }) {
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -47,7 +48,7 @@ export function OrderShipments({ order, changed, canManage, stale = false }) {
         <section className="card card-body" key={s.id}>
           <h2>Shipment details</h2>
           <p>
-            {s.status} · {s.courier} · Tracking{" "}
+            <StatusChip status={s.status} /> · {s.courier} · Tracking{" "}
             {s.trackingNumber || "Not assigned"}
           </p>
           <p>

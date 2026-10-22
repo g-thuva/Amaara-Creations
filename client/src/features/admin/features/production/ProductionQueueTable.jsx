@@ -1,5 +1,5 @@
 import { DataTable } from "@/features/admin/shared/components/DataTable.jsx";
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
 import { Link } from "react-router-dom";
 export function ProductionQueueTable({ resource }) {
   return (

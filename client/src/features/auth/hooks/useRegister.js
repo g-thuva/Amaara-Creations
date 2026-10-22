@@ -1,4 +1,5 @@
 import { customerError } from '@/shared/api/apiError.ts';
+import { passwordPolicyError } from '@/shared/utils/passwordPolicy.js';
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider.jsx";
@@ -29,9 +30,9 @@ export function useRegister() {
       return;
     }
 
-    // Validate password length
-    if (Array.from(form.password).length < 15 || Array.from(form.password).length > 128) {
-      setError("Use 15 to 128 characters. Choose a unique passphrase.");
+    const policyError = passwordPolicyError(form.password);
+    if (policyError) {
+      setError(policyError);
       return;
     }
 
@@ -45,8 +46,12 @@ export function useRegister() {
         confirmPassword: form.confirmPassword
       });
 
-      navigate("/login", {
-        state: { message: "Registration successful. Check your email to verify your account before signing in." }
+      navigate(`/verify-email?email=${encodeURIComponent(form.email)}`, {
+        state: {
+          email: form.email,
+          registered: true,
+          message: "Account created successfully! We've sent a 6-digit verification code to your email."
+        }
       });
     } catch (err) {
       setError(customerError(err, 'Registration failed. Please try again.'));

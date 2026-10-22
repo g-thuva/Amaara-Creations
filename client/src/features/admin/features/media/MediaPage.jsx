@@ -12,7 +12,7 @@ export default function MediaPage() {
       <div className="page-header">
         <div className="header-content">
           <div>
-            <h2>Media Library</h2>
+            <h1>Media Library</h1>
             <p>{resource.data?.length || 0} assets</p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { SectionCard } from "@/features/admin/shared/components/SectionCard.jsx";
-import { formatDateTime } from "@/shared/utils/formatDate.ts";
+import { formatDateTime } from "@/features/admin/shared/utils/format.js";
 import { OrderTotals } from "@/features/admin/features/orders/OrderTotals.jsx";
 export function OrderSummary({ order }) {
   return (

@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
+import { PASSWORD_HELP, PASSWORD_INPUT_PROPS, passwordPolicyError } from '@/shared/utils/passwordPolicy.js';
 
-export function PasswordField({ label, id, autoComplete = 'new-password', guidance = false, ...props }) {
+export function PasswordField({ label, id, autoComplete = 'new-password', guidance = false, newPasswordRules = false, ...props }) {
   const generatedId = useId();
   const inputId = id || generatedId;
   const [visible, setVisible] = useState(false);
@@ -18,12 +19,12 @@ export function PasswordField({ label, id, autoComplete = 'new-password', guidan
   return <div className="s-password-field">
     {label && <label htmlFor={inputId}>{label}</label>}
     <div className="s-password-control">
-      <input {...props} id={inputId} type={visible ? 'text' : 'password'} autoComplete={autoComplete} aria-describedby={describedBy}
+      <input {...(newPasswordRules ? PASSWORD_INPUT_PROPS : {})} {...props} id={inputId} type={visible ? 'text' : 'password'} autoComplete={autoComplete} aria-describedby={describedBy}
         onKeyUp={(event) => setCapsLock(event.getModifierState('CapsLock'))}
         onKeyDown={(event) => setCapsLock(event.getModifierState('CapsLock'))} />
       <button type="button" aria-controls={inputId} aria-pressed={visible} aria-label={`${visible ? 'Hide' : 'Show'} ${toggleLabel}`} onClick={() => setVisible(value => !value)}>{visible ? 'Hide' : 'Show'}</button>
     </div>
     {capsLock && <small id={`${inputId}-caps`} role="status">Caps Lock is on.</small>}
-    {guidance && <small id={`${inputId}-guidance`}>Use 15–128 characters. Choose a unique passphrase; spaces and password managers are welcome.{length > 0 && <span role="status"> {length < 15 ? `${15 - length} more characters needed.` : length < 24 ? 'Length accepted. Avoid common or reused passwords.' : 'Long passphrase. Keep it unique to this account.'}</span>}</small>}
+    {guidance && <small id={`${inputId}-guidance`}>{PASSWORD_HELP}{length > 0 && <span role="status"> {length < 6 ? `${6 - length} more characters needed.` : passwordPolicyError(props.value) ? 'Check the password requirements.' : 'Requirements met. Avoid common or reused passwords.'}</span>}</small>}
   </div>;
 }

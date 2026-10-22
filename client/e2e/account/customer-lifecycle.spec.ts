@@ -34,7 +34,7 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
   await expect(page).toHaveURL(/\/login$/);
   await page.getByLabel('Email Address', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).toHaveURL(new RegExp(`\\/products\\/${productId}$`));
   await page.reload(); await expect(page.getByRole('heading', { level: 1 })).toHaveText('Storefront QA print 01');
   await page.getByRole('button', { name: 'View image 2', exact: true }).click();
@@ -128,6 +128,6 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
   await expect(page).toHaveURL(/\/Amaara-Creations\/?$/);
   await page.goto('./profile');
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByRole('button', { name: 'Sign In', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ })).toBeVisible();
   expect(errors).toEqual([]);
 });

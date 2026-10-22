@@ -16,8 +16,8 @@ export default function ProductsPage() {
       <div className="page-header">
         <div className="header-content">
           <div>
-            <h2>Product Management</h2>
-            <p>{resource.data?.totalItems || 0} products</p>
+            <h1>Product Management</h1>
+            <p>{resource.data ? `${resource.data.totalCount ?? resource.data.totalItems ?? resource.data.items?.length ?? 0} products` : 'Manage products, prices and availability.'}</p>
           </div>
           <button className="btn-add-product" onClick={products.resetForm}>
             <AppIcon name="plus" /> New Product

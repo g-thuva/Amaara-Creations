@@ -2,14 +2,16 @@ import { useBuilderConfiguration } from "@/features/admin/features/builder-confi
 import { BuilderPricingEditor } from "@/features/admin/features/builder-configuration/BuilderPricingEditor.jsx";
 import { BuilderOptionsEditor } from "@/features/admin/features/builder-configuration/BuilderOptionsEditor.jsx";
 import { BuilderVersionSummary } from "@/features/admin/features/builder-configuration/BuilderVersionSummary.jsx";
+import { ErrorState, Skeleton } from '@/features/admin/shared/components/AdminUi.jsx';
+import { ConfirmAction } from '@/features/admin/shared/components/ConfirmAction.jsx';
 export default function BuilderConfigurationPage() {
   const config = useBuilderConfiguration();
   const { draft, data, error, notice, pending, test, save, publish } = config;
   if (!draft)
     return (
       <div className="admin-page">
-        <h2>Custom builder</h2>
-        <p>{error || "Loading configuration…"}</p>
+        <h1>Custom builder</h1>
+        {error ? <ErrorState message={error} retry={config.reload} /> : <Skeleton label="Loading configuration…" />}
       </div>
     );
   return (
@@ -17,7 +19,7 @@ export default function BuilderConfigurationPage() {
       <div className="page-header">
         <div className="header-content">
           <div>
-            <h2>Custom builder configuration</h2>
+            <h1>Custom builder configuration</h1>
             <p>
               Draft version {draft.versionNumber}; published version{" "}
               {data?.published?.versionNumber || "none"}.
@@ -38,13 +40,12 @@ export default function BuilderConfigurationPage() {
             >
               Save draft
             </button>
-            <button
+            <ConfirmAction onConfirm={publish} pending={pending} title="Publish builder configuration" detail="Publish the current builder configuration? Customer quotes will use the published version." destructive={false}><button
               className="btn btn-success"
               disabled={pending}
-              onClick={publish}
             >
               Publish
-            </button>
+            </button></ConfirmAction>
           </div>
         </div>
       </div>

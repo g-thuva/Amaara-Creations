@@ -1,4 +1,4 @@
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
 export function OrderTotals({ order }) {
   return (
     <>
