@@ -2,9 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 import process from 'node:process'
+import { paymentSimulatorConfig } from './dev/paymentSimulatorPlugin.js'
 
-export default defineConfig(({ mode }) => ({
-  plugins: [react(), ...(mode === 'admin' ? [{ name: 'staff-entry', transformIndexHtml: { order: 'pre', handler: html => html.replace('/src/main.jsx', '/src/admin-main.jsx').replace('<title>Amaara Creations</title>', '<title>Amaara studio operations</title><meta name="robots" content="noindex,nofollow,noarchive" />') } }] : [])],
+export default defineConfig(({ mode, command }) => {
+  const simulator = paymentSimulatorConfig(command, mode);
+  return {
+  plugins: [react(), ...simulator.plugins, ...(mode === 'admin' ? [{ name: 'staff-entry', transformIndexHtml: { order: 'pre', handler: html => html.replace('/src/main.jsx', '/src/admin-main.jsx').replace('<title>Amaara Creations</title>', '<title>Amaara studio operations</title><meta name="robots" content="noindex,nofollow,noarchive" />') } }] : [])],
   test: { include: ['src/**/*.test.{js,jsx,ts,tsx}'] },
   base: process.env.VITE_PUBLIC_BASE_PATH || '/Amaara-Creations/',
   build: {
@@ -17,6 +20,7 @@ export default defineConfig(({ mode }) => ({
   },
   resolve: {
     alias: [
+      ...simulator.aliases,
       {
         find: '@',
         replacement: fileURLToPath(new URL('./src', import.meta.url)),
@@ -35,4 +39,5 @@ export default defineConfig(({ mode }) => ({
       },
     ],
   },
-}))
+  }
+})

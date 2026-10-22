@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:simulator": "playwright test --config playwright.simulator.config.ts",
     "preview": "vite preview",
     "deploy": "gh-pages -d dist",
     "predeploy": "npm run build",
