@@ -57,9 +57,14 @@ public static class AuthenticationExtensions
                         var manager = context.HttpContext.RequestServices.GetRequiredService<UserManager<User>>();
                         var id = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                         var user = id == null ? null : await manager.FindByIdAsync(id);
-                        if (user == null || await manager.IsLockedOutAsync(user))
+                        if (user == null || !user.EmailConfirmed || await manager.IsLockedOutAsync(user))
                         {
                             context.Fail("Account unavailable");
+                            return;
+                        }
+                        if (context.Principal!.HasClaim("session_kind", "management") && !user.TwoFactorEnabled)
+                        {
+                            context.Fail("Management verification required");
                             return;
                         }
 

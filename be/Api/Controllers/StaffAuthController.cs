@@ -8,14 +8,13 @@ using System.Globalization;
 
 namespace be.Api.Controllers;
 [ApiController, Route("api/v1/auth/staff")]
+[ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
 public sealed class StaffAuthController(IdentityService identity, RefreshCookie cookie, IConfiguration configuration, IAuthorizationService authorization) : ControllerBase
 {
     [HttpPost("login"), EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
-        var session = await identity.LoginAsync(request, ct, management: true);
-        cookie.Write(Response, session, management: true);
-        return Ok(session.Response);
+        return SignInResponse.Present(this, cookie, await identity.SignInAsync(request, ct, managementEntry: true), managementEntry: true);
     }
     [HttpPost("refresh"), EnableRateLimiting("auth-refresh")]
     public async Task<IActionResult> Refresh(CancellationToken ct)

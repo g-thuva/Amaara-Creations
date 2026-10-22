@@ -10,6 +10,10 @@ public sealed class RefreshCookie(IConfiguration configuration, IWebHostEnvironm
     private string AssuranceName(bool management) => CookieName(management) + "_assurance";
     private IDataProtector Protector => protection.CreateProtector("Amaara.StaffAssurance.v1");
     private IDataProtector ManagementProtector => protection.CreateProtector("Amaara.ManagementRefresh.v1");
+    private string PendingName => Name + "_signin";
+    public string? ReadPending(HttpRequest request) => request.Cookies[PendingName];
+    public void WritePending(HttpResponse response, string ticket, DateTimeOffset expires) => response.Cookies.Append(PendingName, ticket, Options(expires.UtcDateTime));
+    public void ClearPending(HttpResponse response) => response.Cookies.Delete(PendingName, Options());
 
     private CookieOptions Options(DateTime? expires = null, bool management = false) => new()
     {
@@ -44,5 +48,5 @@ public sealed class RefreshCookie(IConfiguration configuration, IWebHostEnvironm
         response.Cookies.Delete(CookieName(management), Options(management: management));
         response.Cookies.Delete(AssuranceName(management), Options(management: management));
     }
-    public void ClearAll(HttpResponse response) { Clear(response); Clear(response, true); }
+    public void ClearAll(HttpResponse response) { Clear(response); Clear(response, true); ClearPending(response); }
 }

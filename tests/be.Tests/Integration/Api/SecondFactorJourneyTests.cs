@@ -33,7 +33,8 @@ public sealed class SecondFactorJourneyTests
             var confirmed = await Post(client, "confirm", new { password, authenticatorCode = TotpFixture.For(key, clock.Now) });
             Assert.Equal(10, confirmed.GetProperty("recoveryCodes").GetArrayLength());
             Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
-            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password })).StatusCode);
+            var pending = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
+            Assert.Equal(HttpStatusCode.Accepted, pending.StatusCode); Assert.False((await pending.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("token", out _));
             // The setup code is consumed too, so it cannot immediately sign in.
             Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password, authenticatorCode = TotpFixture.For(key, clock.Now) })).StatusCode);
             clock.Now = clock.Now.AddSeconds(30);
@@ -43,7 +44,7 @@ public sealed class SecondFactorJourneyTests
             client.DefaultRequestHeaders.Authorization = new("Bearer", jwt);
             var status = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/second-factor");
             Assert.True(status.GetProperty("enabled").GetBoolean());
-            Assert.Equal("no-store", signedIn.Headers.CacheControl!.ToString());
+            Assert.True(signedIn.Headers.CacheControl!.NoStore);
             using var scope = factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var user = await db.Users.SingleAsync(x => x.Email == email);
@@ -105,10 +106,11 @@ public sealed class SecondFactorJourneyTests
             }
             var recovery = await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email, password, recoveryCode = codes[0].GetString() });
             recovery.EnsureSuccessStatusCode();
-            client.DefaultRequestHeaders.Authorization = new("Bearer", (await recovery.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString());
-            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/second-factor/disable", new { password, recoveryCode = codes[1].GetString() })).StatusCode);
-            Assert.True((await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/second-factor")).GetProperty("enabled").GetBoolean());
+            var state = await recovery.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("enroll", state.GetProperty("status").GetString()); Assert.False(state.TryGetProperty("token", out _));
+            client.DefaultRequestHeaders.Authorization = null;
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/second-factor/disable", new { password, recoveryCode = codes[1].GetString() })).StatusCode);
+            using var verificationScope = factory.Services.CreateScope(); Assert.True((await verificationScope.ServiceProvider.GetRequiredService<UserManager<User>>().FindByEmailAsync(email))!.TwoFactorEnabled);
         }
     }
 

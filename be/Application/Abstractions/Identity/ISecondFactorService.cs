@@ -12,4 +12,6 @@ public interface ISecondFactorService
     Task<bool> VerifyAsync(User user, string? code, string? recoveryCode, CancellationToken ct);
     Task<IReadOnlyList<string>?> RegenerateAsync(User user, string password, string code, CancellationToken ct);
     Task<bool> DisableAsync(User user, string password, string? code, string? recoveryCode, CancellationToken ct);
+    Task<bool> RecoveryRequiredAsync(User user, CancellationToken ct);
+    Task<DateTimeOffset> ApproveRecoveryAsync(User user, string reason, CancellationToken ct);
 }

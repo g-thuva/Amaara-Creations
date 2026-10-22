@@ -84,8 +84,9 @@ public sealed class SingleSignInTests
             password = scenario == "wrong-password" ? "Incorrect password for rejection test" : fixture.GetProperty("password").GetString(),
             authenticatorCode = scenario == "missing" ? null : scenario == "wrong-factor" ? "not-a-code" : TotpFixture.Code
         });
-        Assert.Equal(scenario == "hostile-origin" ? HttpStatusCode.Forbidden : HttpStatusCode.Unauthorized, response.StatusCode);
-        Assert.False(response.Headers.Contains("Set-Cookie"));
+        Assert.Equal(scenario == "missing" ? HttpStatusCode.Accepted : scenario == "hostile-origin" ? HttpStatusCode.Forbidden : HttpStatusCode.Unauthorized, response.StatusCode);
+        if (scenario == "missing") Assert.False((await response.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("token", out _));
+        else Assert.False(response.Headers.Contains("Set-Cookie"));
         using var scope = factory.Services.CreateScope();
         Assert.False(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().RefreshSessions.AnyAsync());
     }
@@ -123,10 +124,9 @@ public sealed class SingleSignInTests
             Assert.True((await users.SetTwoFactorEnabledAsync(user, false)).Succeeded);
         }
         (await client.PostAsJsonAsync("/api/v1/auth/sign-in", Credentials(fixture, true))).EnsureSuccessStatusCode();
-        var refresh = await client.PostAsJsonAsync("/api/v1/auth/staff/refresh", new { }); refresh.EnsureSuccessStatusCode();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await refresh.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString());
-        Assert.Equal("enrollment_required", (await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/staff/session")).GetProperty("status").GetString());
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/staff/refresh", new { })).StatusCode);
+        Assert.Equal("enroll", (await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/sign-in")).GetProperty("status").GetString());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
     }
 
     [Fact]
@@ -142,9 +142,8 @@ public sealed class SingleSignInTests
             recovery = Assert.IsAssignableFrom<IReadOnlyList<string>>(codes)[0];
         }
         (await client.PostAsJsonAsync("/api/v1/auth/sign-in", new { email = fixture.GetProperty("adminEmail").GetString(), password = fixture.GetProperty("password").GetString(), recoveryCode = recovery })).EnsureSuccessStatusCode();
-        var refresh = await client.PostAsJsonAsync("/api/v1/auth/staff/refresh", new { }); refresh.EnsureSuccessStatusCode();
-        client.DefaultRequestHeaders.Authorization = new("Bearer", (await refresh.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString());
-        Assert.Equal("mfa_required", (await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/staff/session")).GetProperty("status").GetString());
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/staff/refresh", new { })).StatusCode);
+        Assert.Equal("enroll", (await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/sign-in")).GetProperty("status").GetString());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
     }
 }

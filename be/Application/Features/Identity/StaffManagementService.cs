@@ -6,10 +6,22 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using be.Application.Abstractions.Persistence;
 using be.Application.Abstractions.Identity;
+using be.Application.Abstractions.Email;
 
 namespace be.Application.Features.Identity;
-public sealed class StaffManagementService(IApplicationDbContext db, UserManager<User> users, IAuditService audit, IRequestActor _actor)
+public sealed class StaffManagementService(IApplicationDbContext db, UserManager<User> users, IAuditService audit, IRequestActor _actor, ISecondFactorService factors, IEmailService email)
 {
+    public async Task<object> ApproveMfaRecovery(StaffMfaRecoveryRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length is < 10 or > 300) throw new CommerceException("STAFF_RECOVERY_REASON", "Explain the verified recovery request in 10 to 300 characters.");
+        if (!_actor.User.IsInRole(AppRoles.SuperAdmin)) throw new CommerceException("STAFF_RECOVERY_DENIED", "A verified owner must approve recovery.", 403);
+        var user = await users.FindByEmailAsync(request.Email) ?? throw new CommerceException("STAFF_RECOVERY_NOT_FOUND", "Choose an existing verified staff account.", 404);
+        if (user.Id == _actor.User.FindFirstValue(ClaimTypes.NameIdentifier)) throw new CommerceException("STAFF_RECOVERY_SELF", "A second owner must approve your recovery.", 409);
+        var expires = await factors.ApproveRecoveryAsync(user, request.Reason.Trim(), ct);
+        try { await email.SendTransactionAsync(user, "Amaara authenticator recovery approved", "An owner approved authenticator recovery and revoked your previous sessions. Sign in with your password within 15 minutes to reconnect your authenticator. If you did not request this, contact your administrator immediately.", ct); }
+        catch (Exception error) when (error is not OperationCanceledException) { await audit.RecordAsync("AuthenticatorNotificationDeferred", nameof(User), user.Id, null, new { Type = error.GetType().Name }, _actor.Audit, ct); }
+        return new { requiresEnrollment = true, expiresAt = expires };
+    }
     public async Task<object?> Staff(int page = 1, CancellationToken ct = default)
     {
         var roles = await db.Roles.Where(r => AppRoles.AdministrativeRoles.Contains(r.Name!)).ToListAsync(ct);

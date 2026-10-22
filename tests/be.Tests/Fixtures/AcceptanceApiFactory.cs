@@ -23,6 +23,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Threading.RateLimiting;
+using Microsoft.Data.SqlClient;
 
 namespace be.Tests;
 // Referenced only by the acceptance executable. Never registered by the application.
@@ -35,13 +36,17 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
     public bool RequestsEnabled { get; init; } = true;
     public bool EmailChangeEnabled { get; init; } = true;
     public bool AdministrationEnabled { get; init; } = true;
+    public string? TestSqlConnection { get; init; }
+    public string? TestKeysPath { get; init; }
+    public string? TestSigningKey { get; init; }
 
     private readonly FakePaymentGateway gateway = new();
     private readonly string storageRoot = Path.Combine(Path.GetTempPath(), "AmaaraAcceptance", Guid.NewGuid().ToString("N"));
     private Dictionary<string, string?> Configuration => new()
     {
-        ["ConnectionStrings:DefaultConnection"] = "Server=test-only;Database=Acceptance;Integrated Security=true;Encrypt=false",
-        ["Jwt:Key"] = signingKey,
+        ["ConnectionStrings:DefaultConnection"] = TestSqlConnection ?? "Server=test-only;Database=Acceptance;Integrated Security=true;Encrypt=false",
+        ["DataProtection:KeysPath"] = TestKeysPath ?? Path.Combine(storageRoot, "DataProtectionKeys"),
+        ["Jwt:Key"] = TestSigningKey ?? signingKey,
         ["Jwt:Issuer"] = "Acceptance",
         ["Jwt:Audience"] = "Acceptance",
         ["Cors:AllowedOrigins:0"] = "http://127.0.0.1:5178",
@@ -60,6 +65,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
+        if (TestSqlConnection != null && !new SqlConnectionStringBuilder(TestSqlConnection).InitialCatalog.StartsWith("AmaaraPhase6Tests_", StringComparison.Ordinal)) throw new InvalidOperationException("Acceptance SQL must use an explicitly disposable test database.");
         Directory.CreateDirectory(storageRoot);
         builder.ConfigureHostConfiguration(c => c.AddInMemoryCollection(Configuration));
         return base.CreateHost(builder);
@@ -98,7 +104,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
             });
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.RemoveAll<ApplicationDbContext>();
-            services.AddSingleton(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(databaseName).Options);
+            services.AddSingleton(TestSqlConnection == null ? new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(databaseName).Options : new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(TestSqlConnection).Options);
             services.AddScoped<ApplicationDbContext>();
             services.RemoveAll<IHostedService>();
             services.RemoveAll<IEmailService>();
@@ -321,6 +327,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
 
 public sealed class CapturedAcceptanceEmail : IEmailService
 {
+    public ConcurrentQueue<(string UserId, string Subject, string Body)> SecurityNotifications { get; } = new();
     private readonly ConcurrentDictionary<string, string> confirmations = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, string> emailChanges = new(StringComparer.OrdinalIgnoreCase);
     public IEmailService? Delivery { get; set; }
@@ -338,6 +345,7 @@ public sealed class CapturedAcceptanceEmail : IEmailService
     public async Task SendTransactionAsync(User user, string subject, string body, CancellationToken ct = default)
     {
         if (Delivery != null) await Delivery.SendTransactionAsync(user, subject, body, ct);
+        if (subject.Contains("authenticator", StringComparison.OrdinalIgnoreCase)) SecurityNotifications.Enqueue((user.Id, subject, body));
         if (subject == "Confirm your sign-in email change") emailChanges[user.Email!] = body.Split("\n\n")[1];
     }
 }

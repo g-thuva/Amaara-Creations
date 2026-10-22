@@ -13,6 +13,7 @@ public sealed class IdentityService(
         ITokenService tokens,
         IRefreshSessionService sessions,
         ISecondFactorService secondFactor,
+        IPendingSignInService pendingSignIn,
         IEmailService email,
         IConfiguration configuration,
         IRequestActor actor,
@@ -50,61 +51,90 @@ public sealed class IdentityService(
             await SendConfirmationAsync(user, ct);
     }
 
-    public async Task<AuthenticatedSession> LoginAsync(LoginRequest request, CancellationToken ct, bool management = false)
-    {
-        try
-        {
-            var result = await LoginCoreAsync(request, ct, management);
-            if (management) await audit.RecordAsync("StaffSignInSucceeded", nameof(User), result.Response.User.Id, null, new { MfaVerified = result.StaffAssurance != null }, actor.Audit with { UserId = result.Response.User.Id }, ct);
-            return result;
-        }
-        catch (CommerceException failure)
-        {
-            if (management) await audit.RecordAsync("StaffSignInFailed", nameof(User), null, null, new { Outcome = failure.Code }, actor.Audit, ct);
-            throw;
-        }
-    }
-
-    // Shared sign-in verifies the password/factor once, then issues independent
-    // session families. Only the protected staff cookie crosses to management;
-    // its bearer token is never returned to the storefront application.
-    public async Task<RoutedSignIn> SignInAsync(LoginRequest request, CancellationToken ct)
+    public async Task<SignInResult> SignInAsync(LoginRequest request, CancellationToken ct, bool managementEntry = false)
     {
         VerifiedLogin verified;
-        try { verified = await VerifyLoginAsync(request, ct, management: false, routeStaff: true); }
+        try { verified = await VerifyPasswordAsync(request, ct, managementEntry); }
         catch (CommerceException failure)
         {
-            await audit.RecordAsync("SignInFailed", nameof(User), null, null, new { Outcome = failure.Code }, actor.Audit, ct);
+            await audit.RecordAsync(managementEntry ? "StaffSignInFailed" : "SignInFailed", nameof(User), null, null, new { Outcome = failure.Code }, actor.Audit, ct);
             throw;
         }
+        if (verified.User.TwoFactorEnabled || verified.Roles.Any(AppRoles.AdministrativeRoles.Contains))
+        {
+            // Compatibility for existing clients that submit both factors at
+            // once: use the same verifier/policies, without creating a pending
+            // challenge that could race another complete sign-in attempt.
+            var privileged = verified.Roles.Any(AppRoles.AdministrativeRoles.Contains);
+            if (verified.User.TwoFactorEnabled && !await secondFactor.RecoveryRequiredAsync(verified.User, ct) && ((!string.IsNullOrWhiteSpace(request.AuthenticatorCode) && string.IsNullOrWhiteSpace(request.RecoveryCode)) || (!privileged && !string.IsNullOrWhiteSpace(request.RecoveryCode))))
+            {
+                if (!await secondFactor.VerifyAsync(verified.User, request.AuthenticatorCode, request.RecoveryCode, ct)) throw InvalidLogin();
+                await users.ResetAccessFailedCountAsync(verified.User);
+                return new(Sessions: await IssueSignInAsync(verified with { SecondFactorAt = string.IsNullOrWhiteSpace(request.AuthenticatorCode) ? null : DateTimeOffset.UtcNow }, ct, managementEntry));
+            }
+            var pending = await pendingSignIn.BeginSignInAsync(verified.User, verified.Roles, ct);
+            // Existing API clients may supply both factors in one request. They
+            // use this same transaction and cannot obtain a pending JWT.
+            if (pending.View.Status == "verify" && (!string.IsNullOrWhiteSpace(request.AuthenticatorCode) || !string.IsNullOrWhiteSpace(request.RecoveryCode)))
+            {
+                var advanced = await AdvanceSignInAsync(pending.Ticket, "verify", request.AuthenticatorCode, request.RecoveryCode, false, ct);
+                return advanced.Pending is { Ticket: null } next ? advanced with { Pending = next with { Ticket = pending.Ticket } } : advanced;
+            }
+            return new(Pending: pending);
+        }
+        if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode) || !string.IsNullOrWhiteSpace(request.RecoveryCode)) throw InvalidLogin();
+        await users.ResetAccessFailedCountAsync(verified.User);
+        return new(Sessions: await IssueSignInAsync(verified, ct));
+    }
+
+    public async Task<SignInResult> AdvanceSignInAsync(string? ticket, string operation, string? code, string? recovery, bool savedCodes, CancellationToken ct)
+    {
+        var step = await pendingSignIn.AdvanceSignInAsync(ticket, operation, code, recovery, savedCodes, ct);
+        if (step.ErrorCode != null) throw new CommerceException(step.ErrorCode, step.ErrorCode == "MFA_CHALLENGE_EXPIRED" ? "Your sign-in expired. Please start again." : "That code didn't work. Check your authenticator app and try the current code.", step.ErrorCode == "MFA_CHALLENGE_EXPIRED" ? 401 : 400);
+        if (step.SecurityChanged)
+        {
+            // The MFA transaction has already rotated the stamp and revoked
+            // refresh families before allowing the saved-code acknowledgment.
+            var user = await users.FindByIdAsync(step.ChangedUserId ?? "");
+            if (user != null) await NotifyAuthenticatorChangedAsync(user, ct);
+        }
+        if (step.VerifiedUser == null) return new(Pending: step);
+        var current = await users.FindByIdAsync(step.VerifiedUser.Id) ?? throw InvalidLogin();
+        var roles = await users.GetRolesAsync(current);
+        if (step.Management != roles.Any(AppRoles.AdministrativeRoles.Contains)) throw InvalidLogin();
+        if (!current.EmailConfirmed || await users.IsLockedOutAsync(current) || !current.TwoFactorEnabled || current.SecurityStamp != step.VerifiedUser.SecurityStamp) throw InvalidLogin();
+        if (roles.Any(AppRoles.AdministrativeRoles.Contains) && !configuration.GetValue<bool>("Administration:Enabled")) throw new CommerceException("MANAGEMENT_DISABLED", "Staff sign-in is unavailable in this environment.", 503);
+        if (!roles.Any(AppRoles.AdministrativeRoles.Contains) && !roles.Contains(AppRoles.Customer)) throw InvalidLogin();
+        return new(Sessions: await IssueSignInAsync(new(current, roles, step.VerifiedAt, current.SecurityStamp), ct));
+    }
+
+    private async Task<RoutedSignIn> IssueSignInAsync(VerifiedLogin verified, CancellationToken ct, bool managementOnly = false)
+    {
+        if (verified.Stamp != verified.User.SecurityStamp || !verified.Roles.Order(StringComparer.Ordinal).SequenceEqual((await users.GetRolesAsync(verified.User)).Order(StringComparer.Ordinal))) throw InvalidLogin();
         var staff = verified.Roles.Any(AppRoles.AdministrativeRoles.Contains);
-        if (staff && !configuration.GetValue<bool>("Administration:Enabled"))
-            throw new CommerceException("MANAGEMENT_DISABLED", "Management access is disabled. Contact the operator.", 503);
-        var storefront = await CreateSessionAsync(verified, ct, management: false);
+        if (staff && !verified.SecondFactorAt.HasValue) throw InvalidLogin();
+        var storefront = managementOnly ? null : await CreateSessionAsync(verified, ct, management: false);
         AuthenticatedSession? management = null;
         try
         {
             if (staff)
             {
                 management = await CreateSessionAsync(verified, ct, management: true);
-                await audit.RecordAsync("StaffSignInSucceeded", nameof(User), verified.User.Id, null, new { MfaVerified = management.StaffAssurance != null, Entry = "shared" }, actor.Audit with { UserId = verified.User.Id }, ct);
+                await audit.RecordAsync("StaffSignInSucceeded", nameof(User), verified.User.Id, null, new { MfaVerified = management.StaffAssurance != null, Entry = managementOnly ? "management-compatibility" : "shared" }, actor.Audit with { UserId = verified.User.Id }, ct);
             }
             return new(storefront, management);
         }
         catch
         {
-            await sessions.RevokeAsync(storefront.RefreshToken, CancellationToken.None);
+            if (storefront != null) await sessions.RevokeAsync(storefront.RefreshToken, CancellationToken.None);
             if (management != null) await sessions.RevokeAsync(management.RefreshToken, CancellationToken.None);
             throw;
         }
     }
 
-    private sealed record VerifiedLogin(User User, IList<string> Roles, DateTimeOffset? SecondFactorAt);
+    private sealed record VerifiedLogin(User User, IList<string> Roles, DateTimeOffset? SecondFactorAt, string? Stamp);
 
-    private async Task<AuthenticatedSession> LoginCoreAsync(LoginRequest request, CancellationToken ct, bool management) =>
-        await CreateSessionAsync(await VerifyLoginAsync(request, ct, management), ct, management);
-
-    private async Task<VerifiedLogin> VerifyLoginAsync(LoginRequest request, CancellationToken ct, bool management, bool routeStaff = false)
+    private async Task<VerifiedLogin> VerifyPasswordAsync(LoginRequest request, CancellationToken ct, bool management)
     {
         var user = await users.FindByEmailAsync(request.Email);
         if (user == null)
@@ -121,19 +151,11 @@ public sealed class IdentityService(
         var roles = await users.GetRolesAsync(user);
         if (management && !roles.Any(AppRoles.AdministrativeRoles.Contains))
             throw new CommerceException("MANAGEMENT_ACCESS_DENIED", "This account is not authorized for management.", 403);
-        if ((management || (routeStaff && roles.Any(AppRoles.AdministrativeRoles.Contains))) && !configuration.GetValue<bool>("Administration:Enabled"))
+        if (roles.Count == 0 || roles.Any(role => role != AppRoles.Customer && !AppRoles.AdministrativeRoles.Contains(role)))
+            throw new CommerceException("ACCOUNT_ACCESS_DENIED", "This account is not available for sign-in.", 403);
+        if (roles.Any(AppRoles.AdministrativeRoles.Contains) && !configuration.GetValue<bool>("Administration:Enabled"))
             throw new CommerceException("MANAGEMENT_DISABLED", "Management access is disabled. Contact the operator.", 503);
-        DateTimeOffset? secondFactorAt = null;
-        if (user.TwoFactorEnabled)
-        {
-            if (!await secondFactor.VerifyAsync(user, request.AuthenticatorCode, request.RecoveryCode, ct)) throw InvalidLogin();
-            // Recovery permits account repair but cannot authorize staff operations.
-            if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode)) secondFactorAt = DateTimeOffset.UtcNow;
-        }
-        else if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode) || !string.IsNullOrWhiteSpace(request.RecoveryCode)) throw InvalidLogin();
-        // Do not reset failed-factor counts until the complete submitted flow succeeds.
-        await users.ResetAccessFailedCountAsync(user);
-        return new(user, roles, secondFactorAt);
+        return new(user, roles, null, user.SecurityStamp);
     }
 
     private async Task<AuthenticatedSession> CreateSessionAsync(VerifiedLogin verified, CancellationToken ct, bool management)
@@ -192,8 +214,14 @@ public sealed class IdentityService(
     {
         var user = await CurrentUser();
         var codes = await secondFactor.ConfirmAsync(user, request.Password, request.AuthenticatorCode ?? "", ct) ?? throw InvalidSecondFactor();
-        await sessions.RevokeAllForUserAsync(user.Id, ct);
+        await NotifyAuthenticatorChangedAsync(user, ct);
         return codes;
+    }
+
+    private async Task NotifyAuthenticatorChangedAsync(User user, CancellationToken ct)
+    {
+        try { await email.SendTransactionAsync(user, "Your Amaara authenticator was updated", "Your authenticator setup was completed and previous sessions were revoked. If this was not you, contact your account administrator immediately.", ct); }
+        catch (Exception error) when (error is not OperationCanceledException) { await audit.RecordAsync("AuthenticatorNotificationDeferred", nameof(User), user.Id, null, new { Type = error.GetType().Name }, actor.Audit, ct); }
     }
     public async Task<IReadOnlyList<string>> RegenerateRecoveryAsync(SecondFactorRequest request, CancellationToken ct) =>
         await secondFactor.RegenerateAsync(await CurrentUser(), request.Password, request.AuthenticatorCode ?? "", ct) ?? throw InvalidSecondFactor();

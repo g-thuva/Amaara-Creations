@@ -94,7 +94,7 @@ public sealed class ManagementAuthenticationTests
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode); Assert.False(response.Headers.Contains("Set-Cookie"));
         await using var enabled = new AcceptanceApiFactory(); var active = await Fixture(enabled); using var other = enabled.CreateClient();
         var missing = await other.PostAsJsonAsync("/api/v1/auth/staff/login", new { email = active.GetProperty("adminEmail").GetString(), password = active.GetProperty("password").GetString() });
-        Assert.Equal(HttpStatusCode.Unauthorized, missing.StatusCode); Assert.False(missing.Headers.Contains("Set-Cookie"));
+        Assert.Equal(HttpStatusCode.Accepted, missing.StatusCode); Assert.False((await missing.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("token", out _));
     }
     [Fact]
     public async Task UnenrolledStaffReachSetupButNeverOperationalData()
@@ -106,10 +106,9 @@ public sealed class ManagementAuthenticationTests
             Assert.True((await users.SetTwoFactorEnabledAsync(user, false)).Succeeded);
         }
         var response = await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email = fixture.GetProperty("adminEmail").GetString(), password = fixture.GetProperty("password").GetString() }); response.EnsureSuccessStatusCode();
-        client.DefaultRequestHeaders.Authorization = new("Bearer", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString());
-        Assert.Equal("enrollment_required", (await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/staff/session")).GetProperty("status").GetString());
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/auth/second-factor")).StatusCode);
+        Assert.Equal("enroll", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/second-factor")).StatusCode);
     }
     [Fact]
     public async Task ExpiredAssuranceHasNoCapabilitiesAndHostileStaffOriginCannotSignIn()

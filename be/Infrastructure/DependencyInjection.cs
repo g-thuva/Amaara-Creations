@@ -53,6 +53,7 @@ public static class DependencyInjection
         })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+        builder.Services.AddScoped<IUserStore<User>, ProtectedIdentityUserStore>();
         builder.Services.AddScoped<IPasswordValidator<User>, PassphraseValidator>();
         builder.Services.AddSingleton<FilePasswordBlocklist>();
         builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromMinutes(30));
@@ -60,7 +61,9 @@ public static class DependencyInjection
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();
         builder.Services.AddSingleton(TimeProvider.System);
-        builder.Services.AddScoped<ISecondFactorService, SecondFactorService>();
+        builder.Services.AddScoped<SecondFactorService>();
+        builder.Services.AddScoped<ISecondFactorService>(services => services.GetRequiredService<SecondFactorService>());
+        builder.Services.AddScoped<IPendingSignInService>(services => services.GetRequiredService<SecondFactorService>());
         if (builder.Configuration.GetValue<bool?>("Email:Enabled") == false)
             builder.Services.AddScoped<IEmailService, DisabledEmailService>();
         else if (builder.Configuration["Email:Provider"] == "DevelopmentCapture")

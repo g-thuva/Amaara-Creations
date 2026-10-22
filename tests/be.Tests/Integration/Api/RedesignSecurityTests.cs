@@ -30,7 +30,10 @@ public sealed class RedesignSecurityTests
         using var client = factory.CreateClient();
         var email = fixture.GetProperty("adminEmail").GetString()!;
         var password = fixture.GetProperty("password").GetString()!;
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password })).StatusCode);
+        var pending = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
+        Assert.Equal(HttpStatusCode.Accepted, pending.StatusCode);
+        Assert.False((await pending.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("token", out _));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
         client.DefaultRequestHeaders.Authorization = new("Bearer", await Login(client, email, password, TotpFixture.Code));
         var originalToken = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(client.DefaultRequestHeaders.Authorization.Parameter);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
@@ -81,7 +84,9 @@ public sealed class RedesignSecurityTests
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(url)).StatusCode);
         // Missing factor cannot establish a new session; a role-bearing token
         // without verified MFA is independently denied on the owner file route.
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password })).StatusCode);
+        var pending = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
+        Assert.Equal(HttpStatusCode.Accepted, pending.StatusCode);
+        Assert.False((await pending.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("token", out _));
         using var scope = factory.Services.CreateScope();
         var users = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<User>>();
         var staffUser = (await users.FindByEmailAsync(email))!;
