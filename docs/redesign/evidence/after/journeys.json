@@ -12,6 +12,12 @@
     "data": "disposable acceptance fixture"
   },
   {
+    "route": "photo-crop",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance pixels; crop cancelled without upload"
+  },
+  {
     "route": "checkout",
     "width": 390,
     "overflow": false,
@@ -19,6 +25,24 @@
   },
   {
     "route": "help",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "security",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "requests",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "cart",
     "width": 390,
     "overflow": false,
     "data": "disposable acceptance fixture"
@@ -36,6 +60,12 @@
     "data": "disposable acceptance fixture"
   },
   {
+    "route": "photo-crop",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance pixels; crop cancelled without upload"
+  },
+  {
     "route": "checkout",
     "width": 768,
     "overflow": false,
@@ -43,6 +73,24 @@
   },
   {
     "route": "help",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "security",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "requests",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "cart",
     "width": 768,
     "overflow": false,
     "data": "disposable acceptance fixture"
@@ -60,6 +108,12 @@
     "data": "disposable acceptance fixture"
   },
   {
+    "route": "photo-crop",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance pixels; crop cancelled without upload"
+  },
+  {
     "route": "checkout",
     "width": 1440,
     "overflow": false,
@@ -72,7 +126,31 @@
     "data": "disposable acceptance fixture"
   },
   {
+    "route": "security",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "requests",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "cart",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
     "route": "staff",
+    "width": 390,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "staff-quotes",
     "width": 390,
     "overflow": false,
     "data": "disposable acceptance fixture"
@@ -84,7 +162,19 @@
     "data": "disposable acceptance fixture"
   },
   {
+    "route": "staff-quotes",
+    "width": 768,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
     "route": "staff",
+    "width": 1440,
+    "overflow": false,
+    "data": "disposable acceptance fixture"
+  },
+  {
+    "route": "staff-quotes",
     "width": 1440,
     "overflow": false,
     "data": "disposable acceptance fixture"

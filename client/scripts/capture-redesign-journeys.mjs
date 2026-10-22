@@ -24,10 +24,20 @@ try {
       await page.goto(`http://127.0.0.1:5178/Amaara-Creations/${route}`);
       await page.locator('main h1').waitFor();
       await page.waitForFunction(() => !document.querySelector('[aria-label="Loading content"]'));
+      if (name === 'security') await page.getByRole('button', { name: 'Download account data', exact: true }).waitFor();
+      if (name === 'requests') await page.getByRole('heading', { name: 'Disposable capture: wedding place cards', exact: true }).waitFor();
       // Only the disposable fixture email is masked; no real customer data is read.
       if (name === 'profile') await page.locator('input[type=email]').evaluate(input => { input.value = 'capture@example.test'; });
       await page.screenshot({ path: `${directory}/${name}-${width}.png`, fullPage: true });
       notes.push({ route: name, width, overflow: await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), data: 'disposable acceptance fixture' });
+      if (name === 'profile') {
+        await page.getByLabel('Profile photo', { exact: true }).setInputFiles({ name: 'capture-pixels.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') });
+        const crop = page.getByRole('dialog', { name: 'Crop profile photo', exact: true });
+        await crop.getByRole('button', { name: 'Save cropped photo', exact: true }).waitFor();
+        await page.screenshot({ path: `${directory}/photo-crop-${width}.png`, fullPage: true });
+        notes.push({ route: 'photo-crop', width, overflow: await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), data: 'disposable acceptance pixels; crop cancelled without upload' });
+        await crop.getByRole('button', { name: 'Cancel', exact: true }).click();
+      }
     }
   }
   const code = (await (await context.request.get(api + '/__fixture/authenticator-code')).json()).code;
@@ -37,7 +47,7 @@ try {
     await page.setViewportSize({ width, height: 1000 });
     for (const [name, route, heading] of [['staff', 'inventory', 'Inventory ledger'], ['staff-quotes', 'quote-requests', 'Quote requests']]) {
       await page.goto(`http://127.0.0.1:5179/Amaara-Creations/admin/${route}`);
-      await page.getByRole('heading', { name: heading, exact: true }).waitFor();
+      await page.getByRole('heading', { level: 1, name: heading, exact: true }).waitFor();
       if (name === 'staff-quotes') await page.getByRole('heading', { name: 'Disposable capture: wedding place cards', exact: true }).waitFor();
       await page.screenshot({ path: `${directory}/${name}-${width}.png`, fullPage: true });
       notes.push({ route: name, width, overflow: await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), data: 'disposable acceptance fixture' });

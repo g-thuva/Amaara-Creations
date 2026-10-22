@@ -60,7 +60,7 @@ test.describe('Custom Builder live custom sticker workflow', () => {
     await page.getByRole('button', { name: 'Save and add to cart' }).click();
     await expect(page).toHaveURL(/\/cart$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Shopping cart' })).toBeVisible();
-    await expect(page.getByRole('link', { name: designName, exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: designName, exact: true }).getByRole('link', { name: designName, exact: true })).toBeVisible();
     expect(pageErrors).toEqual([]);
   });
 
