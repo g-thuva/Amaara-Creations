@@ -7,6 +7,9 @@ import { safeReturnDestination } from '@/features/auth/returnDestination.js';
 import { sharedSignInDestination } from '@/features/auth/sharedSignInDestination.js';
 
 const StaffRoutes = lazy(() => import('@/app/routes/AdminRoutes.jsx'));
+function hasCurrentAccess(access, userId) {
+  return access.phase === 'authorized' && access.user?.id === userId && new Date(access.expiresAt).getTime() > Date.now();
+}
 function SharedSignInEntry() {
   const destination = sharedSignInDestination(window.location.href);
   useEffect(() => { if (destination) window.location.replace(destination); }, [destination]);
@@ -23,13 +26,15 @@ export function StaffApp() {
     const controller = new AbortController(); let timer; let generation = 0;
     async function verify() {
       const ticket = ++generation;
-      setAccess({ phase: 'initializing' });
+      // Keep the verified workspace mounted during navigation/focus checks.
+      // Initial sign-in, changed identity and expired assurance still block it.
+      setAccess(current => hasCurrentAccess(current, userId) ? current : { phase: 'initializing' });
       try {
         const session = await managementApi.session(controller.signal);
         if (controller.signal.aborted || ticket !== generation) return;
         const verifiedUser = { ...session.user, permissions: session.permissions };
         updateUser(verifiedUser);
-        setAccess({ phase: session.status, user: verifiedUser, path: location.pathname });
+        setAccess({ phase: session.status, user: verifiedUser, expiresAt: session.expiresAt });
         if (session.status === 'authorized') {
           const expires = new Date(session.expiresAt).getTime();
           const sensitive = expires - 10 * 60000;
@@ -48,7 +53,8 @@ export function StaffApp() {
   }, [authStatus, userId, location.pathname]);
 
   const signOut = () => { setAccess({ phase: 'unauthenticated' }); return logout(() => navigate('/login', { replace: true })); };
-  if (['loading', 'authenticating', 'signing-out'].includes(authStatus) || (authStatus === 'authenticated' && (access.phase === 'initializing' || (access.phase === 'authorized' && access.path !== location.pathname)))) return <p role="status">Verifying your session...</p>;
+  const verifying = access.phase === 'initializing' || (access.phase === 'authorized' && !hasCurrentAccess(access, userId));
+  if (['loading', 'authenticating', 'signing-out'].includes(authStatus) || (authStatus === 'authenticated' && verifying)) return <p role="status">Verifying your session...</p>;
   if (authStatus !== 'authenticated' || ['mfa_required', 'expired', 'enrollment_required'].includes(access.phase)) return <SharedSignInEntry />;
   if (access.phase !== 'authorized') return <main className="s-staff-signin"><h1>{access.phase === 'denied' ? 'Access denied' : 'Unable to open your workspace'}</h1><p role="alert">{access.phase === 'disabled' ? 'Management is unavailable in this environment.' : 'Your current account cannot open this workspace. Sign in again or contact the operator.'}</p><button className="s-button" onClick={signOut}>Sign out</button></main>;
   const start = adminStart(access.user);

@@ -1,4 +1,5 @@
 import { Outlet } from "react-router-dom";
+import { Suspense } from "react";
 import { useAdminNavigation } from "@/features/admin/layout/useAdminNavigation.js";
 import { AdminSidebar } from "@/features/admin/layout/AdminSidebar.jsx";
 import { AdminHeader } from "@/features/admin/layout/AdminHeader.jsx";
@@ -15,7 +16,9 @@ export default function AdminLayout() {
         <AdminHeader navigation={navigation} />
         <div className="admin-content">
           <div>
-            <Outlet />
+            <Suspense fallback={<p role="status">Loading page...</p>}>
+              <Outlet />
+            </Suspense>
           </div>
         </div>
       </div>

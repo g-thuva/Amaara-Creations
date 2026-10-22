@@ -22,6 +22,8 @@ Pending login and QR enrollment last at most ten minutes. Confirmed enrollment h
 
 After required verification, the API creates independent shopping and management refresh-session families. The public response exposes only a shopping access token; management refresh and assurance use separate protected HttpOnly staff-path cookies. The approved management origin restores its own bearer token, verifies `/auth/staff/session`, and loads operational modules only after current permissions are authorized. Management `/login` restores a valid session or returns to shared credential entry. Validated management deep links survive this round trip. No credentials, MFA proof or tokens are carried in navigation URLs or browser storage.
 
+Within an authorized workspace, route/focus revalidation runs in the background while the existing sidebar and header remain mounted. First-time verification, identity changes and expired assurance still block the workspace; denied or revoked sessions remove access. Protected APIs independently enforce current roles and MFA on every request. Page-level Suspense is inside the layout's content area, so a first-time route download cannot replace the whole dashboard with a loading screen.
+
 Legacy `/auth/login` and `/auth/staff/login` delegate to this same service. Complete existing clients may submit both factors together, subject to identical native verification, replay and role checks. Direct management completion preserves an existing shopping cookie. Missing factors receive the limited pending transaction. These aliases do not provide another public form or a bypass.
 
 ## TOTP and storage
