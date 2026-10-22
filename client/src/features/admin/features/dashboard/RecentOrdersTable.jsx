@@ -1,73 +1,12 @@
-import { formatLocalDate as formatDate } from "@/shared/utils/formatDate.ts";
-import { Link } from "react-router-dom";
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
-import { StatusBadge } from "@/features/admin/shared/components/StatusBadge.jsx";
-export function RecentOrdersTable({ recentOrders }) {
-  const getStatusColor = (status) => {
-    const colors = {
-      Pending: "pending",
-      Processing: "processing",
-      Shipped: "shipped",
-      Delivered: "completed",
-      Cancelled: "pending",
-    };
-    return colors[status] || "pending";
-  };
-  return (
-    <div className="dashboard-card">
-      <div className="card-header">
-        <h3>Recent Orders</h3>
-        <Link to="/admin/orders" className="view-all">
-          View All
-        </Link>
-      </div>
-      <div className="table-responsive">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Order ID</th>
-              <th scope="col">Customer</th>
-              <th scope="col">Date</th>
-              <th scope="col">Amount</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentOrders.length === 0 ? (
-              <tr>
-                <td
-                  colSpan="5"
-                  style={{ textAlign: "center", padding: "2rem" }}
-                >
-                  No orders yet
-                </td>
-              </tr>
-            ) : (
-              recentOrders.map((order) => (
-                <tr key={order.id}>
-                  <td>
-                    <Link
-                      to={`/admin/orders/${order.id}`}
-                      className="order-link"
-                    >
-                      {order.orderNumber || `#${order.id}`}
-                    </Link>
-                  </td>
-                  <td>{order.customerName || order.customerEmail}</td>
-                  <td>{formatDate(order.orderDate)}</td>
-                  <td>{checkoutMoney(order.total, order.currency || "LKR")}</td>
-                  <td>
-                    <StatusBadge
-                      status={order.status}
-                      className={`status-badge ${getStatusColor(order.status)}`}
-                    />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+import { Link } from 'react-router-dom';
+import { DataTable } from '@/features/admin/shared/components/DataTable.jsx';
+import { formatDate, formatIsoCurrency as money } from '@/features/admin/shared/utils/format.js';
+export function RecentOrdersTable({ recentOrders, canViewOrders = true }) {
+  return <section className="dashboard-card"><div className="card-header"><h2>Recent Orders</h2>{canViewOrders && <Link to="/admin/orders" className="view-all">View All</Link>}</div><DataTable caption="Recent order activity" captionVisible={false} rows={recentOrders} empty="No orders yet" emptyDescription="New orders will appear here." columns={[
+    { key: 'orderNumber', label: 'Order ID', render: order => canViewOrders ? <Link className="admin-cell-truncate" title={order.orderNumber} to={`/admin/orders/${order.id}`}>{order.orderNumber || '#' + order.id}</Link> : <span className="admin-cell-truncate" title={order.orderNumber}>{order.orderNumber || '#' + order.id}</span> },
+    { key: 'customer', label: 'Customer', render: order => order.customerName || order.customerEmail },
+    { key: 'orderDate', label: 'Date', render: order => formatDate(order.orderDate) },
+    { key: 'total', label: 'Amount', render: order => money(order.total, order.currency || 'LKR') },
+    { key: 'status', label: 'Status' },
+  ]} /></section>;
 }

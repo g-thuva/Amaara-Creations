@@ -1,3 +1,5 @@
+import { DataTable } from '@/features/admin/shared/components/DataTable.jsx';
+import { StatusChip } from '@/features/admin/shared/components/StatusChip.jsx';
 export function ProductVariantsEditor({
   variants,
   variantForm,
@@ -53,27 +55,7 @@ export function ProductVariantsEditor({
           Add Variant
         </button>
       </form>
-      <table>
-        <caption>Product variants</caption>
-        <thead>
-          <tr>
-            <th scope="col">SKU</th>
-            <th scope="col">Name</th>
-            <th scope="col">Stock</th>
-            <th scope="col">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {variants.map((variant) => (
-            <tr key={variant.id}>
-              <td>{variant.sku}</td>
-              <td>{variant.name}</td>
-              <td>{variant.stockQuantity}</td>
-              <td>{variant.isActive ? "Active" : "Archived"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DataTable caption="Product variants" rows={variants} empty="No variants yet" emptyDescription="Add a variant above when this product needs another size or option." columns={[{ key: 'sku', label: 'SKU' }, { key: 'name', label: 'Name' }, { key: 'stockQuantity', label: 'Stock' }, { key: 'state', label: 'State', render: variant => <StatusChip status={variant.isActive ? 'Active' : 'Archived'} /> }]} />
     </>
   );
 }

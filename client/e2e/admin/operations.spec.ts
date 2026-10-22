@@ -112,12 +112,14 @@ test("marketing creates a disabled coupon, edits it and opens redemption history
   await expect(
     page.getByRole("cell", { name: code, exact: true }),
   ).toBeVisible();
+  await page.getByRole('button', { name: `Actions for ${code}`, exact: true }).click();
   await page.getByRole("button", { name: `Edit ${code}`, exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("TEST campaign edited");
   await page.getByRole("button", { name: "Save promotion" }).click();
   await expect(
     page.getByRole("cell", { name: "TEST campaign edited", exact: true }),
   ).toBeVisible();
+  await page.getByRole('button', { name: `Actions for ${code}`, exact: true }).click();
   await page
     .getByRole("button", { name: `History ${code}`, exact: true })
     .click();

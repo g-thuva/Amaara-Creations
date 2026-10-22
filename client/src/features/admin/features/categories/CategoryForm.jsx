@@ -11,9 +11,9 @@ export function CategoryForm({
   return (
     <div className="card">
       <div className="card-header">
-        <h3 className="card-title">
+        <h2 className="card-title">
           {editing ? "Edit Category" : "Create Category"}
-        </h3>
+        </h2>
       </div>
       <form className="add-product-form" onSubmit={save}>
         <div className="form-row">

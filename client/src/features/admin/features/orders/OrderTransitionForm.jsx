@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ordersApi } from "@/features/admin/features/orders/ordersApi.js";
-import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog.jsx";
+import { ConfirmDialog } from "@/features/admin/shared/components/ConfirmDialog.jsx";
 export function OrderTransitionForm({ order, changed, stale = false }) {
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState(null);

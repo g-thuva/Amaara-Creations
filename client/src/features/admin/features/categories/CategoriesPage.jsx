@@ -10,7 +10,7 @@ export default function CategoriesPage() {
       <div className="page-header">
         <div className="header-content">
           <div>
-            <h2>Categories</h2>
+            <h1>Categories</h1>
             <p>{feature.items.length} categories</p>
           </div>
         </div>

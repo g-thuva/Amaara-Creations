@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
 import { SnapshotViewer } from "@/features/admin/shared/components/SnapshotViewer.jsx";
 export function OrderItems({ order, canManageOrders }) {
   return (
@@ -17,7 +17,7 @@ export function OrderItems({ order, canManageOrders }) {
             {checkoutMoney(i.subtotal, order.currency)}
           </p>
           {i.customDesignId && canManageOrders && (
-            <Link to={`/admin/custom-designs/${i.customDesignId}`}>
+            <Link className="btn btn-outline-primary" to={`/admin/custom-designs/${i.customDesignId}`}>
               Production and private artwork
             </Link>
           )}

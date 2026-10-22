@@ -1,6 +1,7 @@
+import { FilterBar } from '@/features/admin/shared/components/FilterBar.jsx';
 export function ProductionFilters({ filters, setFilters }) {
   return (
-    <div className="card card-body form-row">
+    <FilterBar>
       <label>
         Search order or customer
         <input
@@ -53,6 +54,6 @@ export function ProductionFilters({ filters, setFilters }) {
           </select>
         </label>
       ))}
-    </div>
+    </FilterBar>
   );
 }

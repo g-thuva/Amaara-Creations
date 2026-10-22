@@ -3,12 +3,12 @@ import { ProductionQueueTable } from "@/features/admin/features/production/Produ
 import { ProductionFilters } from "@/features/admin/features/production/ProductionFilters.jsx";
 import { ResourceState } from "@/features/admin/shared/components/ResourceState.jsx";
 import { Pagination } from "@/features/admin/shared/components/Pagination.jsx";
+import { PageHeader } from '@/features/admin/shared/components/PageHeader.jsx';
 export default function ProductionQueuePage() {
   const { filters, setFilters, resource } = useProductionQueue();
   return (
     <div className="admin-page">
-      <h1>Custom design production</h1>
-      <p>Ordered custom stickers, proofs and production status.</p>
+      <PageHeader title="Custom design production" description="Ordered custom stickers, proofs and production status." />
       <ProductionFilters filters={filters} setFilters={setFilters} />
       <ResourceState resource={resource}>
         <ProductionQueueTable resource={resource} />

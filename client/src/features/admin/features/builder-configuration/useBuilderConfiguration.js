@@ -118,6 +118,7 @@ export function useBuilderConfiguration() {
       options: current.options.filter((_, itemIndex) => itemIndex !== index),
     }));
   return {
+    reload: load,
     data,
     draft,
     setDraft,

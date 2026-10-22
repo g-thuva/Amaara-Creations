@@ -51,7 +51,8 @@ test('customer and management cookies coexist and management logout leaves shopp
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
   const shop = await context.newPage(); await shop.goto('http://127.0.0.1:5178/Amaara-Creations/profile');
   await expect(shop.getByRole('heading', { level: 1, name: 'Your profile', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Sign out / reauthenticate', exact: true }).click();
+  await page.getByRole('button', { name: /^Open user menu/ }).click();
+  await page.getByRole('menuitem', { name: 'Sign out / reauthenticate', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();
   await shop.reload(); await expect(shop.getByRole('heading', { level: 1, name: 'Your profile', exact: true })).toBeVisible();
   await page.goto('./admin/dashboard'); await expect(page.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();

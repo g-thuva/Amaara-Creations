@@ -1,10 +1,11 @@
-﻿import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider.jsx';
 import { managementApi } from './managementApi.js';
 import { adminStart, adminRoutes, can } from '@/app/config/permissions.js';
 import { safeReturnDestination } from '@/features/auth/returnDestination.js';
 import { sharedSignInDestination } from '@/features/auth/sharedSignInDestination.js';
+import { AdminSessionActions } from '@/features/admin/layout/AdminSessionActions.js';
 
 const StaffRoutes = lazy(() => import('@/app/routes/AdminRoutes.jsx'));
 function hasCurrentAccess(access, userId) {
@@ -61,5 +62,5 @@ export function StaffApp() {
   const requested = safeReturnDestination(location.state?.from || new URLSearchParams(location.search).get('returnTo'), start, true);
   const permission = adminRoutes[requested?.split('/')[2]];
   if (location.pathname === '/login' || !/^\/admin(?:\/|$)/.test(location.pathname)) return <Navigate to={requested && (!permission || can(access.user, permission)) ? requested : start} replace />;
-  return <div className="admin-app"><a className="s-skip" href="#store-main" onClick={event => { event.preventDefault(); document.getElementById('store-main')?.focus(); }}>Skip to main content</a><button className="staff-reauth" onClick={signOut}>Sign out / reauthenticate</button><main id="store-main" tabIndex={-1}><Suspense fallback={<p role="status">Loading your workspace...</p>}><Routes><Route path="/admin/*" element={<StaffRoutes />} /></Routes></Suspense></main></div>;
+  return <AdminSessionActions.Provider value={{ reauthenticate: signOut }}><div className="admin-app"><a className="s-skip" href="#store-main" onClick={event => { event.preventDefault(); document.getElementById('store-main')?.focus(); }}>Skip to main content</a><main id="store-main" tabIndex={-1}><Suspense fallback={<p role="status">Loading your workspace...</p>}><Routes><Route path="/admin/*" element={<StaffRoutes />} /></Routes></Suspense></main></div></AdminSessionActions.Provider>;
 }

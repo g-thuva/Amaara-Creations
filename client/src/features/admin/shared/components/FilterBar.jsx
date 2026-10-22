@@ -1,9 +1,9 @@
 export function FilterBar({ children, onSubmit }) {
   return onSubmit ? (
-    <form className="form-row" onSubmit={onSubmit}>
+    <form className="admin-filter-bar" onSubmit={onSubmit}>
       {children}
     </form>
   ) : (
-    <div className="form-row">{children}</div>
+    <div className="admin-filter-bar">{children}</div>
   );
 }

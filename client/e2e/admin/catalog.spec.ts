@@ -107,10 +107,12 @@ test("extracted product form, variants, media and archive actions persist throug
       })),
     ).toEqual([]);
     await row.getByRole("button", { name: "Archive", exact: true }).click();
+    await page.getByRole('dialog', { name: 'Archive product', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
     await expect(
       row.getByRole("button", { name: "Reactivate", exact: true }),
     ).toBeVisible();
     await row.getByRole("button", { name: "Reactivate", exact: true }).click();
+    await page.getByRole('dialog', { name: 'Reactivate product', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
     await expect(
       row.getByRole("button", { name: "Archive", exact: true }),
     ).toBeVisible();
@@ -172,7 +174,7 @@ test("catalog and content editors retain their form behavior and accessible labe
     "settings",
   ]) {
     await page.goto("./admin/" + route);
-    await expect(page.locator(".admin-content h2").first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(
       page.getByText("Loading configuration…", { exact: true }),
     ).toHaveCount(0);

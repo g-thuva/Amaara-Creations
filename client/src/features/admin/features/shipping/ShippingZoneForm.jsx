@@ -3,7 +3,7 @@ export function ShippingZoneForm({ resource, zone, setZone, pending, save }) {
   return (
     <section className="card">
       <div className="card-header">
-        <h3>Delivery zones</h3>
+        <h2>Delivery zones</h2>
         <button
           className="btn btn-outline-primary"
           onClick={() => setZone(newZone())}

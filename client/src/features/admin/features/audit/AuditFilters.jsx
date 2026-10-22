@@ -1,7 +1,7 @@
+import { FilterBar } from '@/features/admin/shared/components/FilterBar.jsx';
 export function AuditFilters({ setFilters, setPage }) {
   return (
-    <form
-      className="form-row"
+    <FilterBar
       onSubmit={(e) => {
         e.preventDefault();
         setFilters(
@@ -22,7 +22,7 @@ export function AuditFilters({ setFilters, setPage }) {
           <input className="form-control" name={key} />
         </label>
       ))}
-      <button className="btn btn-primary">Filter audit</button>
-    </form>
+      <div className="action-buttons"><button className="btn btn-primary">Filter audit</button><button type="reset" className="btn btn-ghost" onClick={() => { setFilters({}); setPage(1); }}>Reset filters</button></div>
+    </FilterBar>
   );
 }

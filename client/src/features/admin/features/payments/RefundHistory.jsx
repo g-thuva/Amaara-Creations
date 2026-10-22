@@ -1,22 +1,23 @@
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
+import { ConfirmAction } from '@/features/admin/shared/components/ConfirmAction.jsx';
+import { StatusChip } from '@/features/admin/shared/components/StatusChip.jsx';
 export function RefundHistory({ payment, busy, reconcile }) {
   return (
     <>
       {" "}
-      <h4>Refund history</h4>
+      <h3>Refund history</h3>
       {payment.refunds.length ? (
         <ul>
           {payment.refunds.map((r) => (
             <li key={r.id}>
-              {checkoutMoney(r.amount, r.currency)} — {r.status}: {r.reason}
+              {checkoutMoney(r.amount, r.currency)} — <StatusChip status={r.status} />: {r.reason}
               {r.status === "Pending" && (
-                <button
+                <ConfirmAction onConfirm={() => reconcile(r.id)} pending={busy} title="Reconcile refund" detail="Check the verified provider outcome for this refund? This does not create another credit." destructive={false}><button
                   className="btn btn-outline-primary"
                   disabled={busy}
-                  onClick={() => reconcile(r.id)}
                 >
                   Reconcile refund
-                </button>
+                </button></ConfirmAction>
               )}
             </li>
           ))}

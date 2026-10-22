@@ -8,7 +8,7 @@ export function ShipmentForm({
   return (
     <section className="card">
       <div className="card-header">
-        <h3>Shipment or pickup</h3>
+        <h2>Shipment or pickup</h2>
       </div>
       <form
         className="card-body add-product-form"

@@ -3,17 +3,15 @@ import { StaffTable } from "@/features/admin/features/staff/StaffTable.jsx";
 import { StaffRoleForm } from "@/features/admin/features/staff/StaffRoleForm.jsx";
 import { ResourceState } from "@/features/admin/shared/components/ResourceState.jsx";
 import { MutationFeedback } from "@/features/admin/shared/components/MutationFeedback.jsx";
-import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog.jsx";
+import { ConfirmDialog } from "@/features/admin/shared/components/ConfirmDialog.jsx";
+import { PageHeader, Callout, StatusChip } from '@/features/admin/shared/components/AdminUi.jsx';
 export default function StaffPage() {
   const staff = useStaff();
   const { resource, mutation, intent, setIntent } = staff;
   return (
     <div className="admin-page">
-      <h1>Staff permissions</h1>
-      <p>
-        Assign access to an existing verified account. Replacing roles revokes
-        refresh sessions. A second Super Admin must change your own access.
-      </p>
+      <PageHeader title="Staff permissions" description="Assign access to verified accounts and review every staff change before saving." />
+      <Callout tone="warning"><p>Replacing roles revokes refresh sessions. A second Super Admin must change your own access.</p></Callout>
       <MutationFeedback {...mutation} />
       <ResourceState resource={resource}>
         <StaffTable resource={resource} />
@@ -33,7 +31,7 @@ export default function StaffPage() {
         pending={mutation.pending}
         onConfirm={staff.confirm}
       >
-        {intent?.kind === 'recovery' ? <>Approve verified recovery for {intent.email}. Their existing sessions will end and their next sign-in will require a new verified authenticator. Reason: {intent.reason}</> : <>Assign {intent?.roles?.join(", ") || "no staff roles"} to {intent?.email}. Reason: {intent?.reason}</>}
+        {intent?.kind === 'recovery' ? <>Approve verified recovery for {intent.email}. Their existing sessions will end and their next sign-in will require a new verified authenticator. Reason: {intent.reason}</> : <span className="admin-review-summary"><strong>{intent?.email}</strong><span>Before: {(resource.data?.items?.find(item => item.email?.toLowerCase() === intent?.email?.toLowerCase())?.roles || []).join(', ') || 'No current staff roles in this directory'}</span><span>After: {intent?.roles?.length ? intent.roles.map(role => <StatusChip key={role} status={role} />) : 'No staff roles'}</span><span>Reason: {intent?.reason}</span></span>}
       </ConfirmDialog>
     </div>
   );

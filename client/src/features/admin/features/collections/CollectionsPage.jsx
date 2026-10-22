@@ -10,7 +10,7 @@ export default function CollectionsPage() {
       <div className="page-header">
         <div className="header-content">
           <div>
-            <h2>Collections</h2>
+            <h1>Collections</h1>
             <p>{feature.items.length} collections</p>
           </div>
         </div>

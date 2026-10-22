@@ -1,5 +1,6 @@
-import { formatDateTime } from "@/shared/utils/formatDate.ts";
+import { formatDateTime } from "@/features/admin/shared/utils/format.js";
 import { ProofUploadForm } from "@/features/admin/features/production/ProofUploadForm.jsx";
+import { StatusChip, EmptyState } from '@/features/admin/shared/components/AdminUi.jsx';
 export function ProofRevisionHistory({
   design,
   pending,
@@ -14,7 +15,7 @@ export function ProofRevisionHistory({
       <ol>
         {design.proofRevisions.map((proof) => (
           <li key={proof.id}>
-            Revision {proof.revisionNumber} · {proof.status} ·{" "}
+            Revision {proof.revisionNumber} · <StatusChip status={proof.status} /> ·{" "}
             {formatDateTime(proof.createdAt)}
             <p>{proof.customerVisibleMessage}</p>
             {proof.customerResponse && (
@@ -38,7 +39,7 @@ export function ProofRevisionHistory({
           </li>
         ))}
       </ol>
-      {!design.proofRevisions.length && <p>No proof revisions.</p>}
+      {!design.proofRevisions.length && <EmptyState title="No proof revisions." description="Upload a proof below when it is ready for the customer to review." icon="image" />}
       <ProofUploadForm
         message={message}
         setMessage={setMessage}

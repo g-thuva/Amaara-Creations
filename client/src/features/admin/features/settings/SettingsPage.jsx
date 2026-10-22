@@ -10,7 +10,7 @@ export default function SettingsPage() {
       <div className="page-header">
         <div className="header-content">
           <div>
-            <h2>Site Settings</h2>
+            <h1>Site Settings</h1>
             <p>{feature.items.length} settings</p>
           </div>
         </div>

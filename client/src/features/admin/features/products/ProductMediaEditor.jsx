@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from "@/shared/api/requestConfig.js";
+import { DataTable } from '@/features/admin/shared/components/DataTable.jsx';
 export function ProductMediaEditor({
   activeProduct,
   media,
@@ -30,49 +31,12 @@ export function ProductMediaEditor({
           Upload
         </button>
       </form>
-      <div className="table-responsive">
-        <table>
-          <caption>Product images</caption>
-          <thead>
-            <tr>
-              <th scope="col">Preview</th>
-              <th scope="col">Description</th>
-              <th scope="col">Dimensions</th>
-              <th scope="col">Primary image</th>
-            </tr>
-          </thead>
-          <tbody>
-            {media.map((item) => (
-              <tr key={item.id}>
-                <td>
-                  <img
-                    className="product-thumbnail"
-                    src={resolveMediaUrl(item.url)}
-                    alt={item.altText || activeProduct.name}
-                  />
-                </td>
-                <td>{item.altText || item.originalFileName}</td>
-                <td>
-                  {item.width} x {item.height}
-                </td>
-                <td>
-                  {item.isPrimary ? (
-                    "Primary"
-                  ) : (
-                    <button
-                      className="btn btn-sm btn-outline-primary"
-                      disabled={pending}
-                      onClick={() => makePrimary(item)}
-                    >
-                      Make primary
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable caption="Product images" rows={media} empty="No product images yet" emptyDescription="Upload an image with helpful alt text using the form above." columns={[
+        { key: 'preview', label: 'Preview', render: item => <img className="product-thumbnail" src={resolveMediaUrl(item.url)} alt={item.altText || activeProduct.name} /> },
+        { key: 'description', label: 'Description', render: item => item.altText || item.originalFileName },
+        { key: 'dimensions', label: 'Dimensions', render: item => `${item.width} × ${item.height}` },
+        { key: 'primary', label: 'Primary image', render: item => item.isPrimary ? 'Primary' : <button className="btn btn-sm btn-outline-primary" disabled={pending} onClick={() => makePrimary(item)}>Make primary</button> },
+      ]} />
     </>
   );
 }

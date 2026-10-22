@@ -1,11 +1,14 @@
-import { formatDateTime } from "@/shared/utils/formatDate.ts";
+import { formatDateTime } from "@/features/admin/shared/utils/format.js";
 import { usePaymentOperations } from "@/features/admin/features/payments/usePaymentOperations.js";
 import { paymentsApi } from "@/features/admin/features/payments/paymentsApi.js";
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
-import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog.jsx";
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
+import { ConfirmDialog } from "@/features/admin/shared/components/ConfirmDialog.jsx";
 import { PaymentActions } from "@/features/admin/features/payments/PaymentActions.jsx";
 import { RefundForm } from "@/features/admin/features/payments/RefundForm.jsx";
 import { RefundHistory } from "@/features/admin/features/payments/RefundHistory.jsx";
+import { StatusChip, CopyableId } from '@/features/admin/shared/components/AdminUi.jsx';
+import { Skeleton } from '@/features/admin/shared/components/Skeleton.jsx';
+import { ErrorState } from '@/features/admin/shared/components/ErrorState.jsx';
 export function PaymentAttemptPanel({ summary, changed }) {
   const {
     resource,
@@ -22,24 +25,21 @@ export function PaymentAttemptPanel({ summary, changed }) {
   } = usePaymentOperations(summary.id, changed);
   if (resource.error && !payment)
     return (
-      <p role="alert">
-        Payment details could not be loaded.{" "}
-        <button onClick={resource.reload}>Refresh payment details</button>
-      </p>
+      <ErrorState title="Payment details could not be loaded." retry={resource.reload} />
     );
-  if (!payment) return <p role="status">Loading payment…</p>;
+  if (!payment) return <Skeleton label="Loading payment…" />;
   return (
     <section className="card">
       <div className="card-header">
-        <h3>Payment attempt {payment.attemptNumber || payment.id}</h3>
+        <h2>Payment attempt {payment.attemptNumber || payment.id}</h2>
       </div>
       <div className="card-body">
         <p>
-          {payment.provider}: {payment.status} ·{" "}
+          {payment.provider}: <StatusChip status={payment.status} /> ·{" "}
           {checkoutMoney(payment.amount, payment.currency)}
         </p>
-        <p>Reference: {payment.providerReference}</p>
-        <p>Transaction: {payment.providerTransactionId || "Not initialized"}</p>
+        <p>Reference: <CopyableId value={payment.providerReference} label="payment reference" /></p>
+        <p>Transaction: {payment.providerTransactionId ? <CopyableId value={payment.providerTransactionId} label="transaction identifier" /> : 'Not initialized'}</p>
         <p>
           Settled: {checkoutMoney(payment.settledAmount, payment.currency)} ·
           Refunded: {checkoutMoney(payment.refundedAmount, payment.currency)}
@@ -56,7 +56,7 @@ export function PaymentAttemptPanel({ summary, changed }) {
         )}
         {payment.providerMode && <p>Mode: {payment.providerMode}</p>}
         {payment.providerGatewayId && (
-          <p>Gateway ID: {payment.providerGatewayId}</p>
+          <p>Gateway ID: <CopyableId value={payment.providerGatewayId} label="gateway identifier" /></p>
         )}
         {payment.providerStatus && (
           <p>Provider state: {payment.providerStatus}</p>
@@ -66,7 +66,7 @@ export function PaymentAttemptPanel({ summary, changed }) {
         )}
         {payment.events?.length > 0 && (
           <>
-            <h4>Provider event history</h4>
+            <h3>Provider event history</h3>
             <ul>
               {payment.events.map((event, index) => (
                 <li key={`${event.processedAt}-${index}`}>
@@ -112,7 +112,7 @@ export function PaymentAttemptPanel({ summary, changed }) {
           )}
         {payment.reconciliations?.length > 0 && (
           <>
-            <h4>Reconciliation history</h4>
+            <h3>Reconciliation history</h3>
             <ul>
               {payment.reconciliations.map((e, i) => (
                 <li key={i}>

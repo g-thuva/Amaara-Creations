@@ -1,34 +1,5 @@
-import { formatDateTime } from "@/shared/utils/formatDate.ts";
+import { formatDateTime } from '@/features/admin/shared/utils/format.js';
+import { DataTable } from '@/features/admin/shared/components/DataTable.jsx';
 export function BuilderVersionSummary({ data }) {
-  return (
-    <section className="card">
-      <div className="card-header">
-        <h3 className="card-title">Version history</h3>
-      </div>
-      <div className="table-responsive">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Version</th>
-              <th scope="col">Status</th>
-              <th scope="col">Published</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.versions.map((version) => (
-              <tr key={version.id}>
-                <td>{version.versionNumber}</td>
-                <td>{version.status}</td>
-                <td>
-                  {version.publishedAt
-                    ? formatDateTime(version.publishedAt)
-                    : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
+  return <DataTable caption="Version history" rows={data.versions} empty="No builder versions yet" emptyDescription="Saved draft and published versions will appear here." columns={[{ key: 'versionNumber', label: 'Version' }, { key: 'status', label: 'Status' }, { key: 'publishedAt', label: 'Published', render: version => version.publishedAt ? formatDateTime(version.publishedAt) : '—' }]} />;
 }

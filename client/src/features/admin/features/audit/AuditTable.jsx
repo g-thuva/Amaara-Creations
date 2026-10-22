@@ -1,5 +1,6 @@
-import { formatDateTime } from "@/shared/utils/formatDate.ts";
+import { formatDateTime } from "@/features/admin/shared/utils/format.js";
 import { DataTable } from "@/features/admin/shared/components/DataTable.jsx";
+import { CopyableId, Disclosure } from '@/features/admin/shared/components/AdminUi.jsx';
 export function AuditTable({ resource }) {
   return (
     <DataTable
@@ -9,27 +10,26 @@ export function AuditTable({ resource }) {
         {
           key: "createdAt",
           label: "Time",
-          render: (r) => formatDateTime(r.createdAt),
+          render: (r) => <time title={r.createdAt} dateTime={r.createdAt}>{formatDateTime(r.createdAt)}</time>,
         },
-        { key: "actorUserId", label: "Actor" },
-        { key: "action", label: "Action" },
+        { key: "actorUserId", label: "Actor", render: r => <CopyableId value={r.actorUserId} label="actor identifier" /> },
+        { key: "action", label: "Action", render: r => <span className="badge" title={r.action}>{r.action?.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._]/g, ' ')}</span> },
         {
           key: "entityType",
           label: "Entity",
-          render: (r) => `${r.entityType} ${r.entityId || ""}`,
+          render: (r) => <><span>{r.entityType}</span><br /><CopyableId value={r.entityId} label="entity identifier" /></>,
         },
-        { key: "correlationId", label: "Correlation" },
+        { key: "correlationId", label: "Correlation", render: r => <CopyableId value={r.correlationId} label="correlation identifier" /> },
         {
           key: "changes",
           label: "Changes",
           render: (r) => (
-            <details>
-              <summary>View safe metadata</summary>
+            <Disclosure>
               <p>Before</p>
               <pre>{r.oldValuesJson || "—"}</pre>
               <p>After</p>
               <pre>{r.newValuesJson || "—"}</pre>
-            </details>
+            </Disclosure>
           ),
         },
       ]}

@@ -265,7 +265,7 @@ test("every permitted admin navigation target survives direct entry and reload",
     ).toHaveCount(0);
   }
   await expect(
-    page.getByRole("heading", { name: "Review moderation", exact: true }),
+    page.getByRole("heading", { name: headings[new URL(links.at(-1)!, page.url()).pathname.split('/').at(-1)!], exact: true }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });

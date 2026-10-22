@@ -1,4 +1,4 @@
-import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog.jsx";
+import { ConfirmDialog } from "@/features/admin/shared/components/ConfirmDialog.jsx";
 import { ResourceState } from "@/features/admin/shared/components/ResourceState.jsx";
 import { Pagination } from "@/features/admin/shared/components/Pagination.jsx";
 import { MutationFeedback } from "@/features/admin/shared/components/MutationFeedback.jsx";
@@ -7,18 +7,19 @@ import { movementPageSize } from "@/features/admin/features/inventory/inventoryA
 import { StockBalancesTable } from "@/features/admin/features/inventory/StockBalancesTable.jsx";
 import { InventoryAdjustmentForm } from "@/features/admin/features/inventory/InventoryAdjustmentForm.jsx";
 import { InventoryMovementsTable } from "@/features/admin/features/inventory/InventoryMovementsTable.jsx";
+import { PageHeader, FilterBar } from '@/features/admin/shared/components/AdminUi.jsx';
 export default function InventoryPage() {
   const inventory = useInventory();
   const { resource, movements, selected, intent, setIntent, mutation } =
     inventory;
   return (
     <div className="admin-page">
-      <h1>Inventory ledger</h1>
+      <PageHeader title="Inventory ledger" description="Review stock availability, checkout reservations and recorded inventory movements." />
       <p>
         On hand includes reserved goods. Available stock is protected by
         checkout reservations.
       </p>
-      <label>
+      <FilterBar><label>
         Search product or SKU
         <input
           className="form-control"
@@ -28,7 +29,7 @@ export default function InventoryPage() {
             inventory.setPage(1);
           }}
         />
-      </label>
+      </label></FilterBar>
       <MutationFeedback {...mutation} />
       <ResourceState resource={resource}>
         <StockBalancesTable

@@ -223,6 +223,7 @@ test("ambiguous provider refund stays Pending and reserves funds without claimin
   await page
     .getByRole("button", { name: "Reconcile refund", exact: true })
     .click();
+  await page.getByRole('dialog', { name: 'Reconcile refund', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
   await expect(
     page.getByText("Request status: Pending.", { exact: true }),
   ).toBeVisible();

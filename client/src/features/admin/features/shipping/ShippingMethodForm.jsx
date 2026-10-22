@@ -9,7 +9,7 @@ export function ShippingMethodForm({
   return (
     <section className="card">
       <div className="card-header">
-        <h3>Delivery methods</h3>
+        <h2>Delivery methods</h2>
         <button
           className="btn btn-outline-primary"
           onClick={() => setMethod(newMethod())}

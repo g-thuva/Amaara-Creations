@@ -1,5 +1,5 @@
-import { formatLocalDate as formatDate } from "@/shared/utils/formatDate.ts";
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { formatLocalDate as formatDate } from "@/features/admin/shared/utils/format.js";
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
 export function CustomerSummary({ data }) {
   return (
     <section className="card card-body">

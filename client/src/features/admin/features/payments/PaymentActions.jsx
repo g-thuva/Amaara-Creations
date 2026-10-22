@@ -1,3 +1,4 @@
+import { ConfirmAction } from '@/features/admin/shared/components/ConfirmAction.jsx';
 export function PaymentActions({
   payment,
   pending,
@@ -16,13 +17,12 @@ export function PaymentActions({
       >
         Refresh payment details
       </button>
-      <button
+      <ConfirmAction onConfirm={reconcile} pending={pending} title="Reconcile payment" detail="Check the provider’s verified state and apply any confirmed payment update to this order?" destructive={false}><button
         className="btn btn-outline-primary"
         disabled={busy}
-        onClick={reconcile}
       >
         Reconcile payment
-      </button>
+      </button></ConfirmAction>
       {payment.status === "Authorized" &&
         ["settle", "cancel"].map((action) => (
           <button

@@ -1,8 +1,8 @@
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
 export function RefundForm({ payment, busy, onSubmit }) {
   return (
     <form className="add-product-form" onSubmit={onSubmit}>
-      <h4>Refund settled funds</h4>
+      <h3>Refund settled funds</h3>
       <p>
         Available: {checkoutMoney(payment.refundableAmount, payment.currency)}.
         Physical stock is managed separately.

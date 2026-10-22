@@ -1,10 +1,10 @@
-import { formatCurrency as money } from '@/shared/utils/formatCurrency.ts';
+import { formatCurrency as money } from '@/features/admin/shared/utils/format.js';
 import { numberFields } from "@/features/admin/features/builder-configuration/builderForm.js";
 export function BuilderPricingEditor({ draft, change, testQuote }) {
   return (
     <section className="card">
       <div className="card-header">
-        <h3 className="card-title">Limits and pricing</h3>
+        <h2 className="card-title">Limits and pricing</h2>
       </div>
       <div className="card-body add-product-form">
         <div className="form-row">

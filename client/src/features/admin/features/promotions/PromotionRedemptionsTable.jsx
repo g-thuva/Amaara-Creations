@@ -1,6 +1,6 @@
-import { formatDateTime } from "@/shared/utils/formatDate.ts";
+import { formatDateTime } from "@/features/admin/shared/utils/format.js";
 import { DataTable } from "@/features/admin/shared/components/DataTable.jsx";
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
 export function PromotionRedemptionsTable({ history }) {
   return (
     <DataTable

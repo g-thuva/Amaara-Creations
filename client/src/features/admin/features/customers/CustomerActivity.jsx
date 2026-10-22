@@ -1,6 +1,6 @@
-import { formatLocalDate as formatDate } from "@/shared/utils/formatDate.ts";
+import { formatLocalDate as formatDate } from "@/features/admin/shared/utils/format.js";
 import { Link } from "react-router-dom";
-import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
 import { DataTable } from "@/features/admin/shared/components/DataTable.jsx";
 export function CustomerActivity({ data }) {
   return (

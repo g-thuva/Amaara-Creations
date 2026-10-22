@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog.jsx";
+import { ConfirmDialog } from "@/features/admin/shared/components/ConfirmDialog.jsx";
 import { ResourceState } from "@/features/admin/shared/components/ResourceState.jsx";
 import { MutationFeedback } from "@/features/admin/shared/components/MutationFeedback.jsx";
 import { useProductionJob } from "@/features/admin/features/production/useProductionJob.js";
@@ -9,6 +9,7 @@ import { ProofRevisionHistory } from "@/features/admin/features/production/Proof
 import { ProductionTransitionForm } from "@/features/admin/features/production/ProductionTransitionForm.jsx";
 import { ProductionTimeline } from "@/features/admin/features/production/ProductionTimeline.jsx";
 import { ArchiveJobForm } from "@/features/admin/features/production/ArchiveJobForm.jsx";
+import { PageHeader } from '@/features/admin/shared/components/PageHeader.jsx';
 export default function ProductionJobPage() {
   const { id } = useParams();
   const job = useProductionJob(id);
@@ -16,12 +17,11 @@ export default function ProductionJobPage() {
   return (
     <div className="admin-page">
       <Link to="/admin/custom-designs">Custom production queue</Link>
-      <h1>Production job</h1>
+      <PageHeader title="Production job" description="Review the specification, proof revisions and validated production progress." />
       <MutationFeedback {...mutation} />
       <ResourceState resource={resource}>
         {design && (
-          <>
-            <ProductionJobSummary data={data} design={design} />
+          <div className="admin-detail-grid"><div className="admin-detail-main">
             <PrivateAssetsList
               design={design}
               pending={mutation.pending}
@@ -40,7 +40,6 @@ export default function ProductionJobPage() {
               pending={mutation.pending}
               production={job.production}
             />
-            <ProductionTimeline data={data} />
             {data.canArchive && (
               <ArchiveJobForm
                 design={design}
@@ -48,16 +47,18 @@ export default function ProductionJobPage() {
                 setArchive={setArchive}
               />
             )}
+            </div><aside className="admin-detail-rail" aria-label="Production summary and timeline"><ProductionJobSummary data={data} design={design} /><ProductionTimeline data={data} /></aside>
             <ConfirmDialog
               open={Boolean(archive)}
               onClose={() => setArchive(null)}
               title="Archive fulfilled job"
+              destructive
               pending={mutation.pending}
               onConfirm={job.confirmArchive}
             >
               {archive?.note}
             </ConfirmDialog>
-          </>
+          </div>
         )}
       </ResourceState>
     </div>

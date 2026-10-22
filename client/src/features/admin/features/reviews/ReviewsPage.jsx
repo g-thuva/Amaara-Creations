@@ -1,8 +1,9 @@
 import { useReviews } from "@/features/admin/features/reviews/useReviews.js";
 import { ReviewsTable } from "@/features/admin/features/reviews/ReviewsTable.jsx";
-import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog.jsx";
+import { ConfirmDialog } from "@/features/admin/shared/components/ConfirmDialog.jsx";
 import { ResourceState } from "@/features/admin/shared/components/ResourceState.jsx";
 import { Pagination } from "@/features/admin/shared/components/Pagination.jsx";
+import { PageHeader, FilterBar } from '@/features/admin/shared/components/AdminUi.jsx';
 import { MutationFeedback } from "@/features/admin/shared/components/MutationFeedback.jsx";
 export default function ReviewsPage() {
   const reviews = useReviews();
@@ -13,12 +14,12 @@ export default function ReviewsPage() {
   };
   return (
     <div className="admin-page">
-      <h1>Review moderation</h1>
+      <PageHeader title="Review moderation" description="Review customer feedback and record a reason for each moderation decision." />
       <p>
         Verified purchase comes from eligible fulfilled order history. New and
         edited reviews require moderation before publication.
       </p>
-      <label>
+      <FilterBar><label>
         Moderation state
         <select
           className="form-control"
@@ -33,7 +34,7 @@ export default function ReviewsPage() {
             <option key={s}>{s}</option>
           ))}
         </select>
-      </label>
+      </label></FilterBar>
       <MutationFeedback {...mutation} />
       <ResourceState resource={resource}>
         <ReviewsTable

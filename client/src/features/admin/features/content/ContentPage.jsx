@@ -10,7 +10,7 @@ export default function ContentPage() {
       <div className="page-header">
         <div className="header-content">
           <div>
-            <h2>Content</h2>
+            <h1>Content</h1>
             <p>{feature.pages.length} pages</p>
           </div>
         </div>

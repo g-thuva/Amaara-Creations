@@ -11,7 +11,7 @@ export function ContentForm({
   return (
     <div className="card">
       <div className="card-header">
-        <h3 className="card-title">{editing ? "Edit Page" : "Create Page"}</h3>
+        <h2 className="card-title">{editing ? "Edit Page" : "Create Page"}</h2>
       </div>
       <form className="add-product-form" onSubmit={save}>
         <div className="form-row">
