@@ -1,0 +1,74 @@
+[
+  {
+    "route": "home",
+    "width": 390,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "products",
+    "width": 390,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "custom",
+    "width": 390,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "login",
+    "width": 390,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "home",
+    "width": 768,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "products",
+    "width": 768,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "custom",
+    "width": 768,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "login",
+    "width": 768,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "home",
+    "width": 1440,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "products",
+    "width": 1440,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "custom",
+    "width": 1440,
+    "status": 200,
+    "overflow": false
+  },
+  {
+    "route": "login",
+    "width": 1440,
+    "status": 200,
+    "overflow": false
+  }
+]

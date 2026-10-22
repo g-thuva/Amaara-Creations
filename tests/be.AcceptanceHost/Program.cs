@@ -15,11 +15,14 @@ builder.Logging.ClearProviders();
 builder.WebHost.UseUrls("http://127.0.0.1:5198");
 var app = builder.Build();
 app.MapGet("/__fixture/health", () => Results.Ok(new { testOnly = true }));
+app.MapGet("/__fixture/authenticator-code", () => Results.Ok(new { code = TotpFixture.Code }));
 app.MapPost("/__fixture/new", () => factory.CreateBrowserFixtureAsync());
 app.MapPost("/__fixture/operations", () => factory.CreateOperationsFixtureAsync());
 app.MapPost("/__fixture/refund", (RefundFixtureRequest request) => factory.CreateBrowserFixtureAsync(request.Outcome));
 app.MapPost("/__fixture/confirmation", (ConfirmationRequest request) =>
     factory.Email.Confirmation(request.Email) is { } url ? Results.Ok(new { url }) : Results.NotFound());
+app.MapPost("/__fixture/email-change", (ConfirmationRequest request) =>
+    factory.Email.EmailChangeToken(request.Email) is { } token ? Results.Ok(new { token }) : Results.NotFound());
 app.MapGet("/__fixture/image/{name}", () => Results.Bytes(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="), "image/png"));
 app.Map("/{**path}", async context =>
 {

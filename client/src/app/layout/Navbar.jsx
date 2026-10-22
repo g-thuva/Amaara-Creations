@@ -1,15 +1,15 @@
-import { can } from '@/app/config/permissions.js';
 import { storefrontNavigation } from '@/app/config/navigation.js';
 import { useCart } from '@/features/cart/CartProvider.jsx';
 import { useWishlist } from '@/features/wishlist/WishlistProvider.jsx';
 import { useSiteContent } from '@/features/content/SiteContentProvider.jsx';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider.jsx';
 import { Button } from '@/shared/components/ui/Button.jsx';
 import { Dialog } from '@/shared/components/ui/Dialog.jsx';
 import Icon from '@/shared/components/ui/Icon.jsx';
 import { safeLink } from '@/shared/utils/safeLink.ts';
+const CartDrawer = lazy(() => import('@/features/cart/components/CartDrawer.jsx'));
 
 
 function Brand({ name }) {
@@ -25,7 +25,7 @@ function Brand({ name }) {
   );
 }
 
-function AccountLinks({ close, signOut, isAdmin }) {
+function AccountLinks({ close, signOut }) {
   return (
     <>
       <Link to="/profile" onClick={close}><Icon name="user" />Profile</Link>
@@ -33,7 +33,7 @@ function AccountLinks({ close, signOut, isAdmin }) {
       <Link to="/addresses" onClick={close}><Icon name="mapPin" />Addresses</Link>
       <Link to="/wishlist" onClick={close}><Icon name="heart" />Wishlist</Link>
       <Link to="/account/security" onClick={close}><Icon name="lock" />Security</Link>
-      {isAdmin && <Link to="/admin" onClick={close}><Icon name="settings" />Admin panel</Link>}
+      <Link to="/account/designs" onClick={close}><Icon name="edit" />Saved designs</Link>
       <button type="button" onClick={signOut}><Icon name="logout" />Sign out</button>
     </>
   );
@@ -42,8 +42,10 @@ function AccountLinks({ close, signOut, isAdmin }) {
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartUsed, setCartUsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { isAuthenticated, authStatus, user, logout } = useAuth();
+  const { isAuthenticated, authStatus, logout } = useAuth();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
   const { values } = useSiteContent();
@@ -56,7 +58,6 @@ export default function Navbar() {
   const [announcementDismissed, setAnnouncementDismissed] = useState(
     () => typeof sessionStorage !== 'undefined' && dismissalKey && sessionStorage.getItem(dismissalKey) === 'dismissed',
   );
-  const isAdmin = can(user, "AdminAccess");
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -139,13 +140,13 @@ export default function Navbar() {
               <summary className="s-icon-link" aria-label={isAuthenticated ? 'Open account menu' : 'Open sign-in menu'}><Icon name="user" /></summary>
               <div className="s-account-popover">
                 {authStatus === 'loading' ? <span>Restoring session…</span> : isAuthenticated ? (
-                  <AccountLinks close={() => {}} signOut={signOut} isAdmin={isAdmin} />
+                  <AccountLinks close={() => document.querySelector('.s-account-menu')?.removeAttribute('open')} signOut={signOut} />
                 ) : (
                   <><Link to="/login">Sign in</Link><Link to="/register">Create an account</Link></>
                 )}
               </div>
             </details>
-            <Link className="s-icon-link" to="/cart" aria-label={`Cart${cart.data ? `, ${cart.data.totalItems} items` : ''}`}>
+            <Link className="s-icon-link" to="/cart" aria-haspopup="dialog" aria-expanded={cartOpen} aria-controls={cartUsed ? 'cart-preview' : undefined} onClick={event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); setCartUsed(true); setCartOpen(true); }} aria-label={`Cart${cart.data ? `, ${cart.data.totalItems} ${cart.data.totalItems === 1 ? 'item' : 'items'}` : ''}`}>
               <Icon name="bag" />
               {cart.data?.totalItems > 0 && <span className="s-count">{cart.data.totalItems}</span>}
             </Link>
@@ -165,6 +166,7 @@ export default function Navbar() {
         )}
       </header>
 
+      {cartUsed && <Suspense fallback={<p role="status">Loading cart preview…</p>}><CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} /></Suspense>}
       <Dialog open={open} onClose={() => setOpen(false)} title="Explore Amaara" drawer>
         <nav className="s-mobile-nav" aria-label="Mobile navigation">
           {storefrontNavigation.map(([to, label]) => (
@@ -174,7 +176,7 @@ export default function Navbar() {
           {authStatus === 'loading' ? <p>Restoring session…</p> : isAuthenticated ? (
             <div className="s-mobile-account">
               <p>Your account</p>
-              <AccountLinks close={() => setOpen(false)} signOut={signOut} isAdmin={isAdmin} />
+              <AccountLinks close={() => setOpen(false)} signOut={signOut} />
             </div>
           ) : (
             <div className="s-mobile-account">

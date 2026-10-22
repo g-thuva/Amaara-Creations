@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using be.Api.Identity;
+using be.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using static be.Infrastructure.Configuration.StartupSettings;
 
 namespace be.Api.Extensions;
@@ -24,6 +28,7 @@ public static class AuthenticationExtensions
             .AddJwtBearer(options =>
         {
             options.SaveToken = false;
+            options.MapInboundClaims = false;
             options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
             // Configure token validation
             options.TokenValidationParameters = new TokenValidationParameters
@@ -35,7 +40,9 @@ public static class AuthenticationExtensions
                 ValidIssuer = jwtIssuer,
                 ValidAudience = jwtAudience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-                ClockSkew = TimeSpan.FromSeconds(30)
+                ClockSkew = TimeSpan.FromSeconds(30),
+                ValidTypes = ["JWT"],
+                ValidAlgorithms = [SecurityAlgorithms.HmacSha256]
             };
             options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
             {
@@ -51,6 +58,20 @@ public static class AuthenticationExtensions
                         if (user == null || await manager.IsLockedOutAsync(user))
                         {
                             context.Fail("Account unavailable");
+                            return;
+                        }
+
+                        var stamp = context.Principal?.FindFirst("security_stamp")?.Value;
+                        var family = context.Principal?.FindFirst("session_family")?.Value;
+                        if (stamp != user.SecurityStamp || string.IsNullOrWhiteSpace(family))
+                        {
+                            context.Fail("Session unavailable");
+                            return;
+                        }
+                        var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                        if (!await db.RefreshSessions.AnyAsync(s => s.UserId == user.Id && s.FamilyId == family && s.RevokedAt == null && s.ExpiresAt > DateTime.UtcNow))
+                        {
+                            context.Fail("Session unavailable");
                             return;
                         }
 
@@ -78,7 +99,9 @@ public static class AuthenticationExtensions
         builder.Services.AddAuthorization(options =>
         {
             foreach (var entry in AppPolicies.Roles)
-                options.AddPolicy(entry.Key, policy => policy.RequireRole(entry.Value));
+                options.AddPolicy(entry.Key, policy => policy.RequireAuthenticatedUser().RequireRole(entry.Value)
+                    .AddRequirements(new StaffAuthorization(entry.Key is AppPolicies.RefundPayments or AppPolicies.ManageStaff or AppPolicies.ManageSettings or AppPolicies.ViewReports)));
         });
+        builder.Services.AddSingleton<IAuthorizationHandler, StaffAuthorizationHandler>();
     }
 }

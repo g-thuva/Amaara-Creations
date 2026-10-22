@@ -7,6 +7,10 @@ public static class ProductionSettings
 {
     public static void Validate(IConfiguration configuration, IHostEnvironment environment)
     {
+        if (configuration.GetValue<bool>("Uploads:Scanner:Required") && !configuration.GetValue<bool>("Uploads:Scanner:Enabled"))
+            throw new InvalidOperationException("Required upload scanning must be enabled and configured.");
+        if (configuration.GetValue<bool>("Uploads:Scanner:Enabled") && !be.Infrastructure.Storage.HttpUploadScanner.ValidEndpoint(configuration["Uploads:Scanner:Endpoint"], out _))
+            throw new InvalidOperationException("Upload scanning requires an approved HTTPS endpoint without URL credentials or query parameters.");
         var provider = configuration["Uploads:Provider"] ?? "Local";
         if (!provider.Equals("Local", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Uploads:Provider is unsupported; configure an implemented private-storage adapter.");
@@ -27,6 +31,18 @@ public static class ProductionSettings
         var publicRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath((environment as IWebHostEnvironment)?.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot")));
         if (publicRoot.TrimEnd(Path.DirectorySeparatorChar) == Path.GetPathRoot(publicRoot)?.TrimEnd(Path.DirectorySeparatorChar))
             throw new InvalidOperationException("Production web root must be a dedicated public directory.");
+        var contentRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(environment.ContentRootPath));
+        if (configuration.GetValue<bool>("Authentication:RequirePasswordBlocklist") && string.IsNullOrWhiteSpace(configuration["Authentication:PasswordBlocklistPath"]))
+            throw new InvalidOperationException("Required offline password blocklist is not configured.");
+        if (configuration["Authentication:PasswordBlocklistPath"] is { Length: > 0 } corpus)
+        {
+            var corpusRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(corpus));
+            if (corpusRoot.Equals(publicRoot, StringComparison.OrdinalIgnoreCase) || corpusRoot.StartsWith(publicRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Password blocklist storage must remain outside the public root.");
+        }
+        var privateMedia = Path.GetFullPath(Path.Combine(contentRoot, "App_Data", "private-media"));
+        if (contentRoot.Equals(publicRoot, StringComparison.OrdinalIgnoreCase) || contentRoot.StartsWith(publicRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || privateMedia.Equals(publicRoot, StringComparison.OrdinalIgnoreCase) || privateMedia.StartsWith(publicRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Production web root cannot contain application configuration or private media.");
         if (keys.Equals(publicRoot, StringComparison.OrdinalIgnoreCase) || keys.StartsWith(publicRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Data-protection keys must be outside the public web root.");
         var frontend = Require(configuration, "Authentication:FrontendBaseUrl");

@@ -36,7 +36,7 @@ export function Media({
           <span className="s-sticker-glyph" aria-hidden="true">
             <Icon name="image" />
           </span>
-          <span>Image coming soon</span>
+          <span>Image unavailable</span>
         </div>
       )}
     </div>

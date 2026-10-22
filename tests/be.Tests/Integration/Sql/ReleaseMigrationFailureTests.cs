@@ -37,7 +37,8 @@ public sealed class ReleaseMigrationFailureTests
         seed.Reviews.Add(new Review { UserId = user.Id, ProductId = lkr.Id, Rating = 5, Comment = "Legacy review", ModerationStatus = "" });
         seed.InventoryTransactions.Add(new InventoryTransaction { ProductId = lkr.Id, PreviousQuantity = 0, QuantityDelta = 7, NewQuantity = 7, MovementType = "", Reason = "Legacy fixture" });
         await seed.SaveChangesAsync();
-        var last = (await seed.Database.GetPendingMigrationsAsync()).Single();
+        const string last = "20261015194809_Phase7NormalizeLegacyEvidence";
+        Assert.Contains(last, await seed.Database.GetPendingMigrationsAsync());
         await using (var failing = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection.ConnectionString).AddInterceptors(new FailHistory(last)).Options))
             await Assert.ThrowsAsync<InvalidOperationException>(() => failing.Database.MigrateAsync());
         await using var verify = new ApplicationDbContext(options);

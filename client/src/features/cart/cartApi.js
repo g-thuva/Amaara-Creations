@@ -1,6 +1,10 @@
 import api from '@/shared/api/httpClient.js';
 
 export const cartApi = {
+  downloadArtwork: async (url, signal) => {
+    if (!/^\/api\/v1\/custom-designs\/\d+\/assets\/\d+$/.test(url)) throw new Error('Invalid private artwork reference.');
+    return (await api.get(url.replace(/^\/api\/v1/, ''), { responseType: 'blob', signal })).data;
+  },
   // Get user's cart
   getCart: async () => {
     const response = await api.get('/cart');
@@ -8,9 +12,10 @@ export const cartApi = {
   },
 
   // Add item to cart
-  addToCart: async (productId, quantity = 1) => {
+  addToCart: async (productId, quantity = 1, productVariantId = null) => {
     const response = await api.post('/cart', {
       productId,
+      productVariantId,
       quantity,
     });
     return response.data;

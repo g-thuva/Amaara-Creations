@@ -55,6 +55,7 @@ public static class RehearsalRunner
         var user = User("release-owner@example.test", password);
         var other = User("release-other@example.test", password);
         var admin = User("release-admin@example.test", password);
+        admin.TwoFactorEnabled = true;
         var role = new IdentityRole("SuperAdmin") { NormalizedName = "SUPERADMIN" };
         await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection.ConnectionString).Options);
         await db.Database.MigrateAsync();
@@ -62,6 +63,7 @@ public static class RehearsalRunner
         var design = new CustomDesign { UserId = user.Id, Name = "REHEARSAL private design" };
         var asset = new CustomDesignAsset { CustomDesign = design, StorageKey = "private/rehearsal/artwork.png", AssetType = "artwork", ContentType = "image/png", OriginalFileName = "fixture.png" };
         db.AddRange(user, other, admin, role, product, design, asset, new IdentityUserRole<string> { UserId = admin.Id, RoleId = role.Id },
+            new IdentityUserToken<string> { UserId = admin.Id, LoginProvider = "[AspNetUserStore]", Name = "AuthenticatorKey", Value = be.Tests.TotpFixture.Secret },
             new CmsPage { Slug = "release-information", Title = "REHEARSAL public information", IsPublished = true });
         await db.SaveChangesAsync();
         // Execute the operator's exact aggregate script against the disposable schema.
@@ -111,7 +113,8 @@ public static class RehearsalRunner
             ["Cors__AllowedOrigins__0"] = origin, ["DataProtection__KeysPath"] = Path.Combine(runtime, "keys"),
             ["ReverseProxy__KnownProxies__0"] = "127.0.0.1", ["PublicSite__BaseUrl"] = "https://store.example.test",
             ["Checkout__Currency"] = "CHF", ["Email__Enabled"] = "false", ["Zahls__Enabled"] = "false", ["Datatrans__Enabled"] = "false",
-            ["AdminBootstrap__Enabled"] = "false", ["ReleaseControls__AcceptNewPayments"] = "false", ["ReleaseControls__AcceptUploads"] = "false", ["ReleaseControls__AllowAdminChanges"] = "false"
+            ["AdminBootstrap__Enabled"] = "false", ["ReleaseControls__AcceptNewPayments"] = "false", ["ReleaseControls__AcceptUploads"] = "false", ["ReleaseControls__AllowAdminChanges"] = "false",
+            ["Administration__Enabled"] = "true" // Disposable rehearsal only; packaged defaults remain closed.
         };
         foreach (var entry in settings) start.Environment[entry.Key] = entry.Value;
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Published API did not start.");
@@ -145,9 +148,9 @@ public static class RehearsalRunner
             await Status(client, "/api/v1/content/pages/release-information", HttpStatusCode.OK);
             await Status(client, "/uploads/rehearsal.png", HttpStatusCode.OK);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.Unauthorized);
-            async Task Login(User account)
+            async Task Login(User account, bool secondFactor = false)
             {
-                using var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = account.Email, password });
+                using var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = account.Email, password, authenticatorCode = secondFactor ? be.Tests.TotpFixture.Code : null });
                 response.EnsureSuccessStatusCode();
                 var body = await response.Content.ReadFromJsonAsync<JsonElement>();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("token").GetString());
@@ -155,7 +158,9 @@ public static class RehearsalRunner
             await Login(user);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.OK);
             await Status(client, "/api/v1/admin/reports", HttpStatusCode.Forbidden);
-            await Login(admin);
+            using (var missingFactor = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = admin.Email, password }))
+                if (missingFactor.StatusCode != HttpStatusCode.Unauthorized) throw new InvalidOperationException("Staff login without its enrolled factor was accepted.");
+            await Login(admin, secondFactor: true);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.OK);
             foreach (var path in new[] { "dashboard", "orders", "customers", "inventory", "custom-designs", "reports", "operational-health" })
                 await Status(client, "/api/v1/admin/" + path, HttpStatusCode.OK);
@@ -166,7 +171,7 @@ public static class RehearsalRunner
             await Status(client, "/api/v1/admin/reports", HttpStatusCode.Forbidden);
             var node = new ProcessStartInfo("node") { WorkingDirectory = repository, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (var argument in new[] { "client/scripts/smoke-release.mjs", origin, product.Id.ToString() }) node.ArgumentList.Add(argument);
-            node.Environment["AMAARA_REHEARSAL_EMAIL"] = admin.Email;
+            node.Environment["AMAARA_REHEARSAL_EMAIL"] = user.Email;
             node.Environment["AMAARA_REHEARSAL_PASSWORD"] = password;
             using var browser = Process.Start(node) ?? throw new InvalidOperationException("Browser smoke did not start.");
             var browserOutput = browser.StandardOutput.ReadToEndAsync(); var browserError = browser.StandardError.ReadToEndAsync();

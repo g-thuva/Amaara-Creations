@@ -11,10 +11,11 @@ import { PageHeader } from '@/shared/components/ui/PageHeader.jsx';
 import { Skeleton } from '@/shared/components/feedback/Skeleton.jsx';
 
 export default function CartPage() {
-  const { cart, pending, categories, confirm, setConfirm, invalid, currencyMismatch, confirmRemoval, updateQuantity } = useCartPage();
+  const { cart, pending, categories, confirm, setConfirm, invalid, currencyMismatch, confirmRemoval, updateQuantity, lastRemoved, undoRemoval } = useCartPage();
   return (
     <div className="s-container s-page">
       <PageHeader eyebrow="Your selection" title="Shopping cart" />
+      {lastRemoved && <div className="s-alert" role="status"><p>{lastRemoved.productName} was removed. Restore uses current availability and pricing.</p><Button variant="secondary" disabled={pending} onClick={undoRemoval}>Restore removed item</Button></div>}
       {cart.loading ? <Skeleton count={2} /> : cart.error ? <ErrorState error={cart.error} retry={cart.reload} /> : !cart.data?.items.length ? (
         <EmptyState to="/products" label="Explore products" title="Your cart is ready for a favourite">
           <p>Add an available product from the shop to begin.</p>

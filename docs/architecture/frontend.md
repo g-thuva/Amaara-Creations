@@ -1,5 +1,7 @@
 # Frontend architecture
 
+The storefront entry (`src/main.jsx`) and staff entry (`src/admin-main.jsx`) produce separate artifacts. Public routes contain no staff import. The staff shell requires server capability/MFA verification before lazy-loading operational routes. See [staff isolation](../security/ADMIN_ISOLATION_DEPLOYMENT.md) and [redesign evidence](../redesign/TEST_AND_RELEASE_REPORT.md).
+
 The complete frontend lives under `client/src/app`, `client/src/features` and `client/src/shared`. Features own behavior and endpoint operations; pages compose feature sections; shared modules contain reusable infrastructure and presentation. Existing customer and admin URLs remain unchanged.
 
 ## Ownership

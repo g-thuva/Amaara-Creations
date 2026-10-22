@@ -30,8 +30,8 @@ export function useRegister() {
     }
 
     // Validate password length
-    if (form.password.length < 6 || !/[a-z]/.test(form.password) || !/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
-      setError("Use at least 6 characters with uppercase, lowercase and a number.");
+    if (Array.from(form.password).length < 15 || Array.from(form.password).length > 128) {
+      setError("Use 15 to 128 characters. Choose a unique passphrase.");
       return;
     }
 

@@ -1,5 +1,7 @@
 // Paths are relative to /admin. Both routes and the shell consume this metadata.
 export const adminNavigation = [
+  { path: "quote-requests", title: "Quote requests", icon: "file", permission: "ManageOrders" },
+  { path: "privacy-requests", title: "Privacy requests", icon: "lock", permission: "ManageStaff" },
   {
     path: "payments",
     title: "Payments",

@@ -176,7 +176,10 @@ test.describe('Private Custom Builder artwork regressions', () => {
     expect((await request.post(`${acceptanceApi}/api/v1/custom-designs/${designId}/artwork`, { headers: otherHeaders,
       multipart: { file: { name: 'intruder.png', mimeType: 'image/png', buffer: png } } })).status()).toBe(404);
     const adminLogin = await request.post(`${acceptanceApi}/api/v1/auth/login`, { data: { email: fixture.adminEmail, password: fixture.password } });
-    const adminToken = (await adminLogin.json()).token;
-    expect((await request.get(`${acceptanceApi}${asset.downloadUrl}`, { headers: { Authorization: `Bearer ${adminToken}` } })).status()).toBe(200);
+    expect(adminLogin.status()).toBe(401);
+    const code = (await (await request.get(`${acceptanceApi}/__fixture/authenticator-code`)).json()).code;
+    const steppedUp = await request.post(`${acceptanceApi}/api/v1/auth/login`, { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
+    const steppedUpToken = (await steppedUp.json()).token;
+    expect((await request.get(`${acceptanceApi}${asset.downloadUrl}`, { headers: { Authorization: `Bearer ${steppedUpToken}` } })).status()).toBe(200);
   });
 });

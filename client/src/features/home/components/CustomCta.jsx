@@ -8,7 +8,7 @@ export default function CustomCta() {
       <div>
         <p className="s-eyebrow">Custom sticker preview</p>
         <h2>Ready to create something personal?</h2>
-        <p>Try your wording and proportions before contacting Amaara about production.</p>
+        <p>Choose your dimensions, try your wording and review a live quote before saving your design.</p>
       </div>
       <ul>
         <li><Icon name="check" /> Enter your own text</li>
@@ -17,7 +17,7 @@ export default function CustomCta() {
       </ul>
       <div>
         <Link className="s-button s-button-light" to="/custom">Start designing <Icon name="arrow" /></Link>
-        <small>Preview only. Final pricing and ordering require contact.</small>
+        <small>Explore available shapes and review a quote before you save.</small>
       </div>
     </section>
   );

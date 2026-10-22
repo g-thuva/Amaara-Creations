@@ -1,3 +1,4 @@
+import { fillAuthenticator } from '../staffAuth';
 import { test, expect, type Page } from "@playwright/test";
 
 const api = "http://127.0.0.1:5198";
@@ -5,7 +6,7 @@ async function login(page: Page, email: string, password: string) {
   await page.goto("./login");
   await page.getByLabel("Email Address", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await fillAuthenticator(page); await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login$/);
 }
 
@@ -217,12 +218,14 @@ test("every permitted admin navigation target survives direct entry and reload",
     exact: true,
   });
   await expect(navigation).toBeVisible();
-  await expect(navigation.getByRole("link")).toHaveCount(19);
+  await expect(navigation.getByRole("link")).toHaveCount(21);
   const links = await navigation
     .getByRole("link")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
-  expect(links).toHaveLength(19);
+  expect(links).toHaveLength(21);
   const headings: Record<string, string> = {
+    "quote-requests": "Quote requests",
+    "privacy-requests": "Privacy requests",
     payments: "Payments and refunds",
     inventory: "Inventory ledger",
     promotions: "Promotions",

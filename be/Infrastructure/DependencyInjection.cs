@@ -37,11 +37,12 @@ public static class DependencyInjection
         builder.Services.AddIdentity<User, IdentityRole>(options =>
         {
             // Password settings
-            options.Password.RequireDigit = true;
-            options.Password.RequireLowercase = true;
-            options.Password.RequireUppercase = true;
+            options.Password.RequireDigit = false;
+            options.Password.RequireLowercase = false;
+            options.Password.RequireUppercase = false;
             options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequiredLength = 6;
+            // Unicode code-point length and the upper bound are checked below.
+            options.Password.RequiredLength = 1;
             // User settings
             options.User.RequireUniqueEmail = true;
             options.SignIn.RequireConfirmedEmail = builder.Configuration.GetValue<bool?>("Authentication:RequireConfirmedEmail") ?? true;
@@ -52,9 +53,14 @@ public static class DependencyInjection
         })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+        builder.Services.AddScoped<IPasswordValidator<User>, PassphraseValidator>();
+        builder.Services.AddSingleton<FilePasswordBlocklist>();
+        builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromMinutes(30));
         // Register TokenService
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IRefreshSessionService, RefreshSessionService>();
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddScoped<ISecondFactorService, SecondFactorService>();
         if (builder.Configuration.GetValue<bool?>("Email:Enabled") == false)
             builder.Services.AddScoped<IEmailService, DisabledEmailService>();
         else if (builder.Configuration["Email:Provider"] == "DevelopmentCapture")
@@ -68,6 +74,8 @@ public static class DependencyInjection
         builder.Services.AddScoped<IAuditService, AuditService>();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
+        builder.Services.AddHttpClient<IUploadScanner, HttpUploadScanner>(client => client.Timeout = TimeSpan.FromSeconds(10))
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         builder.Services.AddScoped<be.Application.Abstractions.Storage.IAvatarStorage, be.Infrastructure.Storage.LocalAvatarStorage>();
         builder.Services.Configure<CheckoutOptions>(builder.Configuration.GetSection("Checkout"));
         builder.Services.Configure<DatatransOptions>(builder.Configuration.GetSection("Datatrans"));

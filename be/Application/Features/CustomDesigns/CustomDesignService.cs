@@ -12,6 +12,8 @@ using be.Application.Abstractions.Persistence;
 using be.Application.Abstractions.Identity;
 using be.Application.Common;
 using be.Domain.Common;
+using be.Application.Features.Identity;
+using Microsoft.AspNetCore.Authorization;
 
 namespace be.Application.Features.CustomDesigns;
 public class CustomDesignService
@@ -20,18 +22,21 @@ public class CustomDesignService
     private readonly CustomStickerPricingService _pricing;
     private readonly IMediaStorageService _storage;
     private readonly IOptions<CheckoutOptions> _checkoutOptions;
+    private readonly IAuthorizationService _authorization;
     public CustomDesignService(
         IApplicationDbContext context,
         CustomStickerPricingService pricing,
         IMediaStorageService storage,
         IOptions<CheckoutOptions> checkoutOptions,
-        IRequestActor actor)
+        IRequestActor actor,
+        IAuthorizationService authorization)
     {
         _context = context;
         _pricing = pricing;
         _storage = storage;
         _checkoutOptions = checkoutOptions;
         _actor = actor;
+        _authorization = authorization;
     }
 
     public async Task<object?> List(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
@@ -246,12 +251,12 @@ public class CustomDesignService
             .FirstOrDefaultAsync(item => item.Id == assetId && item.CustomDesignId == id, cancellationToken);
         if (asset == null)
             throw new CommerceException("CUSTOM_DESIGNS_NOT_FOUND", "Resource not found.", 404);
-        if (!CanAccess(asset.CustomDesign?.UserId))
+        if (!await CanAccess(asset.CustomDesign?.UserId))
             throw new CommerceException("CUSTOM_DESIGNS_NOT_FOUND", "Resource not found.", 404);
         if (!await _storage.ExistsAsync(asset.StorageKey, cancellationToken))
             throw new CommerceException("CUSTOM_DESIGNS_NOT_FOUND", "Resource not found.", 404);
         var stream = await _storage.OpenReadAsync(asset.StorageKey, cancellationToken);
-        return new DownloadContent(stream, asset.ContentType ?? "application/octet-stream", Path.GetFileName(asset.OriginalFileName ?? $"asset-{asset.Id}"), true);
+        return new DownloadContent(stream, asset.ContentType ?? "application/octet-stream", DownloadName(asset.OriginalFileName, asset.ContentType, $"asset-{asset.Id}"), true);
     }
 
     public async Task DeleteAsset(int id, int assetId, CancellationToken cancellationToken)
@@ -337,10 +342,10 @@ public class CustomDesignService
             .FirstOrDefaultAsync(item => item.CustomDesignId == id && item.RevisionNumber == revision, cancellationToken);
         if (proof?.Asset == null)
             throw new CommerceException("CUSTOM_DESIGNS_NOT_FOUND", "Resource not found.", 404);
-        if (!CanAccess(proof.CustomDesign?.UserId))
+        if (!await CanAccess(proof.CustomDesign?.UserId))
             throw new CommerceException("CUSTOM_DESIGNS_NOT_FOUND", "Resource not found.", 404);
         var stream = await _storage.OpenReadAsync(proof.Asset.StorageKey, cancellationToken);
-        return new DownloadContent(stream, proof.Asset.ContentType ?? "application/octet-stream", Path.GetFileName(proof.Asset.OriginalFileName ?? $"proof-{revision}"), true);
+        return new DownloadContent(stream, proof.Asset.ContentType ?? "application/octet-stream", DownloadName(proof.Asset.OriginalFileName, proof.Asset.ContentType, $"proof-{revision}"), true);
     }
 
     private async Task<CustomDesignDto> RespondToProof(int id, ProofResponseRequest request, bool approve, CancellationToken cancellationToken)
@@ -374,7 +379,8 @@ public class CustomDesignService
     }
 
     private string? UserId() => _actor.User.FindFirstValue(ClaimTypes.NameIdentifier);
-    private bool CanAccess(string? ownerId) => ownerId == UserId() || _actor.User.IsInRole(AppRoles.Admin) || _actor.User.IsInRole(AppRoles.SuperAdmin) || _actor.User.IsInRole(AppRoles.ProductionStaff);
+    private async Task<bool> CanAccess(string? ownerId) =>
+        ownerId != null && (ownerId == UserId() || (await _authorization.AuthorizeAsync(_actor.User, null, AppPolicies.ManageOrders)).Succeeded);
     private IQueryable<CustomDesign> IncludeDesign(IQueryable<CustomDesign> query, bool includeProofs = false)
     {
         var included = query.Include(design => design.BuilderConfigurationVersion)!.ThenInclude(version => version!.Options).Include(design => design.Assets);
@@ -406,7 +412,7 @@ public class CustomDesignService
         CustomQuoteResponse quote)
     {
         design.Name = request.Name.Trim();
-        design.DesignSchemaVersion = 1;
+        design.DesignSchemaVersion = EditorLayout.Version(request.EditorStateJson);
         design.BuilderConfigurationVersionId = configuration.Id;
         design.Width = quote.Width;
         design.Height = quote.Height;
@@ -444,8 +450,13 @@ public class CustomDesignService
     };
     private static void ValidateEditorState(string? json)
     {
-        if (!string.IsNullOrWhiteSpace(json))
-            JsonDocument.Parse(json).Dispose();
+        EditorLayout.Validate(json);
+    }
+
+    private static string DownloadName(string? original, string? contentType, string fallback)
+    {
+        var name = Path.GetFileName(original ?? fallback);
+        return contentType == "image/png" ? Path.ChangeExtension(name, ".png") : name;
     }
 
     private readonly IRequestActor _actor;

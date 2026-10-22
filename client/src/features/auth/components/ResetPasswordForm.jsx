@@ -1,3 +1,4 @@
+import { PasswordField } from '@/shared/components/ui/PasswordField.jsx';
 import { Link } from 'react-router-dom';
 import { useResetPassword } from '@/features/auth/hooks/useResetPassword.js';
 
@@ -15,11 +16,11 @@ export default function ResetPasswordForm() {
         <form aria-describedby={error ? "form-error" : undefined} className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="newPassword" className="form-label">New Password</label>
-            <input id="newPassword" type="password" className="form-control" required minLength="6" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} />
+            <PasswordField guidance autoComplete="new-password" id="newPassword"  className="form-control" required minLength="15" maxLength="128" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} />
           </div>
           <div className="form-group">
             <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
-            <input id="confirmPassword" type="password" className="form-control" required minLength="6" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
+            <PasswordField autoComplete="new-password" id="confirmPassword"  className="form-control" required minLength="15" maxLength="128" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
           </div>
           <button type="submit" className="btn-auth" disabled={isLoading}>{isLoading ? 'Resetting...' : 'Reset Password'}</button>
         </form>

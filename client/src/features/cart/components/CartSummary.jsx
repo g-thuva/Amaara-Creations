@@ -5,7 +5,7 @@ export default function CartSummary({ cart, invalid, currencyMismatch }) {
   return (
           <aside className="s-summary">
             <h2>Order summary</h2>
-            <div className="s-row"><span>{cart.data.totalItems} items</span>{cart.data.hasMixedCurrencies ? <strong>Mixed currencies</strong> : <Price value={cart.data.total} currency={cart.data.currency} />}</div>
+            <div className="s-row"><span>{cart.data.totalItems} {cart.data.totalItems === 1 ? 'item' : 'items'}</span>{cart.data.hasMixedCurrencies ? <strong>Mixed currencies</strong> : <Price value={cart.data.total} currency={cart.data.currency} />}</div>
             <strong className="s-summary-label">Subtotal</strong>
             <p>Shipping and payment arrangements are not included in this item subtotal.</p>
             {currencyMismatch && <p className="s-error-text" role="alert">Remove items priced in another currency before checkout.</p>}

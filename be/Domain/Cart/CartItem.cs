@@ -14,6 +14,7 @@ public class CartItem
     public string UserId { get; set; } = string.Empty;
     public CartItemType ItemType { get; set; } = CartItemType.Product;
     public int? ProductId { get; set; }
+    public int? ProductVariantId { get; set; }
     public int? CustomDesignId { get; set; }
     public int? BuilderConfigurationVersionId { get; set; }
 
@@ -32,6 +33,9 @@ public class CartItem
 
     [ForeignKey("ProductId")]
     public Product? Product { get; set; }
+
+    [ForeignKey("ProductVariantId")]
+    public ProductVariant? ProductVariant { get; set; }
 
     [ForeignKey("CustomDesignId")]
     public CustomDesign? CustomDesign { get; set; }

@@ -14,6 +14,7 @@ export async function checkoutFixture(page: Page, { mixed = false, admin = false
     const headers = { 'Access-Control-Allow-Origin': new URL(frontend).origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'authorization,content-type', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' };
     const reply = (body: unknown, status = 200) => route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify(body) });
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    if (path === '/admin/capabilities') return reply({}, admin ? 200 : 403);
     if (path === '/auth/refresh') return reply({ token: 'fixture-only-token', user: { id: 'fixture', name: 'Fixture customer', email: 'fixture@example.test', roles: [admin ? 'Admin' : 'Customer'] } });
     if (path === '/content/settings' || path === '/catalog/categories' || path === '/catalog/collections') return reply([]);
     if (path === '/cart') { state.cartReads++; return reply({ totalItems: state.status === 'Paid' ? 0 : mixed ? 6 : 2, items: state.status === 'Paid' ? [] : items.map(i => ({ ...i, id: i.cartItemId, productId: i.cartItemId, productName: i.name })), total: subtotal }); }

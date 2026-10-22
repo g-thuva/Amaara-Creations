@@ -1,3 +1,4 @@
+import { fillAuthenticator } from '../staffAuth';
 import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Page } from "@playwright/test";
 
@@ -17,7 +18,7 @@ async function openAdmin(
   await page
     .getByLabel("Password", { exact: true })
     .fill(fixture.basic.password);
-  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await fillAuthenticator(page); await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login$/);
   return fixture;
 }
@@ -120,15 +121,7 @@ test("extracted product form, variants, media and archive actions persist throug
     // The acceptance host shares a disposable catalog across browser tests.
     // Keep generated products out of later storefront result sets, even on failure.
     if (productId) {
-      const login = await request.post(
-        "http://127.0.0.1:5198/api/v1/auth/login",
-        {
-          data: {
-            email: fixture.superAdminEmail,
-            password: fixture.basic.password,
-          },
-        },
-      );
+      const login = await page.request.post("http://127.0.0.1:5198/api/v1/auth/refresh");
       expect(login.ok()).toBeTruthy();
       const auth = await login.json();
       const archived = await request.post(

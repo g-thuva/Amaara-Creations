@@ -44,6 +44,19 @@ export default function Footer() {
             <Link to="/contact">Contact</Link>
           </nav>
 
+          <nav aria-label="Customer care">
+            <h2>Customer care</h2>
+            <Link to="/help">Design & ordering help</Link>
+            <Link to="/orders">Your orders</Link>
+            <Link to="/account/designs">Saved designs</Link>
+            {['privacy', 'terms', 'shipping', 'reprints'].map(policy => {
+              const href = safeLink(values[`policy.${policy}.url`]);
+              if (!href) return null;
+              const label = { privacy: 'Privacy policy', terms: 'Terms of service', shipping: 'Shipping policy', reprints: 'Returns & reprints' }[policy];
+              return href.startsWith('/') ? <Link key={policy} to={href}>{label}</Link> : <a key={policy} href={href}>{label}</a>;
+            })}
+          </nav>
+
           {hasContact && (
             <section className="s-footer-contact">
               <h2>Contact</h2>

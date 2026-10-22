@@ -42,32 +42,41 @@ public class CartService
         var userId = UserId();
         if (userId == null)
             throw new CommerceException("CART_UNAUTHORIZED", "Authentication is required.", 401);
+        await using var transaction = await _context.BeginCommerceTransactionAsync(cancellationToken);
         var product = await _context.Products.FirstOrDefaultAsync(item => item.Id == request.ProductId && item.IsActive, cancellationToken);
         if (product == null)
             throw new CommerceException("CART_NOT_FOUND", "Product not found", 404);
         if (product.Currency != _checkoutOptions.Value.Currency)
             throw new CommerceException("CART_CONFLICT", "This product is priced in another currency and cannot be added to this checkout.", 409);
+        var variant = request.ProductVariantId.HasValue ? await _context.ProductVariants.SingleOrDefaultAsync(item => item.Id == request.ProductVariantId && item.ProductId == product.Id && item.IsActive, cancellationToken) : null;
+        if (request.ProductVariantId.HasValue && variant == null) throw new CommerceException("VARIANT_UNAVAILABLE", "Choose an available option for this product.", 404);
+        var stock = variant?.StockQuantity ?? product.Stock;
+        var price = variant?.PriceOverride ?? product.Price;
+        if (price < 0) throw new CommerceException("PRODUCT_UNAVAILABLE", "This product is unavailable.", 409);
         var cart = await CartQuery().Where(item => item.UserId == userId).AsNoTracking().ToListAsync(cancellationToken);
         if (cart.Any(item => ItemCurrency(item) != product.Currency))
             throw new CommerceException("CART_CONFLICT", "Remove items priced in another currency before adding this product.", 409);
-        var existing = await _context.CartItems.FirstOrDefaultAsync(item => item.UserId == userId && item.ProductId == request.ProductId, cancellationToken);
-        var quantity = (existing?.Quantity ?? 0) + request.Quantity;
-        if (product.Stock < quantity)
-            throw new RequestValidationException(new Dictionary<string, string[]> { ["quantity"] = [$"Only {product.Stock} items are available."] });
+        var existing = await _context.CartItems.FirstOrDefaultAsync(item => item.UserId == userId && item.ProductId == request.ProductId && item.ProductVariantId == request.ProductVariantId, cancellationToken);
+        var quantity = (long)(existing?.Quantity ?? 0) + request.Quantity;
+        if (request.Quantity < 1 || quantity > stock || quantity > int.MaxValue)
+            throw new RequestValidationException(new Dictionary<string, string[]> { ["quantity"] = [$"Only {stock} items are available."] });
         var cartItem = existing ?? new CartItem
         {
             UserId = userId,
             ProductId = product.Id,
+            ProductVariantId = variant?.Id,
             ItemType = CartItemType.Product,
             CreatedAt = DateTime.UtcNow
         };
-        cartItem.Quantity = quantity;
-        cartItem.UnitPriceSnapshot = product.Price;
+        cartItem.Quantity = (int)quantity;
+        cartItem.UnitPriceSnapshot = price;
         cartItem.UpdatedAt = DateTime.UtcNow;
         if (existing == null)
             _context.CartItems.Add(cartItem);
         await _context.SaveChangesAsync(cancellationToken);
         cartItem.Product = product;
+        cartItem.ProductVariant = variant;
+        if (transaction != null) await transaction.CommitAsync(cancellationToken);
         return ToItem(cartItem);
     }
 
@@ -83,10 +92,13 @@ public class CartService
             throw new CommerceException("CART_CONFLICT", "This cart item is priced in another currency. Remove it before checkout.", 409);
         if (item.ItemType == CartItemType.Product)
         {
-            if (item.Product == null || item.Product.Stock < request.Quantity)
-                throw new RequestValidationException(new Dictionary<string, string[]> { ["quantity"] = [$"Only {item.Product?.Stock ?? 0} items are available."] });
+            var stock = item.ProductVariant?.StockQuantity ?? item.Product?.Stock ?? 0;
+            if (item.Product is not { IsActive: true } || (item.ProductVariantId.HasValue && item.ProductVariant is not { IsActive: true }))
+                throw new CommerceException("PRODUCT_UNAVAILABLE", "This product or option is no longer available.", 409);
+            if (stock < request.Quantity)
+                throw new RequestValidationException(new Dictionary<string, string[]> { ["quantity"] = [$"Only {stock} items are available."] });
             item.Quantity = request.Quantity;
-            item.UnitPriceSnapshot = item.Product.Price;
+            item.UnitPriceSnapshot = item.ProductVariant?.PriceOverride ?? item.Product.Price;
         }
         else
         {
@@ -155,7 +167,7 @@ public class CartService
     }
 
     private string? UserId() => _actor.User.FindFirstValue(ClaimTypes.NameIdentifier);
-    private IQueryable<CartItem> CartQuery() => _context.CartItems.Include(item => item.Product).Include(item => item.CustomDesign)!.ThenInclude(design => design!.BuilderConfigurationVersion)!.ThenInclude(version => version!.Options);
+    private IQueryable<CartItem> CartQuery() => _context.CartItems.Include(item => item.Product).Include(item => item.ProductVariant).Include(item => item.CustomDesign)!.ThenInclude(design => design!.Assets).Include(item => item.CustomDesign)!.ThenInclude(design => design!.BuilderConfigurationVersion)!.ThenInclude(version => version!.Options).AsSplitQuery();
     private async Task<CustomBuilderConfigurationVersion?> ActiveConfiguration(CancellationToken cancellationToken) => await _context.CustomBuilderConfigurationVersions.Include(version => version.Options)
         .Where(version => version.Status == BuilderVersionStatus.Published && version.Currency == _checkoutOptions.Value.Currency)
         .OrderByDescending(version => version.PublishedAt)
@@ -217,6 +229,7 @@ public class CartService
                 Finish = Label(BuilderOptionGroup.Finish, design.FinishCode),
                 CustomText = design.CustomText,
                 EditUrl = $"/custom/{design.Id}",
+                ArtworkDownloadUrl = design.Assets.Where(asset => asset.AssetType == "artwork").OrderByDescending(asset => asset.Id).Select(asset => $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}").FirstOrDefault(),
                 IsOutOfStock = false,
                 ProductStock = int.MaxValue,
                 CreatedAt = item.CreatedAt,
@@ -225,19 +238,25 @@ public class CartService
         }
 
         var product = item.Product;
+        var variant = item.ProductVariant;
+        var available = product is { IsActive: true } && (!item.ProductVariantId.HasValue || variant is { IsActive: true });
+        var unitPrice = variant?.PriceOverride ?? product?.Price ?? item.UnitPriceSnapshot;
+        var stock = variant?.StockQuantity ?? product?.Stock ?? 0;
         return new CartItemResponse
         {
             Id = item.Id,
             ItemType = "Product",
             ProductId = item.ProductId,
-            ProductName = product?.Name ?? "Unavailable product",
-            ProductPrice = product?.Price ?? item.UnitPriceSnapshot,
+            ProductVariantId = item.ProductVariantId,
+            VariantName = variant?.Name,
+            ProductName = product == null ? "Unavailable product" : variant == null ? product.Name : $"{product.Name} — {variant.Name}",
+            ProductPrice = unitPrice,
             ProductImageUrl = product?.ImageUrl ?? string.Empty,
             Quantity = item.Quantity,
             Currency = ItemCurrency(item),
-            Subtotal = (product?.Price ?? item.UnitPriceSnapshot) * item.Quantity,
-            IsOutOfStock = product == null || product.Stock == 0,
-            ProductStock = product?.Stock ?? 0,
+            Subtotal = unitPrice * item.Quantity,
+            IsOutOfStock = !available || stock <= 0,
+            ProductStock = available ? stock : 0,
             CreatedAt = item.CreatedAt,
             UpdatedAt = item.UpdatedAt
         };

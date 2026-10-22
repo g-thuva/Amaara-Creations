@@ -44,6 +44,7 @@ namespace be.Infrastructure.Persistence
         public DbSet<CustomBuilderOption> CustomBuilderOptions { get; set; }
         public DbSet<CustomDesignProofRevision> CustomDesignProofRevisions { get; set; }
         public DbSet<RefreshSession> RefreshSessions { get; set; }
+        public DbSet<CustomerRequest> CustomerRequests { get; set; }
         public DbSet<OrderStatusHistory> OrderStatusHistories { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<ShippingZone> ShippingZones { get; set; }

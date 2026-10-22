@@ -25,6 +25,8 @@ public class CustomStickerPricingService
         SelectOption(configuration, BuilderOptionGroup.Finish, request.FinishCode, selected, errors);
         SelectOption(configuration, BuilderOptionGroup.Font, request.FontCode, selected, errors);
         SelectOption(configuration, BuilderOptionGroup.Colour, request.ColourCode, selected, errors);
+        if ((request.ShapeCode is "round" or "circle") && request.Width != request.Height)
+            errors.Add("Round stickers need equal width and height.");
         if (errors.Count > 0)
         {
             throw new CustomBuilderValidationException(errors);

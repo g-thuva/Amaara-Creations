@@ -2,6 +2,10 @@
 
 React/Vite storefront and staff operations backed by an ASP.NET Core 8 / EF Core / SQL Server modular monolith.
 
+The boutique redesign and security work is documented in [the implementation and release report](docs/redesign/TEST_AND_RELEASE_REPORT.md). The storefront and studio operations now have independent build artifacts. Administrative APIs default to disabled; read [staff isolation and rollout](docs/security/ADMIN_ISOLATION_DEPLOYMENT.md) before enabling them. This local implementation is not production deployment approval.
+
+Account security, verified email/export/request workflows and safe media adapters are described in [activation and operations](docs/redesign/ACCOUNT_REQUESTS_AND_MEDIA.md). Review the [variant migration and rollback guard](docs/redesign/VARIANT_MIGRATION.md) before applying the two new additive migrations to an existing environment. The completed feature branch is kept local at the user's request.
+
 - [Architecture and module ownership](docs/architecture/overview.md)
 - [Backend](docs/architecture/backend.md), [frontend](docs/architecture/frontend.md), [admin](docs/architecture/admin.md)
 - [Domain glossary](CONTEXT.md) and [architecture decisions](docs/adr/0001-modular-monolith.md)
@@ -57,6 +61,8 @@ npm --prefix client run lint
 npm --prefix client run typecheck
 npm --prefix client test -- --run
 npm --prefix client run build
+npm --prefix client run build:admin
+npm --prefix client run check:isolation
 npm --prefix client run test:e2e
 npm --prefix client run test:e2e:production
 npm --prefix client run check:performance

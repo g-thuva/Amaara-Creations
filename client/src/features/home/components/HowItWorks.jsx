@@ -1,10 +1,10 @@
 import Icon from '@/shared/components/ui/Icon.jsx';
 
 const steps = [
-  ['search', 'Choose or customise', 'Browse available products or try the custom sticker preview.'],
-  ['bag', 'Add to cart', 'Add an available standard product in the quantity you need.'],
-  ['package', 'We prepare your order', 'Amaara receives the recorded order and prepares the items.'],
-  ['truck', 'Delivered to you', 'Delivery details are arranged for the order you placed.'],
+  ['search', 'Find your starting point', 'Choose a published product or open the sticker designer.'],
+  ['edit', 'Make it your own', 'Set your dimensions, add text or upload artwork privately.'],
+  ['check', 'Review the details', 'Check your quote and saved design. Review proofs in your account when requested.'],
+  ['bag', 'Continue to checkout', 'Review the available delivery and payment options before placing your order.'],
 ];
 
 export default function HowItWorks() {

@@ -45,14 +45,20 @@ public sealed class AvatarUploadSecurityTests : IDisposable
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task StoresValidatedOriginalBytesUnderRandomizedNames(bool gif)
+    public async Task StoresDecodedMetadataFreePngUnderRandomizedNames(bool gif)
     {
         var bytes = gif ? Gif : Png;
         var service = Service();
         var result = await service.SaveAsync(Upload(bytes, gif ? "avatar.gif" : "avatar.png", gif ? "image/gif" : "image/png"), "owner", default);
         var second = await service.SaveAsync(Upload(bytes, gif ? "avatar.gif" : "avatar.png", gif ? "image/gif" : "image/png"), "owner", default);
         Assert.NotEqual(result.FileName, second.FileName);
-        Assert.Equal(bytes, await File.ReadAllBytesAsync(Path.Combine(root, "wwwroot", "uploads", "avatars", result.FileName)));
+        var stored = await File.ReadAllBytesAsync(Path.Combine(root, "wwwroot", "uploads", "avatars", result.FileName));
+        Assert.EndsWith(".png", result.FileName);
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, stored[..8]);
+        using var decoded = SkiaSharp.SKBitmap.Decode(stored);
+        Assert.NotNull(decoded);
+        Assert.Equal(1, decoded.Width);
+        Assert.Equal(1, decoded.Height);
     }
 
     private async Task Reject(byte[] data, string name, string mime)

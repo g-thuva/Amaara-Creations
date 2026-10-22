@@ -10,10 +10,10 @@ export const customDesignApi = {
   duplicateDesign: async (id) => (await api.post(`/custom-designs/${id}/duplicate`)).data,
   archiveDesign: async (id) => api.delete(`/custom-designs/${id}`),
   addToCart: async (id) => (await api.post(`/custom-designs/${id}/cart`)).data,
-  uploadArtwork: async (id, file) => {
+  uploadArtwork: async (id, file, { signal, onProgress } = {}) => {
     const form = new FormData();
     form.append('file', file);
-    return (await api.post(`/custom-designs/${id}/artwork`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+    return (await api.post(`/custom-designs/${id}/artwork`, form, { signal, onUploadProgress: event => onProgress?.(event.total ? Math.min(100, Math.round(event.loaded / event.total * 100)) : null), headers: { 'Content-Type': 'multipart/form-data' } })).data;
   },
   deleteArtwork: async (designId, assetId) => api.delete(`/custom-designs/${designId}/assets/${assetId}`),
   downloadPrivate: async (url) => (await api.get(url.replace(/^\/api\/v1/, ''), { responseType: 'blob' })).data,

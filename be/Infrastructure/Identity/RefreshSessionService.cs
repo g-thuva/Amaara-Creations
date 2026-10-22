@@ -150,6 +150,15 @@ namespace be.Infrastructure.Identity
             await _context.SaveChangesAsync(cancellationToken);
         }
 
+        public Task<bool> RevokeFamilyForUserAsync(string userId, string familyId, CancellationToken cancellationToken = default) =>
+            WithSessionLockAsync(userId, async () =>
+            {
+                var family = await _context.RefreshSessions.Where(s => s.UserId == userId && s.FamilyId == familyId && s.RevokedAt == null && s.ExpiresAt > DateTime.UtcNow).ToListAsync(cancellationToken);
+                foreach (var session in family) session.RevokedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync(cancellationToken);
+                return family.Count > 0;
+            }, cancellationToken);
+
         public string GenerateRawRefreshToken()
         {
             Span<byte> bytes = stackalloc byte[64];

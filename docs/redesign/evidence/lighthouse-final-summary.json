@@ -1,0 +1,53 @@
+{
+  "tool": "Lighthouse 13.5.0",
+  "sourceCommit": "1f4c845",
+  "scope": "Final feature source, local production build, mobile simulation, disposable fixtures; not field evidence",
+  "runs": [
+    {
+      "run": 1,
+      "scores": {
+        "performance": 93,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "lcpMs": 2508.1945,
+      "cls": 0,
+      "tbtMs": 216.00000000000023
+    },
+    {
+      "run": 2,
+      "scores": {
+        "performance": 96,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "lcpMs": 2531.4719999999998,
+      "cls": 0,
+      "tbtMs": 94
+    },
+    {
+      "run": 3,
+      "scores": {
+        "performance": 96,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "lcpMs": 2540.6925,
+      "cls": 0,
+      "tbtMs": 97.99999999999977
+    }
+  ],
+  "runtime": "Node 22.23.4",
+  "medianPerformance": 96,
+  "medianLcpMs": 2531.472,
+  "medianCls": 0,
+  "medianTbtMs": 98.0,
+  "exceptions": [
+    "Best Practices is 96; expected anonymous refresh 401 and unpublished optional CMS 404 appear in browser network errors.",
+    "Median mobile lab LCP is 2.531s, above the 2.5s target; this is recorded as a miss, not rounded into a pass.",
+    "INP and p75 field vitals were not measured. Automated accessibility does not establish WCAG conformance."
+  ]
+}

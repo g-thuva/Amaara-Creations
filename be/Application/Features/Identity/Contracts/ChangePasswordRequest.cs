@@ -8,7 +8,7 @@ namespace be.Application.Features.Identity
         public string CurrentPassword { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(100, MinimumLength = 6)]
+        [MaxLength(256)]
         public string NewPassword { get; set; } = string.Empty;
 
         [Required]

@@ -3,11 +3,14 @@ import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 import process from 'node:process'
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), ...(mode === 'admin' ? [{ name: 'staff-entry', transformIndexHtml: { order: 'pre', handler: html => html.replace('/src/main.jsx', '/src/admin-main.jsx').replace('<title>Amaara Creations</title>', '<title>Amaara studio operations</title><meta name="robots" content="noindex,nofollow,noarchive" />') } }] : [])],
   test: { include: ['src/**/*.test.{js,jsx,ts,tsx}'] },
   base: process.env.VITE_PUBLIC_BASE_PATH || '/Amaara-Creations/',
   build: {
+    outDir: mode === 'admin' ? 'dist-admin' : 'dist',
+    sourcemap: false,
+    manifest: true,
     rollupOptions: {
       treeshake: false,
     },
@@ -32,4 +35,4 @@ export default defineConfig({
       },
     ],
   },
-})
+}))

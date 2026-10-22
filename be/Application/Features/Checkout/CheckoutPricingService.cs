@@ -44,7 +44,7 @@ public sealed class CheckoutPricingService(
             address.Country
         }.Any(string.IsNullOrWhiteSpace))
             throw new CommerceException("ADDRESS_INVALID", "Complete the recipient, street, city and country in your address book.");
-        var cart = await db.CartItems.Include(i => i.Product).Include(i => i.CustomDesign)!.ThenInclude(d => d!.Assets).Include(i => i.CustomDesign)!.ThenInclude(d => d!.BuilderConfigurationVersion)
+        var cart = await db.CartItems.Include(i => i.Product).Include(i => i.ProductVariant).Include(i => i.CustomDesign)!.ThenInclude(d => d!.Assets).Include(i => i.CustomDesign)!.ThenInclude(d => d!.BuilderConfigurationVersion)
             .Where(i => i.UserId == userId)
             .OrderBy(i => i.Id)
             .AsSplitQuery()
@@ -106,14 +106,21 @@ public sealed class CheckoutPricingService(
                     throw new CommerceException("PRODUCT_UNAVAILABLE", "A product is no longer available.");
                 if (product.Currency != settings.Currency)
                     throw new CommerceException("PAYMENT_CURRENCY_MISMATCH", "A product is priced in another currency. Remove it before checkout.", 409);
-                if (product.Stock < item.Quantity)
+                var variant = item.ProductVariant;
+                if (item.ProductVariantId.HasValue && (variant == null || !variant.IsActive || variant.ProductId != product.Id))
+                    throw new CommerceException("VARIANT_UNAVAILABLE", "A selected option is no longer available.", 409);
+                var price = variant?.PriceOverride ?? product.Price;
+                if (price < 0) throw new CommerceException("PRODUCT_UNAVAILABLE", "A product price is unavailable.", 409);
+                if ((variant?.StockQuantity ?? product.Stock) < item.Quantity)
                     throw new CommerceException("INSUFFICIENT_STOCK", $"There is insufficient stock for {product.Name}.", 409);
                 line.ProductId = product.Id;
-                line.ProductNameSnapshot = product.Name;
-                line.SkuSnapshot = product.BaseSku;
+                line.ProductVariantId = variant?.Id;
+                var name = variant == null ? product.Name : $"{product.Name} — {variant.Name}";
+                line.ProductNameSnapshot = name[..Math.Min(name.Length, 200)];
+                line.SkuSnapshot = variant?.Sku ?? product.BaseSku;
                 line.ImageSnapshot = product.ImageUrl;
-                line.Price = line.UnitPrice = product.Price;
-                line.Subtotal = Money.Round(product.Price * item.Quantity, settings.Currency);
+                line.Price = line.UnitPrice = price;
+                line.Subtotal = Money.Round(price * item.Quantity, settings.Currency);
             }
 
             lines.Add(line);
@@ -191,6 +198,6 @@ public sealed class CheckoutPricingService(
             Code = code,
             Label = c.Options.SingleOrDefault(o => o.Group == group && o.Code == code)?.Label
         };
-        return JsonSerializer.Serialize(new { SnapshotVersion = 1, d.DesignSchemaVersion, DesignName = d.Name, ConfigurationVersionId = c.Id, ConfigurationVersion = c.VersionNumber, q.PricingVersion, c.MeasurementUnit, q.Width, q.Height, q.Quantity, Shape = Option(BuilderOptionGroup.Shape, d.ShapeCode), Material = Option(BuilderOptionGroup.Material, d.MaterialCode), Finish = Option(BuilderOptionGroup.Finish, d.FinishCode), Font = Option(BuilderOptionGroup.Font, d.FontCode), Colour = Option(BuilderOptionGroup.Colour, d.ColourCode), d.CustomText, d.TextAlignment, q.Currency, q.UnitPrice, q.Subtotal, c.ProofRequired, ArtworkAssetIds = d.Assets.Where(a => a.AssetType == "artwork").OrderBy(a => a.Id).Select(a => a.Id).ToArray() });
+        return JsonSerializer.Serialize(new { SnapshotVersion = 1, d.DesignSchemaVersion, DesignName = d.Name, ConfigurationVersionId = c.Id, ConfigurationVersion = c.VersionNumber, q.PricingVersion, c.MeasurementUnit, q.Width, q.Height, q.Quantity, Shape = Option(BuilderOptionGroup.Shape, d.ShapeCode), Material = Option(BuilderOptionGroup.Material, d.MaterialCode), Finish = Option(BuilderOptionGroup.Finish, d.FinishCode), Font = Option(BuilderOptionGroup.Font, d.FontCode), Colour = Option(BuilderOptionGroup.Colour, d.ColourCode), d.CustomText, d.TextAlignment, EditorStateJson = d.DesignJson, q.Currency, q.UnitPrice, q.Subtotal, c.ProofRequired, ArtworkAssetIds = d.Assets.Where(a => a.AssetType == "artwork").OrderBy(a => a.Id).Select(a => a.Id).ToArray() });
     }
 }

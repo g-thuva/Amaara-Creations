@@ -37,7 +37,7 @@ export default function ProductDetail({ product }) {
   }, []);
 
   const addToCart = () => mutate(
-    () => cartApi.addToCart(product.id, quantity),
+    () => cartApi.addToCart(product.id, quantity, variant?.id ?? null),
     cart.reload,
     'Added to your cart.',
   );
@@ -47,7 +47,7 @@ export default function ProductDetail({ product }) {
     setImage((index) => (index + direction + gallery.length) % gallery.length);
   };
 
-  const unavailable = pending || stock <= 0 || !!variant;
+  const unavailable = pending || stock <= 0;
 
   return (
     <>
@@ -83,16 +83,11 @@ export default function ProductDetail({ product }) {
             </label>
           )}
 
-          {variant && (
-            <p className="s-alert">
-              This option is available to view. The current cart cannot store selected variants. <Link to="/contact">Contact us to order this option.</Link>
-            </p>
-          )}
 
           <div ref={purchaseRef} className="s-purchase">
             <Quantity value={quantity} onChange={setQuantity} max={Math.max(stock, 1)} disabled={pending || stock <= 0} />
             <Button disabled={unavailable} onClick={addToCart}>
-              <Icon name="bag" />{pending ? 'Please wait…' : stock <= 0 ? 'Out of stock' : variant ? 'Contact us to order' : 'Add to cart'}
+              <Icon name="bag" />{pending ? 'Please wait…' : stock <= 0 ? 'Out of stock' : 'Add to cart'}
             </Button>
           </div>
           <Button variant="secondary" aria-pressed={!!saved} disabled={pending || wishlist.loading} onClick={() => toggleWishlist(product.id)}>
@@ -121,7 +116,7 @@ export default function ProductDetail({ product }) {
       {showSticky && (
         <div className="s-mobile-purchase" aria-label="Product purchase actions">
           <div><strong>{product.name}</strong><Price value={variant?.priceOverride ?? product.price} currency={product.currency} /></div>
-          <Button disabled={unavailable} onClick={addToCart}>{variant ? 'Contact to order' : stock <= 0 ? 'Out of stock' : 'Add to cart'}</Button>
+          <Button disabled={unavailable} onClick={addToCart}>{stock <= 0 ? 'Out of stock' : 'Add to cart'}</Button>
         </div>
       )}
     </>

@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button.jsx';
-import { Media } from '@/shared/components/ui/Media.jsx';
+import CartArtwork from './CartArtwork.jsx';
 import { Price } from '@/shared/components/ui/Price.jsx';
 import { Quantity } from '@/shared/components/ui/Quantity.jsx';
 export default function CartItem({ item, pending, loading, updateQuantity, remove }) {
   return (
                 <article className="s-cart-item" key={item.id}>
-                  <Link className="s-cart-image" to={item.itemType === 'CustomDesign' ? item.editUrl : `/products/${item.productId}`}><Media src={item.productImageUrl} alt={item.productName} width={300} height={225} /></Link>
+                  <Link className="s-cart-image" to={item.itemType === 'CustomDesign' ? item.editUrl : `/products/${item.productId}`}><CartArtwork item={item} /></Link>
                   <div className="s-cart-details">
                     <h2><Link to={item.itemType === 'CustomDesign' ? item.editUrl : `/products/${item.productId}`}>{item.productName}</Link></h2>
                     {item.itemType === 'CustomDesign' && <p className="s-meta">Custom design · {item.width} × {item.height} {item.measurementUnit || 'cm'}{item.material ? ` · ${item.material}` : ''}{item.finish ? ` · ${item.finish}` : ''}</p>}

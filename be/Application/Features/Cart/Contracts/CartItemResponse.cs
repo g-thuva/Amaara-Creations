@@ -5,6 +5,8 @@ namespace be.Application.Features.Cart
         public int Id { get; set; }
         public string ItemType { get; set; } = "Product";
         public int? ProductId { get; set; }
+        public int? ProductVariantId { get; set; }
+        public string? VariantName { get; set; }
         public int? CustomDesignId { get; set; }
         public string ProductName { get; set; } = string.Empty;
         public decimal ProductPrice { get; set; }
@@ -23,6 +25,7 @@ namespace be.Application.Features.Cart
         public string? Finish { get; set; }
         public string? CustomText { get; set; }
         public string? EditUrl { get; set; }
+        public string? ArtworkDownloadUrl { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

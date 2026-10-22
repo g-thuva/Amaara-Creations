@@ -12,7 +12,7 @@ namespace be.Application.Features.Identity
         public string Email { get; set; } = string.Empty;
 
         [Required]
-        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        [MaxLength(256)]
         public string NewPassword { get; set; } = string.Empty;
 
         [Required]

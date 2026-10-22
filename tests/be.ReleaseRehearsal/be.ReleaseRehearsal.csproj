@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../be/be.csproj" />
+    <Compile Include="../be.Tests/Fixtures/TotpFixture.cs" Link="Fixtures/TotpFixture.cs" />
   </ItemGroup>
 </Project>
