@@ -36,7 +36,9 @@ public static class DependencyInjection
         // Configure Identity
         builder.Services.AddIdentity<User, IdentityRole>(options =>
         {
-            // Password settings
+            // PassphraseValidator enforces 6–128 Unicode code points plus an
+            // uppercase letter, digit and punctuation/symbol (not whitespace).
+            // Keep the default ASCII-only composition checks disabled.
             options.Password.RequireDigit = false;
             options.Password.RequireLowercase = false;
             options.Password.RequireUppercase = false;
@@ -50,6 +52,8 @@ public static class DependencyInjection
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Authentication:LockoutMinutes") ?? 10);
             options.Lockout.MaxFailedAccessAttempts = builder.Configuration.GetValue<int?>("Authentication:MaxFailedAccessAttempts") ?? 5;
             options.Lockout.AllowedForNewUsers = true;
+            options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+            options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
         })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();

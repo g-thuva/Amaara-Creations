@@ -39,9 +39,19 @@ public sealed class IdentityService(
 
     public async Task ConfirmEmailAsync(ConfirmEmailRequest request)
     {
-        var user = await users.FindByIdAsync(request.UserId);
-        if (user == null || !(await users.ConfirmEmailAsync(user, Uri.UnescapeDataString(request.Token))).Succeeded)
-            throw new CommerceException("EMAIL_CONFIRMATION_INVALID", "Invalid or expired verification link.");
+        var tokenOrCode = !string.IsNullOrWhiteSpace(request.Code) ? request.Code.Trim() : (!string.IsNullOrWhiteSpace(request.Token) ? request.Token.Trim() : string.Empty);
+        if (string.IsNullOrWhiteSpace(tokenOrCode))
+            throw new CommerceException("EMAIL_CONFIRMATION_INVALID", "Verification code is required.");
+
+        User? user = null;
+        if (!string.IsNullOrWhiteSpace(request.Email))
+            user = await users.FindByEmailAsync(request.Email.Trim());
+
+        if (user == null && !string.IsNullOrWhiteSpace(request.UserId))
+            user = await users.FindByIdAsync(request.UserId.Trim());
+
+        if (user == null || !(await users.ConfirmEmailAsync(user, Uri.UnescapeDataString(tokenOrCode))).Succeeded)
+            throw new CommerceException("EMAIL_CONFIRMATION_INVALID", "Invalid or expired verification code.");
     }
 
     public async Task ResendConfirmationAsync(ResendConfirmationRequest request, CancellationToken ct)
@@ -248,17 +258,21 @@ public sealed class IdentityService(
 
     public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct)
     {
-        var user = await users.FindByEmailAsync(request.Email);
+        var user = await users.FindByEmailAsync(request.Email.Trim());
         if (user is not { EmailConfirmed: true })
             return;
         var token = await users.GeneratePasswordResetTokenAsync(user);
-        await email.SendPasswordResetAsync(user, FrontendUrl("/reset-password", new Dictionary<string, string?> { ["email"] = user.Email, ["token"] = Uri.EscapeDataString(token) }), ct);
+        await email.SendPasswordResetAsync(user, FrontendUrl("/reset-password", new Dictionary<string, string?> { ["email"] = user.Email, ["token"] = Uri.EscapeDataString(token), ["code"] = token }), ct);
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct)
     {
-        var user = await users.FindByEmailAsync(request.Email) ?? throw new CommerceException("PASSWORD_RESET_INVALID", "Invalid or expired password reset link.");
-        EnsureSuccess(await users.ResetPasswordAsync(user, Uri.UnescapeDataString(request.Token), request.NewPassword), "PASSWORD_RESET_INVALID", "Invalid or expired password reset link.");
+        var tokenOrCode = !string.IsNullOrWhiteSpace(request.Code) ? request.Code.Trim() : (!string.IsNullOrWhiteSpace(request.Token) ? request.Token.Trim() : string.Empty);
+        if (string.IsNullOrWhiteSpace(tokenOrCode))
+            throw new CommerceException("PASSWORD_RESET_INVALID", "Password reset code is required.");
+
+        var user = await users.FindByEmailAsync(request.Email.Trim()) ?? throw new CommerceException("PASSWORD_RESET_INVALID", "Invalid or expired password reset code.");
+        EnsureSuccess(await users.ResetPasswordAsync(user, Uri.UnescapeDataString(tokenOrCode), request.NewPassword), "PASSWORD_RESET_INVALID", "Invalid or expired password reset code.");
         await sessions.RevokeAllForUserAsync(user.Id, ct);
     }
 
@@ -304,7 +318,7 @@ public sealed class IdentityService(
     private async Task SendConfirmationAsync(User user, CancellationToken ct)
     {
         var token = await users.GenerateEmailConfirmationTokenAsync(user);
-        await email.SendEmailConfirmationAsync(user, FrontendUrl("/verify-email", new Dictionary<string, string?> { ["userId"] = user.Id, ["token"] = Uri.EscapeDataString(token), ["email"] = user.Email }), ct);
+        await email.SendEmailConfirmationAsync(user, FrontendUrl("/verify-email", new Dictionary<string, string?> { ["userId"] = user.Id, ["token"] = Uri.EscapeDataString(token), ["code"] = token, ["email"] = user.Email }), ct);
     }
 
     private string FrontendUrl(string path, IDictionary<string, string?> query)

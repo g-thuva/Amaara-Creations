@@ -56,10 +56,10 @@ export default function RegisterForm() {
               autoComplete="new-password"
               className="form-control"
               required
-              minLength="15" maxLength="128"
+              newPasswordRules
               value={form.password}
               onChange={handleChange}
-              placeholder="Create a unique passphrase"
+              placeholder="Create a unique password"
             />
           </div>
 
@@ -72,7 +72,7 @@ export default function RegisterForm() {
               autoComplete="new-password"
               className="form-control"
               required
-              minLength="15" maxLength="128"
+              newPasswordRules
               value={form.confirmPassword}
               onChange={handleChange}
               placeholder="Confirm your password"
