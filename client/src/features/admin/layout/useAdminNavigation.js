@@ -33,8 +33,7 @@ export function useAdminNavigation() {
     return () => document.removeEventListener("mousedown", outside);
   }, [isMobile, sidebarOpen]);
   const logout = async () => {
-    await authLogout();
-    navigate("/login");
+    await authLogout(() => navigate("/login", { replace: true }));
   };
   const close = () => setSidebarOpen(false);
   const escape = (event) => {

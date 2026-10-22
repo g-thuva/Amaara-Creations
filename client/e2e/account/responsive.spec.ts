@@ -1,13 +1,11 @@
 import { test, expect } from '../fixtures';
-import { fillAuthenticator } from '../staffAuth';
 test('protected customer pages remain responsive and staff routes are absent', async ({ page, fixture }) => {
   test.setTimeout(180000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('./login');
-  await page.getByLabel('Email Address', { exact: true }).fill(fixture.adminEmail);
+  await page.getByLabel('Email Address', { exact: true }).fill(fixture.customerEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
-  await fillAuthenticator(page);
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).toHaveURL(/\/profile$/);
   for (const width of [320, 375, 430, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });

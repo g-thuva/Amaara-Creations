@@ -12,7 +12,7 @@ test('a delayed anonymous restoration cannot clear a newer real sign-in or its c
     await expect.poll(() => restoring).toBe(true);
     await page.getByLabel('Email Address', { exact: true }).fill(fixture.customerEmail);
     await page.getByLabel('Password', { exact: true }).fill(fixture.password);
-    await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+    await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
     await expect(page).toHaveURL(/\/profile$/);
   } finally { release(); }
   await page.unroute('**/api/v1/auth/refresh');
@@ -21,12 +21,14 @@ test('a delayed anonymous restoration cannot clear a newer real sign-in or its c
   expect((await page.request.post(acceptanceApi + '/api/v1/auth/refresh')).ok()).toBeTruthy();
 });
 
-test('a storefront session cannot restore management or expose operational navigation', async ({ page, context, fixture }) => {
+test('a shopping JWT cannot authorize management while verified shared login restores its independent management session', async ({ page, context, fixture }) => {
   const code = (await (await page.request.get(acceptanceApi + '/__fixture/authenticator-code')).json()).code;
-  expect((await page.request.post(acceptanceApi + '/api/v1/auth/login', { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } })).ok()).toBeTruthy();
+  const login = await page.request.post(acceptanceApi + '/api/v1/auth/login', { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
+  expect(login.ok()).toBeTruthy();
+  expect((await page.request.get(acceptanceApi + '/api/v1/admin/capabilities', { headers: { Authorization: 'Bearer ' + (await login.json()).token } })).status()).toBe(403);
   await page.goto('./profile'); await expect(page.getByRole('heading', { level: 1, name: 'Your profile', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: /admin|management|studio operations/i })).toHaveCount(0);
   const staff = await context.newPage(); await staff.goto('http://127.0.0.1:5179/Amaara-Creations/login');
-  await expect(staff.getByRole('heading', { name: 'Staff sign in', exact: true })).toBeVisible();
-  await expect(staff.getByRole('heading', { name: 'Dashboard', exact: true })).toHaveCount(0); await staff.close();
+  await expect(staff.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
+  await staff.close();
 });

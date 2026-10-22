@@ -22,7 +22,7 @@ test('one storefront staff sign-in opens the configured management entry and res
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.adminEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
   await fillAuthenticator(page);
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).toHaveURL(managementEntry);
   expect(navigation).toEqual({ url: managementEntry, method: 'GET', body: null });
   expect((await page.context().cookies()).some(cookie => cookie.name === 'amaara_refresh_staff' && cookie.httpOnly && cookie.path === '/api/v1/auth/staff')).toBe(true);
@@ -47,7 +47,7 @@ test('customer login ignores forged browser roles and retains the customer profi
   await page.evaluate(() => { localStorage.setItem('role', 'SuperAdmin'); localStorage.setItem('roles', '["Admin"]'); });
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.customerEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).toHaveURL(/\/profile$/);
   await expect(page.getByRole('heading', { name: 'Your profile', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: /admin|management|studio operations/i })).toHaveCount(0);
@@ -57,7 +57,7 @@ test('invalid staff credentials stay at the storefront login without creating a 
   await page.goto('./login');
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.adminEmail);
   await page.getByLabel('Password', { exact: true }).fill('Deliberately-wrong-test-password');
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page.getByRole('alert')).toContainText('Unable to sign in');
   await expect(page).toHaveURL(/\/login$/);
   expect(new URL(page.url()).hostname).toBe('127.0.0.1');

@@ -1,6 +1,6 @@
 import { fillAuthenticator } from '../staffAuth';
 import AxeBuilder from "@axe-core/playwright";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "../fixtures";
 
 async function openAdmin(
   page: Page,
@@ -18,7 +18,7 @@ async function openAdmin(
   await page
     .getByLabel("Password", { exact: true })
     .fill(fixture.basic.password);
-  await fillAuthenticator(page); await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await fillAuthenticator(page); await page.getByRole("button", { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).not.toHaveURL(/\/login$/);
   return fixture;
 }

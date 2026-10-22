@@ -1,4 +1,4 @@
-import { test, expect, acceptanceApi } from '../fixtures';
+import { test, expect, acceptanceApi, localManagementNavigation } from '../fixtures';
 import { readFile } from 'node:fs/promises';
 import { fillAuthenticator } from '../staffAuth';
 import { checkAccessibility } from '../accessibility';
@@ -26,7 +26,7 @@ test('account export downloads owner data and a verified email change survives f
   await expect(page).toHaveURL(/\/login$/);
   await page.getByLabel('Email Address', { exact: true }).fill(newEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).toHaveURL(/\/profile$/);
   await expect(page.getByLabel('Email', { exact: true })).toHaveValue(newEmail);
   expect(page.url()).not.toContain(newEmail);
@@ -50,12 +50,13 @@ test('customer quote and deletion-review requests receive protected staff replie
   await page.getByRole('button', { name: 'Submit deletion review request', exact: true }).click();
   await expect(page.getByText(/Your deletion review request was received/)).toBeVisible();
   const staffContext = await browser.newContext(); const staff = await staffContext.newPage();
+  await localManagementNavigation(staffContext);
   try {
     await staff.goto('http://127.0.0.1:5179/Amaara-Creations/login');
     await staff.getByLabel('Email Address', { exact: true }).fill(fixture.superAdminEmail);
     await staff.getByLabel('Password', { exact: true }).fill(fixture.basic.password);
     await fillAuthenticator(staff);
-    await staff.getByRole('button', { name: 'Sign In', exact: true }).click();
+    await staff.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
     await expect(staff).toHaveURL(/\/admin\/dashboard$/);
     await staff.goto('http://127.0.0.1:5179/Amaara-Creations/admin/quote-requests');
     const quote = staff.locator('article').filter({ has: staff.getByRole('heading', { name: subject, exact: true }) });

@@ -7,7 +7,7 @@ export default function MfaFlow({ challenge, error, notice, isLoading, verify, f
   const enrollment = challenge.status === 'enroll';
   const recovery = challenge.status === 'recovery_codes';
   const heading = useRef(null);
-  useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [challenge.status]);
+  useEffect(() => { heading.current?.focus(); }, [challenge.status]);
   return <section className="auth-card mfa-card" aria-labelledby="mfa-heading">
     <p className="mfa-progress">Security verification <span aria-hidden="true">·</span> {recovery ? 'Save your backup' : enrollment ? 'One-time setup' : 'Almost there'}</p>
     <header className="auth-header"><h1 className="auth-title" id="mfa-heading" tabIndex={-1} ref={heading}>{recovery ? 'Save your recovery codes' : enrollment ? 'Secure your Amaara account' : "Verify it’s you"}</h1><p className="auth-subtitle">{recovery ? 'These codes can help you sign in if you lose access to your phone.' : enrollment ? challenge.mandatory ? 'Your work account needs one extra security step. This helps protect customer orders and business information.' : 'Reconnect your authenticator to keep your account protected.' : 'Enter the 6-digit code from Google Authenticator to continue.'}</p></header>
