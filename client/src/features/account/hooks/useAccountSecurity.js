@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider.jsx';
 import { authApi } from '@/features/auth/authApi.js';
 import { customerError } from '@/shared/api/apiError.ts';
+import { passwordPolicyError } from '@/shared/utils/passwordPolicy.js';
 
 export function useAccountSecurity() {
   const [error, setError] = useState('');
@@ -12,6 +13,8 @@ export function useAccountSecurity() {
   const submit = async e => {
     e.preventDefault(); const values = Object.fromEntries(new FormData(e.currentTarget)); setError('');
     if (values.newPassword !== values.confirmPassword) { setError('Passwords do not match.'); return; }
+    const policyError = passwordPolicyError(values.newPassword);
+    if (policyError) { setError(policyError); return; }
     setPending(true);
     try { await authApi.changePassword(values); await logout(() => navigate('/login', { replace: true, state: { message: 'Password changed. Please sign in again.' } })); }
     catch (err) { setError(customerError(err)); } finally { setPending(false); }

@@ -1,5 +1,6 @@
 using be.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
+using System.Text;
 
 namespace be.Infrastructure.Persistence.Seed;
 public static class IdentityBootstrapper
@@ -27,9 +28,9 @@ public static class IdentityBootstrapper
                     var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("IdentityBootstrap");
                     var adminEmail = RequireRuntimeConfiguration(app, "AdminBootstrap:Email");
                     var adminPassword = RequireRuntimeConfiguration(app, "AdminBootstrap:Password");
-                    if (adminPassword.Length < 12)
+                    if (adminPassword.EnumerateRunes().Count() < 6)
                     {
-                        throw new InvalidOperationException("AdminBootstrap:Password must be at least 12 characters.");
+                        throw new InvalidOperationException("AdminBootstrap:Password must be at least 6 characters.");
                     }
 
                     var existingAdmin = await userManager.FindByEmailAsync(adminEmail);

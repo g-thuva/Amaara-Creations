@@ -39,10 +39,13 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
     public string? TestSqlConnection { get; init; }
     public string? TestKeysPath { get; init; }
     public string? TestSigningKey { get; init; }
+    public FakePaymentGateway? PaymentGateway { get; init; }
+    public IReadOnlyDictionary<string, string?> ExtraConfiguration { get; init; } = new Dictionary<string, string?>();
+    public Action<IServiceCollection>? ExtraServices { get; init; }
 
     private readonly FakePaymentGateway gateway = new();
     private readonly string storageRoot = Path.Combine(Path.GetTempPath(), "AmaaraAcceptance", Guid.NewGuid().ToString("N"));
-    private Dictionary<string, string?> Configuration => new()
+    private Dictionary<string, string?> BaseConfiguration => new()
     {
         ["ConnectionStrings:DefaultConnection"] = TestSqlConnection ?? "Server=test-only;Database=Acceptance;Integrated Security=true;Encrypt=false",
         ["DataProtection:KeysPath"] = TestKeysPath ?? Path.Combine(storageRoot, "DataProtectionKeys"),
@@ -60,8 +63,10 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
         ["Authentication:FrontendBaseUrl"] = "http://127.0.0.1:5178/Amaara-Creations",
         ["Authentication:RateLimitPermitLimit"] = "200",
         ["Datatrans:Enabled"] = "false",
+        ["Zahls:Enabled"] = "false",
         ["PublicSite:BaseUrl"] = "https://store.example.test/Amaara-Creations"
     };
+    private Dictionary<string, string?> Configuration => BaseConfiguration.Concat(ExtraConfiguration).GroupBy(pair => pair.Key).ToDictionary(group => group.Key, group => group.Last().Value);
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
@@ -110,11 +115,12 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
             services.RemoveAll<IEmailService>();
             services.AddSingleton<IEmailService>(Email);
             services.RemoveAll<IPaymentGateway>();
-            services.AddSingleton<IPaymentGateway>(gateway);
+            services.AddSingleton<IPaymentGateway>(PaymentGateway ?? gateway);
+            ExtraServices?.Invoke(services);
         });
     }
 
-    public async Task SeedCatalogueAsync()
+    public async Task SeedCatalogueAsync(string currency = "LKR", string imageOrigin = "http://127.0.0.1:5198")
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -133,12 +139,13 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
                 CategoryEntity = category,
                 Price = 100 + i,
                 BasePrice = 100 + i,
+                Currency = currency,
                 Stock = 100,
                 Description = "Disposable acceptance fixture.",
-                ImageUrl = "http://127.0.0.1:5198/__fixture/image/first.png"
+                ImageUrl = imageOrigin + "/__fixture/image/first.png"
             };
             product.Media.Add(new ProductMedia { StorageKey = "fixture-first", Url = product.ImageUrl, IsPrimary = true, SortOrder = 0 });
-            product.Media.Add(new ProductMedia { StorageKey = "fixture-second", Url = "http://127.0.0.1:5198/__fixture/image/second.png", SortOrder = 1 });
+            product.Media.Add(new ProductMedia { StorageKey = "fixture-second", Url = imageOrigin + "/__fixture/image/second.png", SortOrder = 1 });
             product.Variants.Add(new ProductVariant { Sku = $"QA-{i}", Name = "Large format", PriceOverride = 250, StockQuantity = 100 });
             db.Products.Add(product);
         }

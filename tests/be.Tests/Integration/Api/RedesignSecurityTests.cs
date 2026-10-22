@@ -144,14 +144,61 @@ public sealed class RedesignSecurityTests
 
     [Theory]
     [InlineData("short Password1!", true)]
-    [InlineData("four calm words for printing", true)]
+    [InlineData("four calm words for printing", false)]
+    [InlineData("R7!abc", true)]
+    [InlineData("ABC1!Z", true)]
+    [InlineData("R7!ab", false)]
+    [InlineData("r7!abc", false)]
+    [InlineData("Rz!abc", false)]
+    [InlineData("R71abc", false)]
+    [InlineData("R71 ab", false)]
+    [InlineData("Ä٧!abc", true)]
+    [InlineData("R7😀abc", true)]
+    [InlineData("R7😀ab", false)]
     [InlineData("passwordpassword", false)]
     [InlineData("123456789012345", false)]
     [InlineData("short", false)]
-    public async Task NewPasswordRulesUseWholePasswordBlocklistWithoutComposition(string password, bool accepted)
+    public async Task NewPasswordRulesEnforceLengthCompositionAndWholePasswordBlocklist(string password, bool accepted)
     {
         var validator = new PassphraseValidator(new ConfigurationBuilder().Build());
         var result = await validator.ValidateAsync(null!, new User(), password);
         Assert.Equal(accepted, result.Succeeded);
+    }
+
+    [Fact]
+    public async Task RegistrationResetAndChangeEnforceTheSameSixCharacterPolicy()
+    {
+        await using var factory = new AcceptanceApiFactory();
+        await factory.SeedCatalogueAsync();
+        using var client = factory.CreateClient();
+        var email = Guid.NewGuid().ToString("N") + "@example.test";
+        var rejected = await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "Password policy test", email, password = "r7!abc", confirmPassword = "r7!abc" });
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+        (await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "Password policy test", email, password = "R7!abc", confirmPassword = "R7!abc" })).EnsureSuccessStatusCode();
+        string resetToken;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<User>>();
+            var user = (await users.FindByEmailAsync(email))!;
+            Assert.True((await users.ConfirmEmailAsync(user, await users.GenerateEmailConfirmationTokenAsync(user))).Succeeded);
+            resetToken = await users.GeneratePasswordResetTokenAsync(user);
+        }
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/reset-password", new { email, token = resetToken, newPassword = "S8!ab", confirmPassword = "S8!ab" })).StatusCode);
+        (await client.PostAsJsonAsync("/api/v1/auth/reset-password", new { email, token = resetToken, newPassword = "S8!abc", confirmPassword = "S8!abc" })).EnsureSuccessStatusCode();
+        client.DefaultRequestHeaders.Authorization = new("Bearer", await Login(client, email, "S8!abc"));
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/change-password", new { currentPassword = "S8!abc", newPassword = "T9abcd", confirmPassword = "T9abcd" })).StatusCode);
+        (await client.PostAsJsonAsync("/api/v1/auth/change-password", new { currentPassword = "S8!abc", newPassword = "T9@abc", confirmPassword = "T9@abc" })).EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+        client.DefaultRequestHeaders.Authorization = null;
+        Assert.NotEmpty(await Login(client, email, "T9@abc"));
+    }
+
+    [Fact]
+    public async Task PasswordUpperBoundAndCommonPasswordProtectionRemainEnforced()
+    {
+        var validator = new PassphraseValidator(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Authentication:BlockedPasswords:0"] = "R7!abc" }).Build());
+        Assert.Contains((await validator.ValidateAsync(null!, new User(), "R7!abc")).Errors, error => error.Code == "PasswordBlocked");
+        Assert.True((await validator.ValidateAsync(null!, new User(), "R7!" + new string('a', 125))).Succeeded);
+        Assert.Contains((await validator.ValidateAsync(null!, new User(), "R7!" + new string('a', 126))).Errors, error => error.Code == "PasswordLength");
     }
 }
