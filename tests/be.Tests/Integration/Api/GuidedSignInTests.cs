@@ -80,6 +80,37 @@ public sealed class GuidedSignInTests
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
     }
 
+    [Theory]
+    [InlineData("legacy-valid")]
+    [InlineData("legacy-invalid")]
+    [InlineData("ciphertext-invalid")]
+    public async Task ExistingKeyFormatsArePreservedOrFailClosedWithoutResettingEnrollment(string format)
+    {
+        await using var factory = new AcceptanceApiFactory(); var fixture = await Fixture(factory); using var client = factory.CreateClient();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.SingleAsync(value => value.Email == fixture.GetProperty("adminEmail").GetString());
+            var token = await db.UserTokens.SingleAsync(value => value.UserId == user.Id && value.Name == "AuthenticatorKey");
+            token.Value = format == "legacy-valid" ? TotpFixture.Secret : format == "legacy-invalid" ? "invalid-base32!" : "protected:v1:invalid-ciphertext";
+            await db.SaveChangesAsync();
+        }
+        var started = await Start(client, fixture); Assert.Equal(HttpStatusCode.Accepted, started.StatusCode);
+        var view = await started.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("verify", view.GetProperty("status").GetString()); Assert.Equal(JsonValueKind.Null, view.GetProperty("enrollment").ValueKind);
+        var result = await client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { code = TotpFixture.Code });
+        Assert.Equal(format == "legacy-valid" ? HttpStatusCode.OK : HttpStatusCode.BadRequest, result.StatusCode);
+        using var verification = factory.Services.CreateScope(); var users = verification.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var current = (await users.FindByEmailAsync(fixture.GetProperty("adminEmail").GetString()!))!;
+        Assert.True(current.TwoFactorEnabled);
+        if (format == "legacy-valid")
+        {
+            Assert.Equal(TotpFixture.Secret, await users.GetAuthenticatorKeyAsync(current));
+            var stored = await verification.ServiceProvider.GetRequiredService<ApplicationDbContext>().UserTokens.SingleAsync(value => value.UserId == current.Id && value.Name == "AuthenticatorKey");
+            Assert.StartsWith("protected:v1:", stored.Value);
+        }
+        else { await AssertNoSessions(factory); Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode); }
+    }
+
     [Fact]
     public async Task EnrollmentReusesQrAcrossRefreshAndRequiresVerifiedCodeAndSavedRecoveryAcknowledgment()
     {
@@ -118,12 +149,20 @@ public sealed class GuidedSignInTests
     [InlineData("role")]
     [InlineData("cancel")]
     [InlineData("password")]
+    [InlineData("logout")]
     public async Task AbandonedChangedOrExpiredChallengesCannotComplete(string change)
     {
         var clock = new Clock(); await using var factory = new AcceptanceApiFactory { Clock = clock }; var fixture = await Fixture(factory); using var client = factory.CreateClient();
         (await Start(client, fixture)).EnsureSuccessStatusCode();
         if (change == "expired") clock.Now = clock.Now.AddMinutes(11);
         if (change == "cancel") (await client.PostAsJsonAsync("/api/v1/auth/sign-in/cancel", new { })).EnsureSuccessStatusCode();
+        if (change == "logout")
+        {
+            var pendingCookie = (await Start(client, fixture)).Headers.GetValues("Set-Cookie").Last(value => value.StartsWith("amaara_refresh_signin=")).Split(';')[0];
+            (await client.PostAsJsonAsync("/api/v1/auth/logout", new { })).EnsureSuccessStatusCode();
+            using var replay = factory.CreateClient(new() { HandleCookies = false }); replay.DefaultRequestHeaders.Add("Cookie", pendingCookie);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await replay.GetAsync("/api/v1/auth/sign-in")).StatusCode);
+        }
         if (change is "stamp" or "role" or "password")
         {
             using var scope = factory.Services.CreateScope(); var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>(); var user = (await users.FindByEmailAsync(fixture.GetProperty("adminEmail").GetString()!))!;
@@ -150,6 +189,27 @@ public sealed class GuidedSignInTests
         (await Start(client, fixture)).EnsureSuccessStatusCode(); var code = TotpFixture.Code;
         var responses = await Task.WhenAll(Enumerable.Range(0, 2).Select(_ => client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { code })));
         Assert.Single(responses, response => response.StatusCode == HttpStatusCode.OK); Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [InlineData(false, "unenrolled")]
+    [InlineData(true, "unenrolled")]
+    [InlineData(false, "missing")]
+    [InlineData(true, "missing")]
+    [InlineData(false, "expired")]
+    [InlineData(true, "expired")]
+    public async Task LegacyLimitedOrExpiredStaffRefreshCannotMintAnOrdinaryJwt(bool management, string state)
+    {
+        await using var factory = new AcceptanceApiFactory(); var fixture = await Fixture(factory);
+        using var scope = factory.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var user = (await users.FindByEmailAsync(fixture.GetProperty("adminEmail").GetString()!))!;
+        if (state == "unenrolled") Assert.True((await users.SetTwoFactorEnabledAsync(user, false)).Succeeded);
+        var issued = await scope.ServiceProvider.GetRequiredService<be.Application.Abstractions.Identity.IRefreshSessionService>().CreateSessionAsync(user, new("Legacy device", null));
+        var assurance = state == "missing" ? null : new be.Application.Features.Identity.StaffAssurance(user.Id, user.SecurityStamp!, issued.Session.FamilyId, DateTimeOffset.UtcNow.AddMinutes(state == "expired" ? -16 : 0).ToUnixTimeSeconds());
+        var response = await scope.ServiceProvider.GetRequiredService<be.Application.Features.Identity.IdentityService>().RefreshAsync(issued.RawToken, default, assurance, management);
+        Assert.Null(response);
+        Assert.False(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().RefreshSessions.AnyAsync(value => value.UserId == user.Id && value.RevokedAt == null));
     }
 
     [Fact]

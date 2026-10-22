@@ -180,6 +180,13 @@ public sealed class IdentityService(
         // The protected HttpOnly grant binds assurance to the original session and stamp.
         // Rotation preserves its original time; it can never renew privileged assurance.
         var valid = assurance != null && assurance.UserId == rotation.User.Id && assurance.SecurityStamp == rotation.User.SecurityStamp && assurance.SessionFamily == rotation.Session.FamilyId && age >= 0 && age < 900;
+        // Old limited sessions and expired assurance must return to shared MFA,
+        // rather than minting an ordinary JWT while staff verification is absent.
+        if (rotation.Roles.Any(AppRoles.AdministrativeRoles.Contains) && (!rotation.User.TwoFactorEnabled || !valid))
+        {
+            await sessions.RevokeAsync(rotation.RawToken, ct);
+            return null;
+        }
         var secondFactorAt = valid ? DateTimeOffset.FromUnixTimeSeconds(assurance!.VerifiedAt) : (DateTimeOffset?)null;
         return new(CreateResponse(rotation.User, rotation.Roles, rotation.Session.FamilyId, secondFactorAt, management), rotation.RawToken, rotation.Session.ExpiresAt, valid ? assurance : null);
     }
@@ -188,6 +195,13 @@ public sealed class IdentityService(
     {
         await sessions.RevokeAsync(rawToken, ct);
         await signIn.SignOutAsync();
+    }
+
+    public async Task CancelPendingSignInAsync(string? ticket, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(ticket)) return;
+        try { await pendingSignIn.AdvanceSignInAsync(ticket, "cancel", null, null, false, ct); }
+        catch (CommerceException error) when (error.Code == "MFA_CHALLENGE_EXPIRED") { /* Already invalid; logout stays idempotent. */ }
     }
 
     public async Task LogoutAllAsync(CancellationToken ct)

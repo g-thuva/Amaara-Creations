@@ -78,8 +78,10 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
+        await identity.CancelPendingSignInAsync(cookie.ReadPending(Request), cancellationToken);
         await identity.LogoutAsync(cookie.Read(Request), cancellationToken);
         cookie.Clear(Response);
+        cookie.ClearPending(Response);
         return Ok(new { message = "Logged out successfully." });
     }
 
