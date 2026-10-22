@@ -31,7 +31,7 @@ export const refreshSession = () => {
 
 const isAuthRefreshRequest = (config) => {
   const url = (config?.url || '').toLowerCase();
-  return /\/auth\/(?:staff\/)?(?:refresh|login|register)(?:[/?]|$)/.test(url);
+  return /\/auth\/(?:staff\/)?(?:refresh|login|sign-in|register)(?:[/?]|$)/.test(url);
 };
 
 // Request interceptor - Add auth token to requests

@@ -12,10 +12,13 @@ public sealed class CommerceMaintenanceService(IServiceScopeFactory scopes, ILog
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
+                if (!await timer.WaitForNextTickAsync(stoppingToken))
+                    break;
+
                 using var scope = scopes.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var payments = scope.ServiceProvider.GetRequiredService<PaymentReconciliationService>();

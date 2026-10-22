@@ -21,7 +21,7 @@ test('a delayed anonymous restoration cannot clear a newer real sign-in or its c
   expect((await page.request.post(acceptanceApi + '/api/v1/auth/refresh')).ok()).toBeTruthy();
 });
 
-test('a storefront staff sign-in never redirects to or restores management', async ({ page, context, fixture }) => {
+test('a storefront session cannot restore management or expose operational navigation', async ({ page, context, fixture }) => {
   const code = (await (await page.request.get(acceptanceApi + '/__fixture/authenticator-code')).json()).code;
   expect((await page.request.post(acceptanceApi + '/api/v1/auth/login', { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } })).ok()).toBeTruthy();
   await page.goto('./profile'); await expect(page.getByRole('heading', { level: 1, name: 'Your profile', exact: true })).toBeVisible();

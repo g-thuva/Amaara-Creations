@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider.jsx";
 import { customerError } from '@/shared/api/apiError.ts';
-import { safeReturnDestination } from '@/features/auth/returnDestination.js';
+import { loginDestination } from '@/features/auth/loginDestination.js';
 
 export function useLogin() {
   const [email, setEmail] = useState("");
@@ -24,14 +24,16 @@ export function useLogin() {
     setIsLoading(true);
 
     try {
-      await login({ email, password, authenticatorCode, recoveryCode });
-
-      // On successful login, redirect to intended page or profile
-      const from = location.state?.from;
-      const redirectTo = safeReturnDestination(from);
-      navigate(redirectTo, { replace: true });
+      const response = await login({ email, password, authenticatorCode, recoveryCode });
+      const destination = loginDestination(response.user, location.state?.from);
+      if (!destination) {
+        setError('Your staff sign-in succeeded, but the separate management sign-in address is not configured correctly. Contact the operator.');
+        return;
+      }
+      if (destination.external) window.location.replace(destination.url);
+      else navigate(destination.url, { replace: true });
     } catch (err) {
-      const errorMessage = err.response?.status === 401 ? 'Unable to sign in. Check your details and confirm your email before trying again.' : customerError(err);
+      const errorMessage = err.response?.data?.code === 'MANAGEMENT_DISABLED' ? 'Staff sign-in is unavailable in this environment. Contact the operator.' : err.response?.status === 401 ? 'Unable to sign in. Check your email, password and current authenticator code, and confirm your email before trying again.' : customerError(err);
       setError(errorMessage);
     } finally {
       setIsLoading(false);

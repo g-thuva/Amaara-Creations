@@ -65,7 +65,46 @@ public sealed class IdentityService(
         }
     }
 
-    private async Task<AuthenticatedSession> LoginCoreAsync(LoginRequest request, CancellationToken ct, bool management)
+    // Shared sign-in verifies the password/factor once, then issues independent
+    // session families. Only the protected staff cookie crosses to management;
+    // its bearer token is never returned to the storefront application.
+    public async Task<RoutedSignIn> SignInAsync(LoginRequest request, CancellationToken ct)
+    {
+        VerifiedLogin verified;
+        try { verified = await VerifyLoginAsync(request, ct, management: false, routeStaff: true); }
+        catch (CommerceException failure)
+        {
+            await audit.RecordAsync("SignInFailed", nameof(User), null, null, new { Outcome = failure.Code }, actor.Audit, ct);
+            throw;
+        }
+        var staff = verified.Roles.Any(AppRoles.AdministrativeRoles.Contains);
+        if (staff && !configuration.GetValue<bool>("Administration:Enabled"))
+            throw new CommerceException("MANAGEMENT_DISABLED", "Management access is disabled. Contact the operator.", 503);
+        var storefront = await CreateSessionAsync(verified, ct, management: false);
+        AuthenticatedSession? management = null;
+        try
+        {
+            if (staff)
+            {
+                management = await CreateSessionAsync(verified, ct, management: true);
+                await audit.RecordAsync("StaffSignInSucceeded", nameof(User), verified.User.Id, null, new { MfaVerified = management.StaffAssurance != null, Entry = "shared" }, actor.Audit with { UserId = verified.User.Id }, ct);
+            }
+            return new(storefront, management);
+        }
+        catch
+        {
+            await sessions.RevokeAsync(storefront.RefreshToken, CancellationToken.None);
+            if (management != null) await sessions.RevokeAsync(management.RefreshToken, CancellationToken.None);
+            throw;
+        }
+    }
+
+    private sealed record VerifiedLogin(User User, IList<string> Roles, DateTimeOffset? SecondFactorAt);
+
+    private async Task<AuthenticatedSession> LoginCoreAsync(LoginRequest request, CancellationToken ct, bool management) =>
+        await CreateSessionAsync(await VerifyLoginAsync(request, ct, management), ct, management);
+
+    private async Task<VerifiedLogin> VerifyLoginAsync(LoginRequest request, CancellationToken ct, bool management, bool routeStaff = false)
     {
         var user = await users.FindByEmailAsync(request.Email);
         if (user == null)
@@ -82,7 +121,7 @@ public sealed class IdentityService(
         var roles = await users.GetRolesAsync(user);
         if (management && !roles.Any(AppRoles.AdministrativeRoles.Contains))
             throw new CommerceException("MANAGEMENT_ACCESS_DENIED", "This account is not authorized for management.", 403);
-        if (management && !configuration.GetValue<bool>("Administration:Enabled"))
+        if ((management || (routeStaff && roles.Any(AppRoles.AdministrativeRoles.Contains))) && !configuration.GetValue<bool>("Administration:Enabled"))
             throw new CommerceException("MANAGEMENT_DISABLED", "Management access is disabled. Contact the operator.", 503);
         DateTimeOffset? secondFactorAt = null;
         if (user.TwoFactorEnabled)
@@ -94,9 +133,14 @@ public sealed class IdentityService(
         else if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode) || !string.IsNullOrWhiteSpace(request.RecoveryCode)) throw InvalidLogin();
         // Do not reset failed-factor counts until the complete submitted flow succeeds.
         await users.ResetAccessFailedCountAsync(user);
-        var session = await sessions.CreateSessionAsync(user, actor.Session, ct);
-        var assurance = secondFactorAt.HasValue ? new StaffAssurance(user.Id, user.SecurityStamp!, session.Session.FamilyId, secondFactorAt.Value.ToUnixTimeSeconds()) : null;
-        return new(CreateResponse(user, roles, session.Session.FamilyId, secondFactorAt, management), session.RawToken, session.Session.ExpiresAt, assurance);
+        return new(user, roles, secondFactorAt);
+    }
+
+    private async Task<AuthenticatedSession> CreateSessionAsync(VerifiedLogin verified, CancellationToken ct, bool management)
+    {
+        var session = await sessions.CreateSessionAsync(verified.User, actor.Session, ct);
+        var assurance = verified.SecondFactorAt.HasValue ? new StaffAssurance(verified.User.Id, verified.User.SecurityStamp!, session.Session.FamilyId, verified.SecondFactorAt.Value.ToUnixTimeSeconds()) : null;
+        return new(CreateResponse(verified.User, verified.Roles, session.Session.FamilyId, verified.SecondFactorAt, management), session.RawToken, session.Session.ExpiresAt, assurance);
     }
 
     public async Task<AuthenticatedSession?> RefreshAsync(string? rawToken, CancellationToken ct, StaffAssurance? assurance = null, bool management = false)

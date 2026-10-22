@@ -9,7 +9,7 @@ export const authApi = {
   },
 
   login: async (credentials) => {
-    const response = await api.post(`${AUTH_BASE_PATH}/login`, credentials);
+    const response = await api.post(AUTH_BASE_PATH === '/auth' ? '/auth/sign-in' : `${AUTH_BASE_PATH}/login`, credentials);
     return response.data;
   },
 

@@ -29,7 +29,7 @@ test('customer enrolls an authenticator, saves one-time recovery and signs in wi
   await expect(page).toHaveURL(/\/login$/);
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.customerEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
-  await page.getByText('Two-step verification', { exact: true }).click();
+  await page.getByText('Use a recovery code instead', { exact: true }).click();
   await page.getByLabel('Recovery code', { exact: true }).fill(recoveryCode);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   await expect(page).toHaveURL(/\/profile$/);

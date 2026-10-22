@@ -10,7 +10,7 @@ spec.loader.exec_module(pages)
 class PagesConfigurationTests(unittest.TestCase):
     def values(self):
         # Syntactic fixture only. No request or assumption that GitHub is our API.
-        return {'VITE_API_BASE_URL': 'https://api.github.com/api/v1', 'VITE_MEDIA_BASE_URL': 'https://api.github.com', 'VITE_PUBLIC_SITE_URL': 'https://g-thuva.github.io/Amaara-Creations', 'VITE_PUBLIC_BASE_PATH': '/Amaara-Creations/', 'VITE_ROUTER_MODE': 'hash'}
+        return {'VITE_API_BASE_URL': 'https://api.github.com/api/v1', 'VITE_MEDIA_BASE_URL': 'https://api.github.com', 'VITE_PUBLIC_SITE_URL': 'https://g-thuva.github.io/Amaara-Creations', 'VITE_PUBLIC_BASE_PATH': '/Amaara-Creations/', 'VITE_ROUTER_MODE': 'hash', 'VITE_MANAGEMENT_LOGIN_URL': 'https://github.com/login'}
 
     def test_explicit_public_https_configuration(self):
         pages.validate(self.values())
@@ -28,3 +28,8 @@ class PagesConfigurationTests(unittest.TestCase):
         for update in ({'VITE_API_BASE_URL': 'https://user:password@api.github.com/api/v1'}, {'VITE_ROUTER_MODE': 'browser'}, {'VITE_PUBLIC_SITE_URL': 'https://g-thuva.github.io/wrong'}, {'VITE_API_BASE_URL': 'https://api.example.test/api/v1'}):
             with self.subTest(update=update), self.assertRaises(ValueError):
                 pages.validate({**self.values(), **update})
+
+    def test_management_entry_is_required_https_and_separate(self):
+        for endpoint in ('', 'http://localhost:5179/login', 'http://staff.github.com/login', 'https://g-thuva.github.io/login', 'https://g-thuva.github.io:443/login', 'https://github.com/login?token=secret', 'https://github.com/login#token', 'https://user:password@github.com/login'):
+            with self.subTest(endpoint=endpoint), self.assertRaises(ValueError):
+                pages.validate({**self.values(), 'VITE_MANAGEMENT_LOGIN_URL': endpoint})

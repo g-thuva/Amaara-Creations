@@ -37,6 +37,15 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
         return Ok(session.Response);
     }
 
+    [HttpPost("sign-in"), EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> SignIn([FromBody] LoginRequest request, CancellationToken ct)
+    {
+        var result = await identity.SignInAsync(request, ct);
+        cookie.Write(Response, result.Storefront);
+        if (result.Management != null) cookie.Write(Response, result.Management, management: true);
+        return Ok(result.Storefront.Response);
+    }
+
     [HttpPost("refresh"), EnableRateLimiting("auth-refresh")]
     public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
     {

@@ -6,7 +6,7 @@ The boutique redesign and security work is documented in [the implementation and
 
 Account security, verified email/export/request workflows and safe media adapters are described in [activation and operations](docs/redesign/ACCOUNT_REQUESTS_AND_MEDIA.md). Review the [variant migration and rollback guard](docs/redesign/VARIANT_MIGRATION.md) before applying the two new additive migrations to an existing environment. The completed feature branch is kept local at the user's request.
 
-For administrator sign-in, see [the verified diagnosis, private local entry and operator commands](docs/security/admin-login-root-cause.md). Customer sign-in remains on the storefront; management uses its own login, session cookies, origin allowlist and MFA gate.
+For administrator sign-in, see [the verified diagnosis, private local entry and operator commands](docs/security/admin-login-root-cause.md). Staff enter email, password and authenticator code once on a single form. The server verifies current roles and MFA and issues independent shopping and staff sessions; management opens the permitted workspace without asking for credentials again. Customer logins retain shopping destinations. Set `VITE_MANAGEMENT_LOGIN_URL` to the approved HTTPS management entry for production; local development defaults to the same loopback hostname on port 5179 and the existing application base path. First-time authenticator enrollment and verified recovery remain separate security tasks.
 
 - [Architecture and module ownership](docs/architecture/overview.md)
 - [Backend](docs/architecture/backend.md), [frontend](docs/architecture/frontend.md), [admin](docs/architecture/admin.md)

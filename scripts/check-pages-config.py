@@ -13,7 +13,7 @@ def validate(values):
     if not re.fullmatch(r'/(?:[A-Za-z0-9_-]+/)*', base) or values.get('VITE_ROUTER_MODE') != 'hash':
         raise ValueError('Pages requires an explicit safe base path and hash routing.')
     urls = {}
-    for key in ('VITE_API_BASE_URL', 'VITE_MEDIA_BASE_URL', 'VITE_PUBLIC_SITE_URL'):
+    for key in ('VITE_API_BASE_URL', 'VITE_MEDIA_BASE_URL', 'VITE_PUBLIC_SITE_URL', 'VITE_MANAGEMENT_LOGIN_URL'):
         value = values.get(key, '')
         url = urlsplit(value)
         host = (url.hostname or '').lower()
@@ -34,6 +34,10 @@ def validate(values):
         raise ValueError('Pages must use a real API host with the existing /api/v1 prefix.')
     if urls['VITE_PUBLIC_SITE_URL'].path.rstrip('/') != base.rstrip('/'):
         raise ValueError('Public site URL and Pages base path must agree.')
+    management = urls['VITE_MANAGEMENT_LOGIN_URL']
+    storefront = urls['VITE_PUBLIC_SITE_URL']
+    if (management.hostname, management.port or 443) == (storefront.hostname, storefront.port or 443):
+        raise ValueError('Management sign-in must use a separate approved origin.')
 
 
 if __name__ == '__main__':
