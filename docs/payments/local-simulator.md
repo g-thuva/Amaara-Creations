@@ -10,7 +10,7 @@ Open PowerShell:
 
 ```powershell
 cd C:\Nexaura
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-payment-simulator.ps1 -Currency LKR
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-payment-simulator.ps1 -Currency CHF
 ```
 
 The script builds a separate, nonpublishable development host and opens **http://127.0.0.1:5208/simulator**. Allow the first build/database creation to finish. Use `127.0.0.1` consistently, because the security guard rejects other Host values. The separate shop uses port **5188** and test admin uses **5189**. Existing ports 5173/5179 and the business API are untouched. If any lab port is already occupied, startup refuses to take it over.
@@ -18,7 +18,7 @@ The script builds a separate, nonpublishable development host and opens **http:/
 Every start creates a **new**, migrated, uniquely named database:
 
 ```text
-AmaaraPhase6Tests_LocalPayments_LKR_<random identifier>
+AmaaraPhase6Tests_LocalPayments_CHF_<random identifier>
 ```
 
 The exact name appears in PowerShell, the lab header, and `.runtime\local-payments\session.json`. Startup accepts a local server name, never an existing database/connection string. `AmaaraCreationsDB` is neither migrated nor used. All products, prices, accounts and addresses in the lab are fictional fixtures. Do not enter personal information or actual credentials anywhere in this shop.
@@ -26,9 +26,9 @@ The exact name appears in PowerShell, the lab header, and `.runtime\local-paymen
 ## First successful payment
 
 1. On the lab page select **Open shop as test customer**. This signs in a generated synthetic customer through the normal backend. No password is needed.
-2. Open **SIMULATED LKR sticker 1**. This sample has no variants; the other fixtures retain variants. Add one item to the cart.
+2. Open **SIMULATED CHF sticker 1**. This sample has no variants; the other fixtures retain variants. Add one item to the cart.
 3. Go to Cart → Checkout. Keep the supplied fictional delivery address and choose **SIMULATED delivery**.
-4. Review the server total: one sticker **LKR 101.00**, delivery **LKR 25.00**, total **LKR 126.00**. Select **Pay securely**.
+4. Review the server total: one sticker **CHF 101.00**, delivery **CHF 25.00**, total **CHF 126.00**. Select **Pay securely**.
 5. The development redirect returns you to the local lab. Confirm the selected attempt is **Pending**, then select **Simulate success**.
 6. The lab should show payment **Paid** and order **Confirmed**. Select **Return to storefront payment status**, then view your orders.
 7. Return to the lab to inspect the SQL-backed payment table and expanded inventory/reservations/attempts/refunds/events. **Replay last event** should not charge again, duplicate the event, or remove more inventory.
@@ -79,7 +79,7 @@ SELECT Id, Name, Stock, Currency FROM Products;
 
 Payments must say **LocalSimulator / SIMULATED**. Payment Status values are Pending=0, Authorized=1, Paid=2, Failed=3, Refunded=4, Cancelled=5 and PartiallyRefunded=6. The relevant order statuses are PendingPayment=5 and Confirmed=6; the lab displays their names. Compare attempt count, order IDs, amounts, inventory and refund amounts before and after replay. SQL is the source of these inspection results.
 
-## Stop, use CHF, and retain results
+## Stop or restart the CHF lab and retain results
 
 ```powershell
 cd C:\Nexaura

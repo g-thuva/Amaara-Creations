@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('LKR', 'CHF')][string]$Currency = 'LKR',
+    [ValidateSet('LKR', 'CHF')][string]$Currency = 'CHF',
     [string]$SqlServer = 'localhost',
     [switch]$NoBrowser
 )
