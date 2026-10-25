@@ -2,6 +2,7 @@ namespace be.Application.Features.Reporting
 {
     public class ProductStatsResponse
     {
+        public string Currency { get; set; } = be.Domain.Common.Money.DefaultCurrency;
         public int TotalProducts { get; set; }
         public int ActiveProducts { get; set; }
         public int InactiveProducts { get; set; }

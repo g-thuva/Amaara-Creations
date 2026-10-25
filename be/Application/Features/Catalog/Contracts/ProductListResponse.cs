@@ -1,9 +1,10 @@
+using be.Domain.Common;
 namespace be.Application.Features.Catalog
 {
     public class ProductListResponse
     {
         public List<ProductResponse> Products { get; set; } = new();
-        public string Currency { get; set; } = "LKR";
+        public string Currency { get; set; } = Money.DefaultCurrency;
         public int TotalCount { get; set; }
         public int PublishedCount { get; set; }
         public int PageNumber { get; set; }

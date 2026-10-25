@@ -1,8 +1,9 @@
+using be.Domain.Common;
 namespace be.Application.Features.Customers
 {
     public class CustomerStatsResponse
     {
-        public string Currency { get; set; } = "LKR";
+        public string Currency { get; set; } = Money.DefaultCurrency;
         public int TotalOrders { get; set; }
         public int PendingOrders { get; set; }
         public int ProcessingOrders { get; set; }

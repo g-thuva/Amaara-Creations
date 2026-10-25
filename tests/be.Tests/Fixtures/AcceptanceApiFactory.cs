@@ -120,7 +120,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
         });
     }
 
-    public async Task SeedCatalogueAsync(string currency = "LKR", string imageOrigin = "http://127.0.0.1:5198")
+    public async Task SeedCatalogueAsync(string currency = "CHF", string imageOrigin = "http://127.0.0.1:5198")
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -210,7 +210,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
                 OrderNumber = "REFUND-FIXTURE-" + Guid.NewGuid().ToString("N"),
                 Status = OrderStatus.Confirmed,
                 FinalizedAt = DateTime.UtcNow,
-                Currency = "LKR",
+                Currency = "CHF",
                 Subtotal = 200,
                 ShippingTotal = 25,
                 Total = 225,
@@ -225,7 +225,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
                 Amount = 225,
                 AuthorizedAmount = 225,
                 SettledAmount = 225,
-                Currency = "LKR",
+                Currency = "CHF",
                 PaidAt = DateTime.UtcNow,
                 ProviderReference = "TEST-REFUND-" + Guid.NewGuid().ToString("N"),
                 ProviderTransactionId = Random.Shared.NextInt64(100000000000000000, 900000000000000000).ToString()
@@ -300,7 +300,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
         };
         db.Add(design);
         await db.SaveChangesAsync();
-        order.OrderItems.Add(new OrderItem { ItemType = OrderItemType.CustomDesign, CustomDesignId = design.Id, ProductNameSnapshot = design.Name, Quantity = 1, UnitPrice = 25, Price = 25, Subtotal = 25, ConfigurationSnapshotJson = "{\"schemaVersion\":1,\"width\":5,\"height\":5,\"quantity\":1,\"currency\":\"LKR\",\"proofRequired\":true,\"materialCode\":\"standard\",\"finishCode\":\"standard\",\"shapeCode\":\"rectangle\",\"pricingVersion\":\"test-only-v1\"}" });
+        order.OrderItems.Add(new OrderItem { ItemType = OrderItemType.CustomDesign, CustomDesignId = design.Id, ProductNameSnapshot = design.Name, Quantity = 1, UnitPrice = 25, Price = 25, Subtotal = 25, ConfigurationSnapshotJson = "{\"schemaVersion\":1,\"width\":5,\"height\":5,\"quantity\":1,\"currency\":\"CHF\",\"proofRequired\":true,\"materialCode\":\"standard\",\"finishCode\":\"standard\",\"shapeCode\":\"rectangle\",\"pricingVersion\":\"test-only-v1\"}" });
         order.Subtotal = 225;
         order.Total = 250;
         var payment = await db.Payments.SingleAsync(p => p.OrderId == orderId);

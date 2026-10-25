@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -40,7 +41,7 @@ public class CustomBuilderConfigurationVersion
     public decimal MinimumLinePrice { get; set; }
 
     [Required, StringLength(3)]
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
     public bool ArtworkRequired { get; set; }
     public bool ProofRequired { get; set; } = true;
 

@@ -7,7 +7,7 @@ test('built public routes reload cleanly and expose canonical product metadata',
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto(`./products/${fixture.products[0]}`); await expect(page.getByRole('heading', { level: 1 })).toHaveText('Storefront QA print 01');
   await expect(page).toHaveTitle('Storefront QA print 01 | Amaara Creations'); await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://store.example.test/Amaara-Creations/products/${fixture.products[0]}`);
-  const schema = await page.locator('#product-schema').textContent(); expect(JSON.parse(schema!).offers.priceCurrency).toBe('LKR');
+  const schema = await page.locator('#product-schema').textContent(); expect(JSON.parse(schema!).offers.priceCurrency).toBe('CHF');
   await page.reload(); await expect(page.getByRole('button', { name: 'Add to cart', exact: true })).toBeVisible();
   const sitemap = await request.get('http://127.0.0.1:5198/api/v1/seo/sitemap.xml'); expect(sitemap.ok()).toBe(true); const xml = await sitemap.text(); expect(xml).toContain('/products/' + fixture.products[0]); expect(xml).not.toMatch(/\/admin|\/account|\/checkout|\/api\/v1\/custom-designs/);
   await page.goto('./login'); await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow'); await expect(page.locator('link[rel="canonical"]')).toHaveCount(0); expect(errors).toEqual([]);

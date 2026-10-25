@@ -2,6 +2,7 @@ namespace be.Application.Features.Reporting
 {
     public class RevenueStatsResponse
     {
+        public string Currency { get; set; } = be.Domain.Common.Money.DefaultCurrency;
         public decimal TotalRevenue { get; set; }
         public decimal RevenueToday { get; set; }
         public decimal RevenueThisWeek { get; set; }

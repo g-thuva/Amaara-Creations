@@ -1,5 +1,6 @@
 using be.Application.Features.Checkout;
 using be.Domain.Shipping;
+using be.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -11,7 +12,7 @@ public static class ShippingDevelopmentSeeder
     {
         var environment = services.GetRequiredService<IHostEnvironment>();
         var checkout = services.GetRequiredService<IOptions<CheckoutOptions>>().Value;
-        if (!environment.IsDevelopment() || checkout.Currency != "LKR") return;
+        if (!environment.IsDevelopment() || checkout.Currency != Money.DefaultCurrency) return;
 
         var context = services.GetRequiredService<ApplicationDbContext>();
         // Initialize an empty local store once. Never replace configured rates,
@@ -31,9 +32,9 @@ public static class ShippingDevelopmentSeeder
                 ShippingZone = zone,
                 Code = "STANDARD",
                 Name = "Standard delivery",
-                Currency = "LKR",
-                BasePrice = 350,
-                FreeShippingThreshold = 5000,
+                Currency = Money.DefaultCurrency,
+                BasePrice = 3.50m,
+                FreeShippingThreshold = 50,
                 DisplayOrder = 0,
             },
             new ShippingMethod
@@ -41,8 +42,8 @@ public static class ShippingDevelopmentSeeder
                 ShippingZone = zone,
                 Code = "EXPRESS",
                 Name = "Express delivery",
-                Currency = "LKR",
-                BasePrice = 550,
+                Currency = Money.DefaultCurrency,
+                BasePrice = 5.50m,
                 DisplayOrder = 1,
             });
         await context.SaveChangesAsync(cancellationToken);

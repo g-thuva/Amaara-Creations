@@ -1,3 +1,4 @@
+using be.Domain.Common;
 namespace be.Application.Features.Cart
 {
     public class CartItemResponse
@@ -10,7 +11,7 @@ namespace be.Application.Features.Cart
         public int? CustomDesignId { get; set; }
         public string ProductName { get; set; } = string.Empty;
         public decimal ProductPrice { get; set; }
-        public string Currency { get; set; } = "LKR";
+        public string Currency { get; set; } = Money.DefaultCurrency;
         public string ProductImageUrl { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal Subtotal { get; set; } // ProductPrice * Quantity

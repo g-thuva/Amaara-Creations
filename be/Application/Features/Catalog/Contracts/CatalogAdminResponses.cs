@@ -1,7 +1,8 @@
+using be.Domain.Common;
 namespace be.Application.Features.Catalog;
 public class AdminProductResponse
 {
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
     public string RowVersion { get; set; } = string.Empty;
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

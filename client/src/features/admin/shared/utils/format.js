@@ -1,5 +1,6 @@
+import { STORE_CURRENCY } from '@/shared/config/currency.js';
 // Presentation only. Preserve the supplied currency and UTC instant.
-export function formatIsoCurrency(value, currency = 'LKR') {
+export function formatIsoCurrency(value, currency = STORE_CURRENCY) {
   const number = Number(value);
   return `${currency} ${Number.isFinite(number) ? new Intl.NumberFormat('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number) : '—'}`;
 }

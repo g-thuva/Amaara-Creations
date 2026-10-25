@@ -43,7 +43,7 @@ internal sealed class CommerceApiFactory(string? sqlConnection = null) : WebAppl
             db.Database.Migrate();
         }
 
-        builder.ConfigureHostConfiguration(config => config.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = "Server=unreachable-test-only;Database=Test;Integrated Security=true;Encrypt=false;", ["Jwt:Key"] = "DeterministicTestSigningKeyOnly-32Characters", ["Jwt:Issuer"] = "Test", ["Jwt:Audience"] = "Test", ["Cors:AllowedOrigins:0"] = "http://localhost", ["AdminBootstrap:Enabled"] = "false", ["Administration:Enabled"] = "true" }));
+        builder.ConfigureHostConfiguration(config => config.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = "Server=unreachable-test-only;Database=Test;Integrated Security=true;Encrypt=false;", ["Jwt:Key"] = "DeterministicTestSigningKeyOnly-32Characters", ["Jwt:Issuer"] = "Test", ["Jwt:Audience"] = "Test", ["Cors:AllowedOrigins:0"] = "http://localhost", ["AdminBootstrap:Enabled"] = "false", ["Administration:Enabled"] = "true", ["Checkout:Currency"] = "LKR" }));
         return base.CreateHost(builder);
     }
 
@@ -51,7 +51,7 @@ internal sealed class CommerceApiFactory(string? sqlConnection = null) : WebAppl
     {
         builder.UseEnvironment("Testing");
         builder.ConfigureLogging(logging => logging.ClearProviders());
-        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = "Server=unreachable-test-only;Database=Test;Integrated Security=true;Encrypt=false;", ["Jwt:Key"] = "DeterministicTestSigningKeyOnly-32Characters", ["Jwt:Issuer"] = "Test", ["Jwt:Audience"] = "Test", ["Cors:AllowedOrigins:0"] = "http://localhost", ["AdminBootstrap:Enabled"] = "false", ["Administration:Enabled"] = "true", ["Datatrans:Enabled"] = "true", ["Datatrans:HmacKey"] = Convert.ToHexString(HmacBytes) }));
+        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = "Server=unreachable-test-only;Database=Test;Integrated Security=true;Encrypt=false;", ["Jwt:Key"] = "DeterministicTestSigningKeyOnly-32Characters", ["Jwt:Issuer"] = "Test", ["Jwt:Audience"] = "Test", ["Cors:AllowedOrigins:0"] = "http://localhost", ["AdminBootstrap:Enabled"] = "false", ["Administration:Enabled"] = "true", ["Checkout:Currency"] = "LKR", ["Datatrans:Enabled"] = "true", ["Datatrans:HmacKey"] = Convert.ToHexString(HmacBytes) }));
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();

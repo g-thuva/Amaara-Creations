@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
@@ -36,7 +37,7 @@ public class CustomBuilderConfigurationDto
     public int MinimumQuantity { get; set; }
     public int MaximumQuantity { get; set; }
     public int QuantityStep { get; set; }
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
     public bool ArtworkRequired { get; set; }
     public bool ProofRequired { get; set; }
 
@@ -72,7 +73,7 @@ public class UpdateBuilderConfigurationRequest
     public decimal MinimumLinePrice { get; set; }
 
     [Required, StringLength(3)]
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
     public bool ArtworkRequired { get; set; }
     public bool ProofRequired { get; set; }
 
@@ -121,7 +122,7 @@ public class CustomQuoteResponse
     public int ConfigurationVersionId { get; set; }
     public int ConfigurationVersion { get; set; }
     public string PricingVersion { get; set; } = string.Empty;
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
     public decimal Width { get; set; }
     public decimal Height { get; set; }
     public int Quantity { get; set; }
@@ -193,7 +194,7 @@ public class CustomDesignDto
     public string TextAlignment { get; set; } = "center";
     public decimal? UnitPrice { get; set; }
     public decimal? Subtotal { get; set; }
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
     public string? PricingVersion { get; set; }
     public DateTime? QuotedAt { get; set; }
     public string ProofStatus { get; set; } = string.Empty;

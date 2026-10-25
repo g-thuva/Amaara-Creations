@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { formatMoney, abbreviateMoney, abbreviateNumber } from './formatMoney.js';
 import { colomboDay, colomboMidnight, dashboardPeriod, bucketOrders, monthlyBuckets, periodLabel } from './dateBuckets.js';
-describe('LKR presentation', () => {
-  it('uses ISO code, grouping and two decimals', () => { expect(formatMoney(1234.5)).toBe('LKR 1,234.50'); expect(formatMoney(0)).toBe('LKR 0.00'); expect(formatMoney(null)).toBe('—'); });
+describe('CHF presentation', () => {
+  it('uses ISO code, grouping and two decimals', () => { expect(formatMoney(1234.5)).toBe('CHF 1,234.50'); expect(formatMoney(0)).toBe('CHF 0.00'); expect(formatMoney(null)).toBe('—'); });
   it.each([[50000, '50K'], [1500000, '1.5M'], [0, '0'], [123, '123'], [1250000000, '1.3B']])('abbreviates %s as %s', (value, result) => expect(abbreviateNumber(value)).toBe(result));
-  it('labels abbreviated money', () => expect(abbreviateMoney(184500)).toBe('LKR 184.5K'));
+  it('labels abbreviated money', () => expect(abbreviateMoney(184500)).toBe('CHF 184.5K'));
 });
 describe('Colombo calendar boundaries', () => {
   it('changes day at 18:30 UTC, including an offset-less API DateTime', () => {

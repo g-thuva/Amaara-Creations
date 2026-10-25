@@ -45,6 +45,7 @@ public sealed class ControlledLoadTests(ITestOutputHelper output)
         {
             Name = "Load test product",
             Slug = "load-test-product",
+            Currency = "LKR",
             Stock = 100,
             Price = 100,
             BasePrice = 100

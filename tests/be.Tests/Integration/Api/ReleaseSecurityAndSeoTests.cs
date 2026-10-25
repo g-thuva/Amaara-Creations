@@ -45,7 +45,7 @@ public sealed class ReleaseSecurityAndSeoTests
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var first = await db.Products.OrderBy(p => p.Id).FirstAsync();
         first.IsActive = false;
-        var hiddenCurrency = new be.Domain.Catalog.Product { Name = "Other currency", Slug = "seo-chf", Currency = "CHF", Price = 25m, BasePrice = 25m };
+        var hiddenCurrency = new be.Domain.Catalog.Product { Name = "Other currency", Slug = "seo-lkr", Currency = "LKR", Price = 25m, BasePrice = 25m };
         db.Products.Add(hiddenCurrency);
         db.CmsPages.AddRange(new be.Domain.Cms.CmsPage { Title = "Published information", Slug = "public-information", IsPublished = true },
             new be.Domain.Cms.CmsPage { Title = "Draft information", Slug = "draft-information", IsPublished = false });

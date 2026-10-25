@@ -41,7 +41,7 @@ export function DashboardSummary({ summary, revenue, orders, sales }) {
   const stats = summary.data;
   const scoped = sales.total !== null;
   return <div className="sales-kpis">
-    <StatCard icon="chart" label="Order value" value={scoped ? sales.total : revenue.data?.totalRevenue} previous={sales.previousTotal} format={formatMoney} resource={scoped ? orders : revenue} scope={scoped ? 'Selected period · LKR business orders' : 'All time · period comparison unavailable'} />
+    <StatCard icon="chart" label="Order value" value={scoped ? sales.total : revenue.data?.totalRevenue} previous={sales.previousTotal} format={formatMoney} resource={scoped ? orders : revenue} scope={scoped ? 'Selected period · CHF business orders' : 'All time · period comparison unavailable'} />
     <StatCard icon="bag" label="Total orders" value={sales.orderCount ?? orders.data?.totalOrders} previous={scoped ? sales.previous?.reduce((sum, bucket) => sum + bucket.orders, 0) : null} format={count} resource={orders} scope={scoped ? 'Selected period' : 'All time · all currencies and environments'} />
     <StatCard icon="users" label="Total customers" value={stats?.totalCustomers} format={count} resource={summary} scope="All time · registered accounts" />
     <StatCard icon="star" label="Avg. rating" value={stats?.averageRating} format={rating} resource={summary} scope="All time · customer reviews" />

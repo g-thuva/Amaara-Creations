@@ -202,7 +202,7 @@ public class CartService
         };
     }
 
-    private static string ItemCurrency(CartItem item) => item.ItemType == CartItemType.CustomDesign ? item.CustomDesign?.BuilderConfigurationVersion?.Currency ?? "LKR" : item.Product?.Currency ?? "LKR";
+    private static string ItemCurrency(CartItem item) => item.ItemType == CartItemType.CustomDesign ? item.CustomDesign?.BuilderConfigurationVersion?.Currency ?? Money.DefaultCurrency : item.Product?.Currency ?? Money.DefaultCurrency;
     private static CartItemResponse ToItem(CartItem item)
     {
         if (item.ItemType == CartItemType.CustomDesign && item.CustomDesign != null)

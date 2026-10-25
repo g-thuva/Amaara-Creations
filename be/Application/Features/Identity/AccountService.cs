@@ -118,8 +118,8 @@ public class AccountService
             TotalWishlistItems = totalWishlistItems,
             TotalCartItems = totalCartItems,
             TotalReviews = totalReviews,
-            TotalSpent = totalsByCurrency.GetValueOrDefault("LKR"),
-            Currency = "LKR",
+            TotalSpent = totalsByCurrency.GetValueOrDefault(Money.DefaultCurrency),
+            Currency = Money.DefaultCurrency,
             OrderTotalsByCurrency = totalsByCurrency
         };
         return response;

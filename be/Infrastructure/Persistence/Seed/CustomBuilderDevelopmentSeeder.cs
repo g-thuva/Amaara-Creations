@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using be.Domain.CustomDesigns;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,7 +37,7 @@ public static class CustomBuilderDevelopmentSeeder
             QuantityStep = 1,
             PricePerSquareUnit = 1m,
             MinimumLinePrice = 0m,
-            Currency = "LKR",
+            Currency = Money.DefaultCurrency,
             ArtworkRequired = false,
             ProofRequired = true,
             CreatedAt = DateTime.UtcNow,

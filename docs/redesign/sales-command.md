@@ -40,9 +40,9 @@ snapshot, grouping entries 6–10 as `Others (in top 10)`. We cannot infer the
 revenue of all omitted products or use order totals as an item-revenue
 denominator because shipping, discounts and taxes can differ.
 
-Recent orders are individually formatted in LKR and labelled as including all
-environments, without aggregation. Non-LKR rows are omitted with a count.
-Legacy revenue/product endpoints already filter to LKR, exclude cancelled
+Recent orders are individually formatted in CHF and labelled as including all
+environments, without aggregation. Non-CHF rows are omitted with a count.
+Legacy revenue/product endpoints already filter to CHF, exclude cancelled
 orders and exclude orders with TEST/Sandbox payments. The UI performs no
 currency conversion and never aggregates the recent sample.
 
@@ -53,10 +53,10 @@ All totals/counts are JSON numbers, all named fields use camelCase.
 
 | GET endpoint (after `/api/v1`) | Response |
 | --- | --- |
-| `/admin/dashboard` | `{ totalRevenue, totalOrders, totalCustomers, totalProducts, averageRating, revenueToday, revenueThisMonth, ordersToday, ordersThisMonth, pendingOrders, processingOrders, shippedOrders, deliveredOrders }` |
-| `/admin/dashboard/revenue` | `{ totalRevenue, revenueToday, revenueThisWeek, revenueThisMonth, revenueThisYear, monthlyRevenue: [{ month: string (full month name), year: number, revenue: number }] }` |
+| `/admin/dashboard` | `{ currency, totalRevenue, totalOrders, totalCustomers, totalProducts, averageRating, revenueToday, revenueThisMonth, ordersToday, ordersThisMonth, pendingOrders, processingOrders, shippedOrders, deliveredOrders }` |
+| `/admin/dashboard/revenue` | `{ currency, totalRevenue, revenueToday, revenueThisWeek, revenueThisMonth, revenueThisYear, monthlyRevenue: [{ month: string (full month name), year: number, revenue: number }] }` |
 | `/admin/dashboard/orders` | `{ totalOrders, ordersToday, ordersThisWeek, ordersThisMonth, ordersThisYear, pendingOrders, processingOrders, shippedOrders, deliveredOrders, cancelledOrders }` |
-| `/admin/dashboard/products` | `{ totalProducts, activeProducts, inactiveProducts, outOfStockProducts, lowStockProducts, topSellingProducts: [{ productId, productName, productImageUrl, totalQuantitySold, totalRevenue }] }` |
+| `/admin/dashboard/products` | `{ currency, totalProducts, activeProducts, inactiveProducts, outOfStockProducts, lowStockProducts, topSellingProducts: [{ productId, productName, productImageUrl, totalQuantitySold, totalRevenue }] }` |
 | `/admin/dashboard/recent-orders?limit=5` | `[{ id, orderNumber, customerName, customerEmail, total, currency, status, orderDate: UTC DateTime string }]` |
 
 The controller takes no date/currency/environment filter on these endpoints.
@@ -74,7 +74,7 @@ or backend implementation was changed in this task.
 
 ```ts
 interface PeriodSalesResponse {
-  currency: 'LKR';
+  currency: 'CHF';
   environment: string;
   timeZone: 'Asia/Colombo';
   from: string; // inclusive UTC instant

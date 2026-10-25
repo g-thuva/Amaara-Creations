@@ -1,3 +1,4 @@
+using be.Domain.Common;
 namespace be.Application.Features.Orders
 {
     public class OrderResponse
@@ -14,7 +15,7 @@ namespace be.Application.Features.Orders
         public decimal ShippingTotal { get; set; }
         public decimal TaxTotal { get; set; }
         public decimal PaymentFee { get; set; }
-        public string Currency { get; set; } = "LKR";
+        public string Currency { get; set; } = Money.DefaultCurrency;
         public bool PricesIncludeTax { get; set; }
         public string PaymentStatus { get; set; } = "Unpaid";
         public string FulfilmentStatus { get; set; } = "NotReady";

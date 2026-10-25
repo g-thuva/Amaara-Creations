@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using be.Domain.CustomDesigns;
 
 namespace be.Application.Features.CustomDesigns;
@@ -65,7 +66,7 @@ public static class CustomBuilderMappings
             TextAlignment = design.TextAlignment,
             UnitPrice = design.UnitPrice,
             Subtotal = design.CalculatedPrice,
-            Currency = design.BuilderConfigurationVersion?.Currency ?? "LKR",
+            Currency = design.BuilderConfigurationVersion?.Currency ?? Money.DefaultCurrency,
             PricingVersion = design.PricingRuleVersion,
             QuotedAt = design.QuotedAt,
             ProofStatus = design.ProofStatus.ToString(),

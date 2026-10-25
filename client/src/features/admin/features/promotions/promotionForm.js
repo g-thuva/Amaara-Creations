@@ -1,9 +1,10 @@
+import { STORE_CURRENCY } from '@/shared/config/currency.js';
 export const blank = {
   code: "",
   name: "",
   discountType: 1,
   discountValue: "",
-  currency: "",
+  currency: STORE_CURRENCY,
   startsAt: "",
   endsAt: "",
   minimumSpend: "",

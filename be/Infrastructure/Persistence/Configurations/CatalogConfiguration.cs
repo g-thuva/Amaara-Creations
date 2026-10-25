@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using be.Domain.Catalog;
 using be.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ internal sealed class CatalogConfiguration : IEntityTypeConfiguration<Product>, 
         entity.Property(e => e.Slug).IsRequired().HasMaxLength(220);
         entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
         entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)").IsRequired();
-        entity.Property(e => e.Currency).HasMaxLength(3).HasDefaultValue("LKR").IsRequired();
+        entity.Property(e => e.Currency).HasMaxLength(3).HasDefaultValue(Money.DefaultCurrency).IsRequired();
         entity.Property(e => e.Description).HasMaxLength(500);
         entity.Property(e => e.ShortDescription).HasMaxLength(300);
         entity.Property(e => e.ImageUrl).HasMaxLength(500);

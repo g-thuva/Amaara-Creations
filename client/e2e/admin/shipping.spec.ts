@@ -46,7 +46,7 @@ test('an admin-created delivery method appears at checkout and test rates stay h
     await methodForm.getByLabel('name', { exact: true }).fill('Browser fixture delivery');
     const methodCode = `SHIPPING_TEST_${runId}`;
     await methodForm.getByLabel('code', { exact: true }).fill(methodCode);
-    await methodForm.getByLabel('base Price', { exact: true }).fill('350');
+    await methodForm.getByLabel('base Price', { exact: true }).fill('3.50');
     const createdResponse = page.waitForResponse(response => response.url().endsWith('/admin/shipping/methods') && response.request().method() === 'POST');
     await methodForm.getByRole('button', { name: 'Save delivery method', exact: true }).click();
     const created = await (await createdResponse).json();
@@ -55,7 +55,7 @@ test('an admin-created delivery method appears at checkout and test rates stay h
 
     await customer.getByRole('button', { name: 'Reload delivery options', exact: true }).click();
     await expect(shipping).toBeEnabled();
-    await expect(shipping.locator('option').filter({ hasText: 'Browser fixture delivery' })).toContainText('350.00');
+    await expect(shipping.locator('option').filter({ hasText: 'Browser fixture delivery' })).toContainText('3.50');
     await shipping.selectOption(String(created.id));
     await expect(customer.getByRole('button', { name: 'Pay securely', exact: true })).toBeEnabled();
 

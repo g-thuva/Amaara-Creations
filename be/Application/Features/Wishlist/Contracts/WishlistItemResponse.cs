@@ -1,3 +1,4 @@
+using be.Domain.Common;
 namespace be.Application.Features.Wishlist
 {
     public class WishlistItemResponse
@@ -6,7 +7,7 @@ namespace be.Application.Features.Wishlist
         public int ProductId { get; set; }
         public string ProductName { get; set; } = string.Empty;
         public decimal ProductPrice { get; set; }
-        public string Currency { get; set; } = "LKR";
+        public string Currency { get; set; } = Money.DefaultCurrency;
         public string ProductImageUrl { get; set; } = string.Empty;
         public string ProductCategory { get; set; } = string.Empty;
         public bool IsOutOfStock { get; set; }

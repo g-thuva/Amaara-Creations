@@ -69,15 +69,15 @@ async function expectAmounts(
   paymentStatus: string,
 ) {
   await expect(
-    page.getByText(`Settled: LKR 225.00 · Refunded: LKR ${refunded}`, {
+    page.getByText(`Settled: CHF 225.00 · Refunded: CHF ${refunded}`, {
       exact: true,
     }),
   ).toBeVisible();
   await expect(
-    page.getByText(`Remaining refundable: LKR ${remaining}`, { exact: true }),
+    page.getByText(`Remaining refundable: CHF ${remaining}`, { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText(`FakeTestGateway: ${paymentStatus} · LKR 225.00`, {
+    page.getByText(`FakeTestGateway: ${paymentStatus} · CHF 225.00`, {
       exact: true,
     }),
   ).toBeVisible();
@@ -99,7 +99,7 @@ test("completed partial refund updates immediately and stays correct after refet
     page.getByRole("status").filter({ hasText: "Request status: Completed." }),
   ).toBeVisible();
   await expect(
-    page.getByText("LKR 50.00 — Completed: Test-only browser refund", {
+    page.getByText("CHF 50.00 — Completed: Test-only browser refund", {
       exact: true,
     }),
   ).toBeVisible();
@@ -129,7 +129,7 @@ test("completed partial refund updates immediately and stays correct after refet
   await page.reload();
   await expectAmounts(page, "50.00", "175.00", "PartiallyRefunded");
   await expect(
-    page.getByText("LKR 50.00 — Completed: Test-only browser refund", {
+    page.getByText("CHF 50.00 — Completed: Test-only browser refund", {
       exact: true,
     }),
   ).toBeVisible();
@@ -146,7 +146,7 @@ test("two sequential partial refunds with identical details are independent and 
   expect(second.id).not.toBe(first.id);
   expect(second.status).toBe("Completed");
   await expect(
-    page.getByText("LKR 50.00 — Completed: Same test-only reason", {
+    page.getByText("CHF 50.00 — Completed: Same test-only reason", {
       exact: true,
     }),
   ).toHaveCount(2);
@@ -189,7 +189,7 @@ test("provider rejection returned as HTTP 200 shows Failed with no successful no
     page.getByText("Request status: Completed.", { exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByText("LKR 50.00 — Failed: Test-only browser refund", {
+    page.getByText("CHF 50.00 — Failed: Test-only browser refund", {
       exact: true,
     }),
   ).toBeVisible();
@@ -217,7 +217,7 @@ test("ambiguous provider refund stays Pending and reserves funds without claimin
   await expect(
     page
       .getByRole("listitem")
-      .filter({ hasText: "LKR 50.00 — Pending: Test-only browser refund" }),
+      .filter({ hasText: "CHF 50.00 — Pending: Test-only browser refund" }),
   ).toBeVisible();
   await expectAmounts(page, "0.00", "175.00", "Paid");
   await page
@@ -234,7 +234,7 @@ test("ambiguous provider refund stays Pending and reserves funds without claimin
   await expect(
     page
       .getByRole("listitem")
-      .filter({ hasText: "LKR 50.00 — Pending: Test-only browser refund" }),
+      .filter({ hasText: "CHF 50.00 — Pending: Test-only browser refund" }),
   ).toHaveCount(1);
   await expectAmounts(page, "0.00", "175.00", "Paid");
   await page.reload();

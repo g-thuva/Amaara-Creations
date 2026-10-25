@@ -1,3 +1,4 @@
+using be.Domain.Common;
 namespace be.Application.Features.Reporting
 {
     public class RecentOrderResponse
@@ -7,7 +8,7 @@ namespace be.Application.Features.Reporting
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerEmail { get; set; } = string.Empty;
         public decimal Total { get; set; }
-        public string Currency { get; set; } = "LKR";
+        public string Currency { get; set; } = Money.DefaultCurrency;
         public string Status { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
     }

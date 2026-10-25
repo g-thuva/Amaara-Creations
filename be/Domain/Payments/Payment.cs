@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using be.Domain.Orders;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -32,7 +33,7 @@ public class Payment
 
     [Required]
     [StringLength(3)]
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
 
     [StringLength(160)]
     public string? ProviderTransactionId { get; set; }

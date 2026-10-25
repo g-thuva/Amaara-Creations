@@ -1,3 +1,4 @@
+import { STORE_CURRENCY } from '@/shared/config/currency.js';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useResource } from '@/shared/hooks/useResource.js';
@@ -12,7 +13,7 @@ export function useCatalog() {
   const data = useResource((signal) => catalogApi.getProducts(catalogParams(params), signal), query);
   const categories = useResource(catalogApi.getCategories, 'categories');
   const collections = useResource(catalogApi.getCollections, 'collections');
-  const currency = data.data?.currency || 'LKR';
+  const currency = data.data?.currency || STORE_CURRENCY;
 
   const update = (values, reset = true) => {
     const next = new URLSearchParams(params);

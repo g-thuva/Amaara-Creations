@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using System.ComponentModel.DataAnnotations;
 
 namespace be.Application.Features.Catalog;
@@ -20,7 +21,7 @@ public class AdminProductQuery
 public class AdminProductRequest
 {
     [Required, RegularExpression("^(LKR|CHF|USD|EUR|GBP)$")]
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
     public string? RowVersion { get; set; }
 
     [Required]

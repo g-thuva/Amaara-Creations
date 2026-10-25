@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using be.Domain.Identity;
 using be.Domain.Orders;
 using System.ComponentModel.DataAnnotations;
@@ -16,7 +17,7 @@ public class Refund
 
     [Required]
     [StringLength(3)]
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
 
     [Required]
     [StringLength(500)]

@@ -1,7 +1,8 @@
+using be.Domain.Common;
 namespace be.Application.Features.Checkout;
 public sealed class CheckoutOptions
 {
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
     public int InventoryReservationMinutes { get; set; } = 35;
     public int ReconciliationSeconds { get; set; } = 30;
     public decimal TaxRate { get; set; }

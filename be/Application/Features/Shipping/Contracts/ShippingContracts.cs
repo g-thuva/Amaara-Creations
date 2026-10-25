@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using System.ComponentModel.DataAnnotations;
 
 namespace be.Application.Features.Shipping;
@@ -32,7 +33,7 @@ public sealed class ShippingMethodRequest
     public string Code { get; set; } = string.Empty;
 
     [Required, StringLength(3)]
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
 
     [Range(typeof(decimal), "0", "9999999999999999")]
     public decimal BasePrice { get; set; }

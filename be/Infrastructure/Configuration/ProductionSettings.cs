@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using System.Net.Mail;
 using be.Infrastructure.Payments.Zahls;
 
@@ -57,7 +58,7 @@ public static class ProductionSettings
         if (configuration.GetValue<bool>("Checkout:AllowDevelopmentShipping"))
             throw new InvalidOperationException("Development shipping cannot be enabled in Production.");
         if (configuration.GetValue<bool>("Zahls:Enabled"))
-            ZahlsPaymentGateway.ValidateConfiguration(configuration.GetSection("Zahls").Get<ZahlsOptions>()!, configuration["Checkout:Currency"] ?? "LKR");
+            ZahlsPaymentGateway.ValidateConfiguration(configuration.GetSection("Zahls").Get<ZahlsOptions>()!, configuration["Checkout:Currency"] ?? Money.DefaultCurrency);
     }
 
     private static string Require(IConfiguration config, string key) => !string.IsNullOrWhiteSpace(config[key])

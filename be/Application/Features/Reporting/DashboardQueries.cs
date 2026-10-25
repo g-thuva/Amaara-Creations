@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using be.Domain.Identity;
 using be.Domain.Orders;
 using Microsoft.AspNetCore.Identity;
@@ -12,9 +13,9 @@ public sealed class DashboardQueries(IApplicationDbContext _context, UserManager
         var today = DateTime.UtcNow.Date;
         var thisMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         var endOfToday = today.AddDays(1);
-        // This legacy dashboard reports LKR only. TEST payments are never business revenue.
-        var revenueOrders = _context.Orders.Where(o => o.Currency == "LKR" && o.Status != OrderStatus.Cancelled && !o.Payments.Any(p => (p.ProviderMode == "TEST" || p.ProviderMode == "Sandbox")));
-        // Total Revenue (LKR business orders only)
+        // This legacy dashboard reports CHF only. TEST payments are never business revenue.
+        var revenueOrders = _context.Orders.Where(o => o.Currency == Money.DefaultCurrency && o.Status != OrderStatus.Cancelled && !o.Payments.Any(p => (p.ProviderMode == "TEST" || p.ProviderMode == "Sandbox")));
+        // Total Revenue (CHF business orders only)
         var totalRevenue = await revenueOrders.SumAsync(o => (decimal? )o.Total) ?? 0;
         // Revenue Today
         var revenueToday = await revenueOrders.Where(o => o.OrderDate >= today && o.OrderDate < endOfToday).SumAsync(o => (decimal? )o.Total) ?? 0;
@@ -64,7 +65,7 @@ public sealed class DashboardQueries(IApplicationDbContext _context, UserManager
         var thisWeek = today.AddDays(-(int)today.DayOfWeek);
         var thisMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         var thisYear = new DateTime(DateTime.UtcNow.Year, 1, 1);
-        var revenueOrders = _context.Orders.Where(o => o.Currency == "LKR" && o.Status != OrderStatus.Cancelled && !o.Payments.Any(p => (p.ProviderMode == "TEST" || p.ProviderMode == "Sandbox")));
+        var revenueOrders = _context.Orders.Where(o => o.Currency == Money.DefaultCurrency && o.Status != OrderStatus.Cancelled && !o.Payments.Any(p => (p.ProviderMode == "TEST" || p.ProviderMode == "Sandbox")));
         // Total Revenue
         var totalRevenue = await revenueOrders.SumAsync(o => (decimal? )o.Total) ?? 0;
         // Revenue Today
@@ -155,7 +156,7 @@ public sealed class DashboardQueries(IApplicationDbContext _context, UserManager
         var lowStockProducts = await _context.Products.Where(p => p.Stock > 0 && p.Stock < 10).CountAsync();
         // Top Selling Products (by quantity sold)
         var topSellingProducts = await _context.OrderItems.Include(oi => oi.Product)
-            .Where(oi => oi.Order!.Currency == "LKR" && oi.Order.Status != OrderStatus.Cancelled && !oi.Order.Payments.Any(p => (p.ProviderMode == "TEST" || p.ProviderMode == "Sandbox")))
+            .Where(oi => oi.Order!.Currency == Money.DefaultCurrency && oi.Order.Status != OrderStatus.Cancelled && !oi.Order.Payments.Any(p => (p.ProviderMode == "TEST" || p.ProviderMode == "Sandbox")))
             .GroupBy(oi => new { ProductId = oi.ProductId ?? 0, Name = !string.IsNullOrEmpty(oi.ProductNameSnapshot) ? oi.ProductNameSnapshot : (oi.Product != null ? oi.Product.Name : string.Empty), ImageUrl = oi.ImageSnapshot ?? (oi.Product != null ? oi.Product.ImageUrl : string.Empty) })
             .Select(g => new TopSellingProduct { ProductId = g.Key.ProductId, ProductName = g.Key.Name, ProductImageUrl = g.Key.ImageUrl, TotalQuantitySold = g.Sum(oi => oi.Quantity), TotalRevenue = g.Sum(oi => oi.Subtotal) })
             .OrderByDescending(p => p.TotalQuantitySold)

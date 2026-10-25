@@ -2,6 +2,7 @@ namespace be.Application.Features.Reporting
 {
     public class DashboardStatsResponse
     {
+        public string Currency { get; set; } = be.Domain.Common.Money.DefaultCurrency;
         public decimal TotalRevenue { get; set; }
         public int TotalOrders { get; set; }
         public int TotalCustomers { get; set; }

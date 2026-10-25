@@ -3,7 +3,7 @@ export interface SalesSegment { label: string; value: number }
 export interface TopProduct { productId: number; productName: string; productImageUrl: string; totalQuantitySold: number; totalRevenue: number }
 /** A complete, currency/environment-scoped source. Never use a recent-order sample. */
 export interface ScopedSales {
-  currency: 'LKR';
+  currency: 'CHF';
   environment: string;
   complete: true;
   from: string;

@@ -120,17 +120,20 @@ public sealed class PaymentHttpSecurityTests
     }
 
     [Fact]
-    public async Task ChfTestPaymentIsExcludedFromLegacyLkrRevenue()
+    public async Task ChfReportingExcludesTestPaymentsAndHistoricalOtherCurrency()
     {
         await using var factory = new CommerceApiFactory();
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Test-User", "admin");
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Orders.Add(new Order { OrderNumber = "CHF-BUSINESS-FIXTURE", UserId = "fixture", Currency = "CHF", Total = 100m, Status = OrderStatus.Confirmed });
         db.Orders.AddRange(new Order { OrderNumber = "LKR-BUSINESS-FIXTURE", UserId = "fixture", Currency = "LKR", Total = 100m, Status = OrderStatus.Confirmed }, new Order { OrderNumber = "CHF-TEST-FIXTURE", UserId = "fixture", Currency = "CHF", Total = 50m, Status = OrderStatus.Confirmed, Payments = [new Payment { Provider = "Zahls", ProviderMode = "TEST", Method = "HostedRedirect", Currency = "CHF", Amount = 50m, Status = PaymentStatus.Paid }] });
         await db.SaveChangesAsync();
         var dashboard = await client.GetFromJsonAsync<JsonElement>("/api/v1/admin/dashboard");
         var revenue = await client.GetFromJsonAsync<JsonElement>("/api/v1/admin/dashboard/revenue");
+        Assert.Equal("CHF", dashboard.GetProperty("currency").GetString());
+        Assert.Equal("CHF", revenue.GetProperty("currency").GetString());
         Assert.Equal(100m, dashboard.GetProperty("totalRevenue").GetDecimal());
         Assert.Equal(100m, revenue.GetProperty("totalRevenue").GetDecimal());
     }

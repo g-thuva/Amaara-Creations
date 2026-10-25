@@ -1,6 +1,8 @@
 namespace be.Domain.Common;
 public static class Money
 {
+    public const string DefaultCurrency = "CHF";
+
     // Explicitly supported ISO currency exponents; unsupported currencies fail closed.
     public static int Exponent(string currency) => currency switch
     {

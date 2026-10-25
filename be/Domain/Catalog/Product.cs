@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -28,7 +29,7 @@ public class Product
 
     [Required]
     [StringLength(3)]
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
 
     [Required]
     [StringLength(500)]

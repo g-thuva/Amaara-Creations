@@ -135,7 +135,7 @@ public sealed class CustomerQueries(IApplicationDbContext _context, UserManager<
                 Shipped = group.Count(o => o.Status == OrderStatus.Shipped),
                 Delivered = group.Count(o => o.Status == OrderStatus.Delivered),
                 Cancelled = group.Count(o => o.Status == OrderStatus.Cancelled),
-                Spent = group.Sum(o => o.Currency == "LKR" && o.Status != OrderStatus.Cancelled ? o.Total : 0m),
+                Spent = group.Sum(o => o.Currency == Money.DefaultCurrency && o.Status != OrderStatus.Cancelled ? o.Total : 0m),
                 Last = group.Max(o => (DateTime?)o.OrderDate)
             }).SingleOrDefaultAsync();
         var totalCartItems = await _context.CartItems.CountAsync(c => c.UserId == userId);

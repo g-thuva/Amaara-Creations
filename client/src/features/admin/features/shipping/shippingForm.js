@@ -1,3 +1,4 @@
+import { STORE_CURRENCY } from '@/shared/config/currency.js';
 export const newZone = () => ({
   name: "",
   country: "",
@@ -12,7 +13,7 @@ export const newMethod = () => ({
   name: "",
   code: "",
   shippingZoneId: "",
-  currency: "LKR",
+  currency: STORE_CURRENCY,
   basePrice: 0,
   freeShippingThreshold: null,
   minimumOrderValue: null,

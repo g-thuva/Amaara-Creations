@@ -31,33 +31,34 @@ public sealed class ShippingSetupTests
     public async Task EmptyDevelopmentStoreOffersEditableDeliveryRatesAndStandardFreeShipping()
     {
         await using var fixture = new CommerceFixture();
-        await fixture.SeedAsync();
+        await fixture.SeedAsync(currency: "CHF");
+        (await fixture.Db.Products.SingleAsync()).Price = 10;
         await RemoveShipping(fixture);
         await Seed(fixture);
 
         var quote = (await fixture.Pricing.CalculateAsync("a", new() { AddressId = 1 }, default)).Quote;
         Assert.Equal(new[] { "STANDARD", "EXPRESS" }, quote.AvailableShippingMethods.Select(method => method.Code));
-        Assert.Equal(new decimal[] { 350, 550 }, quote.AvailableShippingMethods.Select(method => method.Amount));
+        Assert.Equal(new decimal[] { 3.50m, 5.50m }, quote.AvailableShippingMethods.Select(method => method.Amount));
         Assert.All(quote.AvailableShippingMethods, method => Assert.False(method.IsDevelopmentValue));
 
         var standard = quote.AvailableShippingMethods.Single(method => method.Code == "STANDARD");
         var selected = (await fixture.Pricing.CalculateAsync("a", new() { AddressId = 1, ShippingMethodId = standard.Id }, default)).Quote;
-        Assert.Equal(350, selected.Shipping);
+        Assert.Equal(3.50m, selected.Shipping);
         Assert.True(selected.CanPay);
 
-        (await fixture.Db.Products.SingleAsync()).Price = 2500;
+        (await fixture.Db.Products.SingleAsync()).Price = 25;
         await fixture.Db.SaveChangesAsync();
         var free = (await fixture.Pricing.CalculateAsync("a", new() { AddressId = 1, ShippingMethodId = standard.Id }, default)).Quote;
-        Assert.Equal(5000, free.Subtotal);
+        Assert.Equal(50, free.Subtotal);
         Assert.Equal(0, free.Shipping);
-        Assert.Equal(550, free.AvailableShippingMethods.Single(method => method.Code == "EXPRESS").Amount);
+        Assert.Equal(5.50m, free.AvailableShippingMethods.Single(method => method.Code == "EXPRESS").Amount);
     }
 
     [Fact]
     public async Task RestartPreservesAdminEditsAndDisabledMethods()
     {
         await using var fixture = new CommerceFixture();
-        await fixture.SeedAsync();
+        await fixture.SeedAsync(currency: "CHF");
         await RemoveShipping(fixture);
         await Seed(fixture);
         var standard = await fixture.Db.ShippingMethods.SingleAsync(method => method.Code == "STANDARD");
@@ -77,9 +78,9 @@ public sealed class ShippingSetupTests
     }
 
     [Theory]
-    [InlineData("Production", "LKR")]
-    [InlineData("Staging", "LKR")]
-    [InlineData("Development", "CHF")]
+    [InlineData("Production", "CHF")]
+    [InlineData("Staging", "CHF")]
+    [InlineData("Development", "LKR")]
     public async Task OtherEnvironmentsAndCurrenciesAreNotSeeded(string environment, string currency)
     {
         await using var fixture = new CommerceFixture();

@@ -445,7 +445,7 @@ namespace be.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)")
-                        .HasDefaultValue("LKR");
+                        .HasDefaultValue("CHF");
 
                     b.Property<string>("Description")
                         .IsRequired()

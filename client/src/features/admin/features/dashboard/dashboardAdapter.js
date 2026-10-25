@@ -1,9 +1,10 @@
+import { STORE_CURRENCY } from '@/shared/config/currency.js';
 // @ts-check
 import { bucketOrders, monthlyBuckets, utcInstant } from '@/utils/dateBuckets.js';
 
 export const SERIES_GAP = 'Daily sales are not available. The current report supplies UTC monthly totals; recent orders are a sample without payment environments.';
 /**
- * Accepts only verified complete LKR data with an explicit environment and
+ * Accepts only verified complete CHF data with an explicit environment and
  * coverage of BOTH periods. The current legacy endpoints cannot provide it.
  * @param {ReturnType<import('@/utils/dateBuckets.js').dashboardPeriod>} range
  * @param {import('./dashboardContracts.ts').ScopedSales | null} source
@@ -11,10 +12,10 @@ export const SERIES_GAP = 'Daily sales are not available. The current report sup
  */
 export function adaptSales(range, source = null) {
   const unavailable = { series: null, previous: null, total: null, previousTotal: null, orderCount: null, status: null, reason: SERIES_GAP };
-  if (!source?.complete || source.currency !== 'LKR' || !source.environment) return unavailable;
+  if (!source?.complete || source.currency !== STORE_CURRENCY || !source.environment) return unavailable;
   const from = utcInstant(source.from), to = utcInstant(source.to);
   if (!from || !to || +from > Date.parse(range.previousStart) || +to < Date.parse(range.end)) return unavailable;
-  if (source.orders.some(order => order.currency !== 'LKR' || order.environment !== source.environment || !Number.isFinite(order.total) || order.total < 0 || !utcInstant(order.orderDate))) return unavailable;
+  if (source.orders.some(order => order.currency !== STORE_CURRENCY || order.environment !== source.environment || !Number.isFinite(order.total) || order.total < 0 || !utcInstant(order.orderDate))) return unavailable;
   const previousRange = { ...range, start: range.previousStart, end: range.start };
   const eligible = source.orders.filter(order => order.status !== 'Cancelled');
   const days = bucketOrders(eligible, range);
@@ -41,7 +42,7 @@ export function adaptSales(range, source = null) {
  */
 export function salesFromLegacy(range, orderStats) {
   return adaptSales(range, orderStats?.totalOrders === 0 ? {
-    currency: 'LKR', environment: 'business', complete: true,
+    currency: STORE_CURRENCY, environment: 'business', complete: true,
     from: range.previousStart, to: range.end, orders: [],
   } : null);
 }

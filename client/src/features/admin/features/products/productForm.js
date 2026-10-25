@@ -1,10 +1,11 @@
+import { STORE_CURRENCY } from '@/shared/config/currency.js';
 export const emptyForm = {
   name: "",
   slug: "",
   shortDescription: "",
   description: "",
   basePrice: "",
-  currency: "",
+  currency: STORE_CURRENCY,
   rowVersion: "",
   baseSku: "",
   categoryId: "",

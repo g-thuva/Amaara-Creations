@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using be.Domain.Identity;
 using be.Domain.Payments;
 using be.Domain.Shipping;
@@ -41,7 +42,7 @@ public class Order
 
     [Required]
     [StringLength(3)]
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
 
     [StringLength(120)]
     public string? ShippingMethodName { get; set; }

@@ -1,3 +1,4 @@
+using be.Domain.Common;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -26,7 +27,7 @@ public class ShippingMethod
     public string Code { get; set; } = string.Empty;
 
     [StringLength(3)]
-    public string Currency { get; set; } = "LKR";
+    public string Currency { get; set; } = Money.DefaultCurrency;
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal? MinimumOrderValue { get; set; }

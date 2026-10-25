@@ -43,8 +43,8 @@ public sealed class AccountStatisticsTests
         await db.SaveChangesAsync();
         client.DefaultRequestHeaders.Add("X-Test-User", owner.Id);
         var stats = await client.GetFromJsonAsync<JsonElement>("/api/v1/users/profile/stats");
-        Assert.Equal(100m, stats.GetProperty("totalSpent").GetDecimal());
-        Assert.Equal("LKR", stats.GetProperty("currency").GetString());
+        Assert.Equal(25m, stats.GetProperty("totalSpent").GetDecimal());
+        Assert.Equal("CHF", stats.GetProperty("currency").GetString());
         Assert.Equal(3, stats.GetProperty("totalOrders").GetInt32());
         var totals = stats.GetProperty("orderTotalsByCurrency");
         Assert.Equal(100m, totals.GetProperty("LKR").GetDecimal());
@@ -57,8 +57,8 @@ public sealed class AccountStatisticsTests
         Assert.All(history.GetProperty("orders").EnumerateArray(), order =>
             Assert.Contains(order.GetProperty("currency").GetString(), new[] { "LKR", "CHF" }));
         var customerStats = await client.GetFromJsonAsync<JsonElement>($"/api/v1/admin/customers/{owner.Id}/stats");
-        Assert.Equal(100m, customerStats.GetProperty("totalSpent").GetDecimal());
-        Assert.Equal("LKR", customerStats.GetProperty("currency").GetString());
+        Assert.Equal(25m, customerStats.GetProperty("totalSpent").GetDecimal());
+        Assert.Equal("CHF", customerStats.GetProperty("currency").GetString());
         Assert.Equal(3, customerStats.GetProperty("totalOrders").GetInt32());
         Assert.Equal(1, customerStats.GetProperty("cancelledOrders").GetInt32());
         var bounded = await client.GetFromJsonAsync<JsonElement>($"/api/v1/admin/customers/{owner.Id}/orders?pageNumber=2147483647&pageSize=2147483647");

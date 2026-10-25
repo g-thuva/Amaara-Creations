@@ -25,15 +25,15 @@ function OrderNumber({ order, canViewOrders }) {
 }
 export function RecentOrdersTable({ resource, canViewOrders = true }) {
   const rows = resource.data || [];
-  const lkr = rows.filter(order => order.currency === 'LKR');
-  return <section className="sales-panel sales-recent"><div className="sales-panel-header"><div><h2>Recent orders</h2><p>Latest LKR orders · all environments</p></div>{canViewOrders && <Link to="/admin/orders">View all <span aria-hidden="true">↗</span></Link>}</div>
-    <div className="sales-scroll"><DataTable caption="Recent order activity" captionVisible={false} rows={lkr.slice(0, 5)} loading={resource.loading} error={resource.error && 'Recent orders could not be loaded.'} retry={resource.reload} empty="No orders yet" emptyDescription="New orders will appear here." columns={[
+  const chf = rows.filter(order => order.currency === 'CHF');
+  return <section className="sales-panel sales-recent"><div className="sales-panel-header"><div><h2>Recent orders</h2><p>Latest CHF orders · all environments</p></div>{canViewOrders && <Link to="/admin/orders">View all <span aria-hidden="true">↗</span></Link>}</div>
+    <div className="sales-scroll"><DataTable caption="Recent order activity" captionVisible={false} rows={chf.slice(0, 5)} loading={resource.loading} error={resource.error && 'Recent orders could not be loaded.'} retry={resource.reload} empty="No orders yet" emptyDescription="New orders will appear here." columns={[
       { key: 'orderNumber', label: 'Order #', render: order => <OrderNumber order={order} canViewOrders={canViewOrders} /> },
       { key: 'customer', label: 'Customer', render: order => { const name = order.customerName || order.customerEmail || '—'; return <span className="sales-customer"><span aria-hidden="true" className="sales-customer-avatar">{name.split(/\s+/).map(part => part[0]).slice(0, 2).join('').toUpperCase()}</span><span className="sales-customer-name" title={name}>{name}</span></span>; } },
       { key: 'orderDate', label: 'Date', render: order => <time dateTime={utcInstant(order.orderDate)?.toISOString()} title={formatDateTime(order.orderDate)}>{relativeDate(order.orderDate)}</time> },
       { key: 'total', label: 'Amount', render: order => formatMoney(order.total) },
       { key: 'status', label: 'Status' },
     ]} /></div>
-    {rows.length > lkr.length && <p className="sales-data-note">{rows.length - lkr.length} recent orders in other currencies are omitted.</p>}
+    {rows.length > chf.length && <p className="sales-data-note">{rows.length - chf.length} recent orders in other currencies are omitted.</p>}
   </section>;
 }

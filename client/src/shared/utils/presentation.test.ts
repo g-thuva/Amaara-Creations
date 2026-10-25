@@ -7,7 +7,8 @@ import { validQuantity } from '@/shared/utils/quantity.ts';
 import { resolveMediaUrl } from '@/shared/api/requestConfig.js';
 describe('storefront contracts', () => {
   it('formats server money consistently including zero', () => {
-    expect(money(1250)).toBe('Rs. 1,250.00'); expect(money(0)).toBe('Rs. 0.00');
+    expect(money(1250)).toMatch(/^CHF\s1'250\.00$/); expect(money(0)).toMatch(/^CHF\s0\.00$/);
+    expect(money(1250, 'LKR')).toBe('Rs. 1,250.00');
     expect(money(25.5, 'CHF')).toContain('CHF');
     expect(money(25.5, 'CHF')).not.toContain('Rs.');
   });

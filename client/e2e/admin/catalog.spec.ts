@@ -36,7 +36,7 @@ test("extracted product form, variants, media and archive actions persist throug
     await page.getByLabel("Name", { exact: true }).fill(name);
     await page
       .getByRole("combobox", { name: "Currency", exact: true })
-      .selectOption("LKR");
+      .selectOption("CHF");
     await page.getByLabel("Base price", { exact: true }).fill("100");
     await page.getByLabel("Stock", { exact: true }).fill("12");
     await page

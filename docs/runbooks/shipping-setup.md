@@ -5,17 +5,17 @@ address, store currency and any configured order limits. An empty shipping
 configuration returns no delivery options; the application does not invent a
 rate while calculating a quote.
 
-An empty Development store using LKR starts with the following editable rates
+An empty Development store using CHF starts with the following editable rates
 for Sri Lanka. These defaults were selected with the owner's authorization.
 
 | Method | Charge | Free shipping |
 | --- | --- | --- |
-| Standard delivery | LKR 350 | Orders of LKR 5,000 or more |
-| Express delivery | LKR 550 | None |
+| Standard delivery | CHF 3.50 | Orders of CHF 50 or more |
+| Express delivery | CHF 5.50 | None |
 
 The initial zone has no region, postal-code or phone requirements. Delivery
 estimates are left unset until configured by the business. The initializer runs
-only in Development with LKR and only when both shipping zones and methods are
+only in Development with CHF and only when both shipping zones and methods are
 empty. It preserves existing setup, price changes and inactive methods. No
 schema migration is required. Production shipping is configured through admin.
 

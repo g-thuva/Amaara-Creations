@@ -21,7 +21,7 @@ test('every password field can be revealed independently without changing autoco
 });
 
 test('empty inventory hides filters while no matches keeps recovery actions', async ({ page }) => {
-  await page.route('**/api/v1/products?*', route => route.fulfill({ json: { products: [], totalCount: 0, publishedCount: 0, totalPages: 0, currency: 'LKR' } }));
+  await page.route('**/api/v1/products?*', route => route.fulfill({ json: { products: [], totalCount: 0, publishedCount: 0, totalPages: 0, currency: 'CHF' } }));
   await page.goto('./products');
   await expect(page.getByRole('heading', { name: 'Begin with your own design' })).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'Product filters' })).toHaveCount(0);
