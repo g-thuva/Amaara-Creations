@@ -1,0 +1,120 @@
+.admin-app .sales-trend-line { display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:11px; }
+.admin-app .sales-trend { display:inline-flex; align-items:center; gap:3px; padding:2px 6px; border-radius:6px; font-weight:650; white-space:nowrap; }
+.admin-app .sales-trend svg { width:13px; height:13px; }
+.admin-app .sales-trend-positive { color:var(--success-text); background:var(--success-bg); }
+.admin-app .sales-trend-negative { color:var(--danger-text); background:var(--danger-bg); }
+.admin-app .sales-trend-neutral { color:var(--neutral-text); background:var(--neutral-bg); }
+.admin-app .sales-comparison { color:var(--text-muted); }
+.admin-app .sales-sparkline { width:100px; height:28px; }
+.sales-sparkline polyline { fill:none; stroke:var(--navy-600); stroke-width:2; }
+.admin-app .sales-chart-body { flex:1; min-height:130px; position:relative; }
+.admin-app .sales-chart-body.is-table-view { display:none; }
+.admin-app .sales-chart-scroll { height:100%; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; scrollbar-color:var(--border-strong) var(--bg-surface); }
+.admin-app .sales-bars { display:block; width:100%; height:100%; min-height:130px; }
+.sales-grid line { stroke:var(--chart-grid); stroke-dasharray:3 5; }
+.sales-grid text,.sales-axis-label { fill:var(--chart-axis); font-size:12px; font-variant-numeric:tabular-nums; }
+.sales-bar { cursor:pointer; transform-box:fill-box; transform-origin:center bottom; animation:sales-bar-grow 450ms ease-out backwards; stroke:var(--navy-700); stroke-width:1; }
+.sales-bar.is-peak { fill:var(--gold-500); stroke:var(--gold-700); }
+.sales-bar[data-stagger="0"] { animation-delay:0ms; }
+.sales-bar[data-stagger="1"] { animation-delay:15ms; }
+.sales-bar[data-stagger="2"] { animation-delay:30ms; }
+.sales-bar[data-stagger="3"] { animation-delay:45ms; }
+.sales-bar[data-stagger="4"] { animation-delay:60ms; }
+.sales-bar[data-stagger="5"] { animation-delay:75ms; }
+.sales-bar[data-stagger="6"] { animation-delay:90ms; }
+.sales-bar[data-stagger="7"] { animation-delay:105ms; }
+.sales-bar[data-stagger="8"] { animation-delay:120ms; }
+.sales-bar[data-stagger="9"] { animation-delay:135ms; }
+.sales-bar[data-stagger="10"] { animation-delay:150ms; }
+.sales-bar[data-stagger="11"] { animation-delay:165ms; }
+.sales-bar[data-stagger="12"] { animation-delay:180ms; }
+.sales-bar[data-stagger="13"] { animation-delay:195ms; }
+.sales-bar[data-stagger="14"] { animation-delay:210ms; }
+.sales-bar[data-stagger="15"] { animation-delay:225ms; }
+.sales-bar[data-stagger="16"] { animation-delay:240ms; }
+.sales-bar[data-stagger="17"] { animation-delay:255ms; }
+.sales-bar[data-stagger="18"] { animation-delay:270ms; }
+.sales-bar[data-stagger="19"] { animation-delay:285ms; }
+.sales-bar[data-stagger="20"] { animation-delay:300ms; }
+.sales-bar[data-stagger="21"] { animation-delay:315ms; }
+.sales-bar[data-stagger="22"] { animation-delay:330ms; }
+.sales-bar[data-stagger="23"] { animation-delay:345ms; }
+.sales-bar[data-stagger="24"] { animation-delay:360ms; }
+.sales-bar[data-stagger="25"] { animation-delay:375ms; }
+.sales-bar[data-stagger="26"] { animation-delay:390ms; }
+.sales-bar[data-stagger="27"] { animation-delay:405ms; }
+.sales-bar[data-stagger="28"] { animation-delay:420ms; }
+.sales-bar[data-stagger="29"] { animation-delay:435ms; }
+.sales-bar:hover,.sales-bar:focus,.is-active > .sales-bar { fill:var(--gold-400); stroke:var(--gold-700); }
+.sales-bars.has-active .sales-bar-group:not(.is-active) { opacity:.7; }
+.sales-peak-label { fill:var(--gold-700); font-size:11px; font-weight:700; }
+.sales-average { pointer-events:none; }
+.sales-average line { stroke:var(--gold-700); stroke-dasharray:5 5; }
+.sales-average rect { fill:var(--gold-100); }
+.sales-average text { fill:var(--gold-700); font-size:10px; }
+.sales-previous { pointer-events:none; }
+.sales-previous polyline { fill:none; stroke:var(--navy-600); stroke-width:1.5; stroke-dasharray:4 4; }
+.sales-previous circle { fill:var(--bg-surface); stroke:var(--navy-600); stroke-width:1.5; }
+.sales-ghost-bar { fill:none; stroke:var(--border-strong); stroke-dasharray:4 5; }
+.sales-skeleton-bar { fill:var(--chart-track); animation:sales-shimmer 1.3s ease-in-out infinite alternate; }
+.admin-app .sales-chart-overlay { position:absolute; inset:0 0 0 44px; display:flex; align-items:center; justify-content:center; flex-direction:column; pointer-events:none; }
+.admin-app .sales-chart-overlay .admin-empty-state { background:var(--bg-surface); padding:10px 16px; border-radius:var(--radius-card); max-width:390px; }
+.admin-app .sales-chart-overlay .admin-empty-state h2 { font-size:14px; margin:6px 0; }
+.admin-app .sales-chart-overlay .admin-empty-state p { font-size:12px; margin:0 0 8px; max-width:36ch; }
+.admin-app .sales-chart-overlay .admin-state-icon { width:32px; height:32px; margin:0 auto; background:var(--gold-100); color:var(--navy-700); }
+.admin-app .sales-chart-overlay a { pointer-events:auto; }
+.sales-placeholder-label { color:var(--text-muted); font-size:10px; background:var(--bg-surface); padding:0 6px; text-align:center; margin-right:auto; }
+.admin-app .sales-tooltip { position:absolute; top:4px; right:16px; z-index:2; width:230px; padding:12px; background:var(--bg-surface); color:var(--text-strong); box-shadow:var(--shadow-md); border:1px solid var(--border-strong); border-radius:12px; font-size:11px; }
+.sales-tooltip > strong { display:block; margin-bottom:6px; }
+.sales-tooltip > span { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:4px; }
+.sales-chart-controls { display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; min-height:28px; flex-shrink:0; }
+.admin-app .sales-chart-controls label { display:flex; gap:6px; align-items:center; font-size:11px; font-weight:400; color:var(--text-muted); }
+.admin-app .sales-text-button { color:var(--navy-700); background:transparent; border:0; font-size:11px; padding:4px 2px; min-height:24px; text-decoration:underline; text-underline-offset:3px; }
+.sales-data-table { flex:1; min-height:80px; overflow:auto; scrollbar-width:thin; }
+.sales-data-table table { width:100%; font-size:12px; border-collapse:collapse; }
+.sales-data-table th,.sales-data-table td { text-align:left; padding:6px; border-bottom:1px solid var(--border); }
+.sales-chart-footer { display:grid; grid-template-columns:1.2fr 1fr .8fr; gap:12px; border-top:1px solid var(--border); padding-top:10px; margin-top:4px; flex-shrink:0; }
+.sales-chart-footer > div + div { border-left:1px solid var(--border); padding-left:12px; }
+.sales-chart-footer span { display:block; color:var(--text-muted); font-size:10px; }
+.sales-chart-footer strong { display:block; color:var(--navy-900); font-size:12px; font-weight:600; }
+.sales-chart-footer small { display:block; font-size:10px; color:var(--text-muted); }
+.sales-chart-state { display:grid; place-items:center; flex:1; min-height:200px; }
+.sales-chart-state .admin-error-state { border:0; padding:12px; }
+.sales-breakdown-content { flex:1; min-height:0; overflow:auto; scrollbar-width:thin; display:flex; flex-direction:column; align-items:center; }
+.admin-app .sales-donut { width:min(100%,190px); height:auto; min-height:130px; flex:0 1 190px; overflow:visible; }
+.sales-donut-track,.sales-donut-empty { fill:none; stroke:var(--chart-track); stroke-width:16; }
+.sales-donut-empty { stroke:var(--border-strong); stroke-width:14; stroke-dasharray:3 5; }
+.sales-donut-segment { fill:none; stroke-width:16; cursor:pointer; animation:sales-donut-draw 400ms ease-out; }
+.sales-donut-outline { fill:none; stroke:var(--navy-700); stroke-width:18; animation:sales-donut-draw 400ms ease-out; }
+.sales-donut-total { fill:var(--text-strong); font-size:19px; font-weight:700; letter-spacing:-.5px; }
+.sales-donut-label { fill:var(--text-muted); font-size:10px; }
+.sales-color-1 { stroke:var(--chart-1); background:var(--chart-1); }
+.sales-color-2 { stroke:var(--chart-2); background:var(--chart-2); }
+.sales-color-3 { stroke:var(--chart-3); background:var(--chart-3); }
+.sales-color-4 { stroke:var(--chart-4); background:var(--chart-4); }
+.sales-color-5 { stroke:var(--chart-5); background:var(--chart-5); }
+.sales-color-6 { stroke:var(--chart-6); background:var(--chart-6); }
+.has-active .sales-donut-segment:not(.is-active),.has-active .sales-legend-row:not(.is-active) .sales-legend-dot { opacity:.65; }
+.sales-donut-legend { list-style:none; margin:0; padding:0; width:100%; overflow:auto; scrollbar-width:thin; flex-shrink:0; }
+.admin-app .sales-legend-row { width:100%; display:flex; align-items:center; gap:8px; padding:6px 4px; border:0; border-radius:6px; background:transparent; color:var(--text-strong); text-align:left; font-size:12px; }
+.sales-legend-row:hover,.sales-legend-row:focus { background:var(--bg-subtle); }
+.sales-legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; outline:1px solid var(--text-muted); }
+.sales-legend-name { flex:1; min-width:0; overflow-wrap:anywhere; }
+.sales-legend-name small { display:block; font-size:10px; color:var(--text-muted); }
+.sales-legend-row:hover small,.sales-legend-row:focus small { color:var(--neutral-text); }
+.admin-app .sales-donut-empty-text { font-size:12px; text-align:center; color:var(--text-muted); max-width:30ch; margin:auto 0; }
+@keyframes sales-bar-grow { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+@keyframes sales-donut-draw { from { stroke-dasharray:0 452.389; } }
+@keyframes sales-shimmer { from { opacity:.4; } to { opacity:1; } }
+@media(max-width:767px) {
+  .admin-app .sales-chart-body { flex:none; height:260px; min-height:260px; }
+  .admin-app .sales-bars { min-width:640px; }
+  .admin-app .sales-chart-overlay { left:12px; }
+  .sales-chart-footer { gap:8px; }
+  .sales-chart-footer strong { font-size:11px; overflow-wrap:anywhere; }
+  .sales-chart-footer > div + div { padding-left:8px; }
+  .admin-app .sales-tooltip { right:4px; width:210px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .sales-bar,.sales-donut-segment,.sales-donut-outline,.sales-skeleton-bar { animation:none; }
+}

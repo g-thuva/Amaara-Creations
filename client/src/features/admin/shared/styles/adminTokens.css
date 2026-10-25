@@ -16,6 +16,10 @@
   --radius-control: 8px; --radius-card: 12px; --radius-dialog: 16px;
   --admin-transition: 180ms ease; --admin-header-height: 64px; --admin-sidebar-width: 264px; --admin-rail-width: 72px;
   --admin-z-header: 20; --admin-z-overlay: 30; --admin-z-sidebar: 40; --admin-z-menu: 50; --admin-z-toast: 60;
+  --chart-1: #1A3A64; --chart-2: #C9A35D; --chart-3: #24508A; --chart-4: #D9B97E; --chart-5: #64748B; --chart-6: #94A3B8;
+  --chart-grid: var(--border); --chart-axis: var(--text-muted); --chart-track: var(--bg-subtle);
+  --topbar-h: var(--admin-header-height); --page-padding-y: 24px;
+  --dashboard-wash: rgba(246,237,217,.4);
 }
 .admin-app {
   --primary-color: var(--navy-900); --primary-light: var(--gold-500); --secondary-color: var(--text-muted);
