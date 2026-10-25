@@ -15,7 +15,7 @@ namespace be.Application.Features.Identity
         public string? Address { get; set; }
 
         [StringLength(500, ErrorMessage = "Avatar URL must not exceed 500 characters")]
-        [Url(ErrorMessage = "Avatar URL must be a valid URL")]
+        [AvatarMediaUrl(ErrorMessage = "Avatar URL must be a valid public image URL")]
         public string? AvatarUrl { get; set; }
     }
 }

@@ -58,7 +58,7 @@ public sealed class ProductionSettingsTests
     {
         ["AllowedHosts"] = "store.example.test", ["DataProtection:KeysPath"] = "/private/rehearsal-keys",
         ["Authentication:FrontendBaseUrl"] = "https://store.example.test", ["Email:Enabled"] = "false",
-        ["Uploads:Provider"] = "Local", ["Zahls:Enabled"] = "false"
+        ["Uploads:Provider"] = "Local", ["Storage:AllowLocalInProduction"] = "true", ["Zahls:Enabled"] = "false"
     };
     private static IConfiguration Config(Dictionary<string, string?> values) => new ConfigurationBuilder().AddInMemoryCollection(values).Build();
     private sealed class TestEnvironment : IWebHostEnvironment

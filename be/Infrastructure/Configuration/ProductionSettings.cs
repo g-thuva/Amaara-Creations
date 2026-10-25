@@ -11,9 +11,9 @@ public static class ProductionSettings
             throw new InvalidOperationException("Required upload scanning must be enabled and configured.");
         if (configuration.GetValue<bool>("Uploads:Scanner:Enabled") && !be.Infrastructure.Storage.HttpUploadScanner.ValidEndpoint(configuration["Uploads:Scanner:Endpoint"], out _))
             throw new InvalidOperationException("Upload scanning requires an approved HTTPS endpoint without URL credentials or query parameters.");
-        var provider = configuration["Uploads:Provider"] ?? "Local";
-        if (!provider.Equals("Local", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Uploads:Provider is unsupported; configure an implemented private-storage adapter.");
+        var storage = be.Infrastructure.Storage.StorageOptions.Read(configuration);
+        var storageValidation = new be.Infrastructure.Storage.StorageOptionsValidator(environment, configuration).Validate(null, storage);
+        if (storageValidation.Failed) throw new InvalidOperationException(string.Join(" ", storageValidation.Failures));
         if (configuration.GetValue<bool?>("Email:Enabled") != false && configuration["Email:Provider"] is not (null or "SMTP" or "DevelopmentCapture"))
             throw new InvalidOperationException("Email:Provider is unsupported; configure an implemented email adapter.");
         if (configuration.GetValue<bool?>("Email:Enabled") == true && configuration["Email:Provider"] != "DevelopmentCapture")

@@ -80,10 +80,9 @@ public static class DependencyInjection
             builder.Services.AddScoped<IEmailService, SmtpEmailService>();
         builder.Services.AddScoped<IAuditService, AuditService>();
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
+        builder.Services.AddMediaStorage(builder.Configuration, builder.Environment);
         builder.Services.AddHttpClient<IUploadScanner, HttpUploadScanner>(client => client.Timeout = TimeSpan.FromSeconds(10))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
-        builder.Services.AddScoped<be.Application.Abstractions.Storage.IAvatarStorage, be.Infrastructure.Storage.LocalAvatarStorage>();
         builder.Services.Configure<CheckoutOptions>(builder.Configuration.GetSection("Checkout"));
         builder.Services.Configure<DatatransOptions>(builder.Configuration.GetSection("Datatrans"));
         builder.Services.Configure<ZahlsOptions>(builder.Configuration.GetSection("Zahls"));

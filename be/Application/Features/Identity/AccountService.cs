@@ -5,17 +5,20 @@ using System.Security.Claims;
 using be.Application.Abstractions.Persistence;
 using be.Application.Abstractions.Identity;
 using be.Domain.Common;
+using be.Application.Abstractions.Storage;
 
 namespace be.Application.Features.Identity;
 public class AccountService
 {
     private readonly UserManager<User> _userManager;
     private readonly IApplicationDbContext _context;
-    public AccountService(UserManager<User> userManager, IApplicationDbContext context, IRequestActor actor)
+    private readonly IMediaCleanupQueue? _cleanup;
+    public AccountService(UserManager<User> userManager, IApplicationDbContext context, IRequestActor actor, IMediaCleanupQueue? cleanup = null)
     {
         _userManager = userManager;
         _context = context;
         _actor = actor;
+        _cleanup = cleanup;
     }
 
     public async Task<UserProfileResponse> GetProfile()
@@ -66,6 +69,7 @@ public class AccountService
         user.Name = request.Name;
         user.Phone = request.Phone;
         user.Address = request.Address;
+        QueuePreviousAvatar(user.AvatarUrl, request.AvatarUrl);
         user.AvatarUrl = request.AvatarUrl;
         user.UpdatedAt = DateTime.UtcNow;
         var result = await _userManager.UpdateAsync(user);
@@ -155,6 +159,7 @@ public class AccountService
             throw new CommerceException("IDENTITY_NOT_FOUND", "User not found", 404);
         }
 
+        QueuePreviousAvatar(user.AvatarUrl, request.AvatarUrl);
         user.AvatarUrl = request.AvatarUrl;
         user.UpdatedAt = DateTime.UtcNow;
         var result = await _userManager.UpdateAsync(user);
@@ -170,5 +175,9 @@ public class AccountService
         };
     }
 
+    private void QueuePreviousAvatar(string? previous, string? next)
+    {
+        if (previous != next && previous?.StartsWith("/api/v1/media/public/", StringComparison.Ordinal) == true) _cleanup?.EnqueueDelete(previous);
+    }
     private readonly IRequestActor _actor;
 }

@@ -8,7 +8,7 @@ public sealed class LocalAvatarStorage(IWebHostEnvironment environment, IConfigu
     private static readonly string[] ContentTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     public async Task<StoredAvatar> SaveAsync(MediaUpload file, string userId, CancellationToken cancellationToken)
     {
-        var maximum = configuration.GetValue<long?>("Uploads:MaxFileSizeBytes") ?? 5 * 1024 * 1024;
+        var maximum = Math.Min(configuration.GetValue<long?>("Uploads:MaxFileSizeBytes") ?? 5 * 1024 * 1024, StorageOptions.Read(configuration).Limits.AvatarBytes);
         if (file.Length == 0)
             throw new CommerceException("AVATAR_UPLOAD_INVALID", "No file uploaded");
         if (file.Length > maximum)
@@ -35,7 +35,7 @@ public sealed class LocalAvatarStorage(IWebHostEnvironment environment, IConfigu
         }
         var directory = Path.Combine(environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot"), "uploads", "avatars");
         Directory.CreateDirectory(directory);
-        var fileName = $"{userId}_{Guid.NewGuid()}.png";
+        var fileName = $"{Guid.NewGuid():N}.png";
         var path = Path.GetFullPath(Path.Combine(directory, fileName));
         if (!path.StartsWith(Path.GetFullPath(directory) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new CommerceException("AVATAR_UPLOAD_INVALID", "Invalid upload owner.");

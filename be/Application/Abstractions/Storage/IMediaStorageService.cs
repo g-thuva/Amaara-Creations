@@ -8,7 +8,8 @@ namespace be.Application.Abstractions.Storage
         long FileSize,
         int Width,
         int Height,
-        string StorageProvider);
+        string StorageProvider,
+        string? Sha256 = null);
     public interface IMediaStorageService
     {
         Task<StoredMedia> UploadAsync(MediaUpload file, string area, CancellationToken cancellationToken = default);

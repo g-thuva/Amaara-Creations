@@ -30,29 +30,11 @@ namespace be.Infrastructure.Storage
 
         private async Task<StoredMedia> UploadCoreAsync(MediaUpload file, string area, bool isPrivate, CancellationToken cancellationToken)
         {
-            if (file.Length <= 0)
-            {
-                throw new InvalidOperationException("No file was uploaded.");
-            }
-
-            if (file.Length > _maxFileSize)
-            {
-                throw new InvalidOperationException($"File size exceeds the configured limit of {_maxFileSize / 1024 / 1024}MB.");
-            }
-
-            var originalFileName = Path.GetFileName(file.FileName);
-            var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
-            var bytes = await ImageUploadValidator.ReadBoundedAsync(file, _maxFileSize, cancellationToken);
-            var imageInfo = ImageUploadValidator.Validate(bytes, file.ContentType, extension);
-            if (imageInfo.Width <= 0 || imageInfo.Height <= 0 || (long)imageInfo.Width * imageInfo.Height > _maxImagePixels)
-            {
-                throw new InvalidOperationException("Image dimensions are invalid or too large.");
-            }
-
-            await UploadScanning.Check(_scanner, _configuration, bytes, cancellationToken);
-            bytes = await SafeRasterImage.NormalizeAsync(bytes, _maxImagePixels, _maxFileSize, cancellationToken);
-            // Orientation can exchange width and height; use the normalized contract.
-            imageInfo = ImageUploadValidator.Validate(bytes, "image/png", ".png");
+            var limits = StorageOptions.Read(_configuration).Limits;
+            var maximum = Math.Min(_maxFileSize, !isPrivate ? limits.ProductBytes : area.StartsWith("custom-proofs/", StringComparison.Ordinal) ? limits.ProofBytes : limits.ArtworkBytes);
+            var prepared = await ImageUploadProcessor.PrepareAsync(file, _configuration, _scanner, maximum, false, cancellationToken);
+            var bytes = prepared.Bytes;
+            var originalFileName = prepared.OriginalName;
 
             var safeArea = string.Join('-', area.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(safeArea))
@@ -60,7 +42,7 @@ namespace be.Infrastructure.Storage
                 safeArea = "catalog";
             }
 
-            var fileName = $"{Guid.NewGuid():N}{imageInfo.Extension}";
+            var fileName = $"{Guid.NewGuid():N}.png";
             var relativeStorageKey = isPrivate ? $"private/{safeArea}/{DateTime.UtcNow:yyyy/MM}/{fileName}" : $"uploads/{safeArea}/{DateTime.UtcNow:yyyy/MM}/{fileName}";
             var physicalPath = GetPhysicalPath(relativeStorageKey);
             Directory.CreateDirectory(Path.GetDirectoryName(physicalPath)!);
@@ -69,7 +51,7 @@ namespace be.Infrastructure.Storage
                 await target.WriteAsync(bytes, cancellationToken);
             }
 
-            return new StoredMedia(relativeStorageKey, isPrivate ? string.Empty : GetPublicUrl(relativeStorageKey), originalFileName, imageInfo.ContentType, bytes.Length, imageInfo.Width, imageInfo.Height, "local");
+            return new StoredMedia(relativeStorageKey, isPrivate ? string.Empty : GetPublicUrl(relativeStorageKey), originalFileName, "image/png", bytes.Length, prepared.Width, prepared.Height, "local");
         }
 
         public Task DeleteAsync(string storageKey, CancellationToken cancellationToken = default)

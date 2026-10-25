@@ -8,7 +8,7 @@ using be.Application.Abstractions.Identity;
 using be.Domain.Common;
 
 namespace be.Application.Features.Catalog;
-public sealed class ProductMediaService(IApplicationDbContext _context, IMediaStorageService _mediaStorage, IAuditService _auditService, IRequestActor _actor)
+public sealed class ProductMediaService(IApplicationDbContext _context, IMediaStorageService _mediaStorage, IAuditService _auditService, IRequestActor _actor, IMediaCleanupQueue? cleanup = null)
 {
     public async Task<IReadOnlyList<ProductMediaResponse>> GetProductMedia(int id)
     {
@@ -144,8 +144,9 @@ public sealed class ProductMediaService(IApplicationDbContext _context, IMediaSt
         }
 
         _context.ProductMedia.Remove(media);
+        cleanup?.EnqueueDelete(storageKey);
         await _context.SaveChangesAsync();
-        await _mediaStorage.DeleteAsync(storageKey, _actor.RequestAborted);
+        if (!storageKey.StartsWith("s3:", StringComparison.Ordinal)) await _mediaStorage.DeleteAsync(storageKey, _actor.RequestAborted);
         await _auditService.RecordAsync("remove", nameof(ProductMedia), media.Id.ToString(), response, null, _actor.Audit);
         return;
     }

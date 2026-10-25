@@ -379,6 +379,41 @@ namespace be.Migrations
                     b.ToTable("Collections", (string)null);
                 });
 
+            modelBuilder.Entity("be.Domain.Catalog.MediaCleanupWork", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LastAttemptUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("NotBeforeUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PublicUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotBeforeUtc");
+
+                    b.HasIndex("StorageKey");
+
+                    b.ToTable("MediaCleanupWork", (string)null);
+                });
+
             modelBuilder.Entity("be.Domain.Catalog.Product", b =>
                 {
                     b.Property<int>("Id")

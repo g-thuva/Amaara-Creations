@@ -270,8 +270,10 @@ public class CustomDesignService
         if (asset == null)
             throw new CommerceException("CUSTOM_DESIGNS_NOT_FOUND", "Resource not found.", 404);
         _context.CustomDesignAssets.Remove(asset);
+        // This queue entry commits atomically with removing the SQL association.
+        if (asset.StorageKey.StartsWith("s3:", StringComparison.Ordinal)) _context.MediaCleanupWork.Add(new be.Domain.Catalog.MediaCleanupWork { StorageKey = asset.StorageKey, NotBeforeUtc = DateTime.UtcNow.AddMinutes(5) });
         await _context.SaveChangesAsync(cancellationToken);
-        await _storage.DeleteAsync(asset.StorageKey, cancellationToken);
+        if (!asset.StorageKey.StartsWith("s3:", StringComparison.Ordinal)) await _storage.DeleteAsync(asset.StorageKey, cancellationToken);
         return;
     }
 

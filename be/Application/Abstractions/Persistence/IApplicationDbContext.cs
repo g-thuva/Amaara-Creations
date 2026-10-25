@@ -22,6 +22,7 @@ namespace be.Application.Abstractions.Persistence;
 // EF Core remains the query/unit-of-work abstraction; no repository layer is added.
 public interface IApplicationDbContext
 {
+    DbSet<MediaCleanupWork> MediaCleanupWork { get; }
     DbSet<Product> Products { get; }
 
     DbSet<CartItem> CartItems { get; }

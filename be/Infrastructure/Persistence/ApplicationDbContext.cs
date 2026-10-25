@@ -37,6 +37,7 @@ namespace be.Infrastructure.Persistence
         public DbSet<ProductCollection> ProductCollections { get; set; }
         public DbSet<ProductVariant> ProductVariants { get; set; }
         public DbSet<ProductMedia> ProductMedia { get; set; }
+        public DbSet<MediaCleanupWork> MediaCleanupWork { get; set; }
         public DbSet<Address> Addresses { get; set; }
         public DbSet<CustomDesign> CustomDesigns { get; set; }
         public DbSet<CustomDesignAsset> CustomDesignAssets { get; set; }

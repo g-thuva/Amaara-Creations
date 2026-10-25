@@ -60,6 +60,7 @@ public class CustomDesignsController(CustomDesignService service) : ControllerBa
     [HttpGet("{id:int}/assets/{assetId:int}")]
     public async Task<IActionResult> DownloadAsset(int id, int assetId, CancellationToken cancellationToken)
     {
+        PrivateHeaders();
         var result = await service.DownloadAsset(id, assetId, cancellationToken);
         return File(result.Content, result.ContentType, result.FileName, result.EnableRangeProcessing);
     }
@@ -92,7 +93,15 @@ public class CustomDesignsController(CustomDesignService service) : ControllerBa
     [HttpGet("{id:int}/proofs/{revision:int}/file")]
     public async Task<IActionResult> DownloadProof(int id, int revision, CancellationToken cancellationToken)
     {
+        PrivateHeaders();
         var result = await service.DownloadProof(id, revision, cancellationToken);
         return File(result.Content, result.ContentType, result.FileName, result.EnableRangeProcessing);
+    }
+
+    private void PrivateHeaders()
+    {
+        Response.Headers.CacheControl = "private, no-store";
+        Response.Headers.XContentTypeOptions = "nosniff";
+        Response.Headers.ContentSecurityPolicy = "default-src 'none'; sandbox";
     }
 }

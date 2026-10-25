@@ -165,6 +165,7 @@
   {"method":"POST","path":"api/v1/custom-designs/{id:int}/proofs/approve","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
   {"method":"POST","path":"api/v1/custom-designs/{id:int}/proofs/request-changes","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
   {"method":"GET","path":"api/v1/custom-designs/{id:int}/proofs/{revision:int}/file","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
+  {"method":"GET","path":"api/v1/media/public/{**key}","authenticated":false,"anonymous":true,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
   {"method":"GET","path":"api/v1/orders","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
   {"method":"POST","path":"api/v1/orders","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
   {"method":"GET","path":"api/v1/orders/{id:int}","authenticated":true,"anonymous":false,"policies":[],"roles":[],"rateLimits":[],"requestLimit":null,"multipartLimit":null},
