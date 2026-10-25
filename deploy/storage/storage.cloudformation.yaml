@@ -1,0 +1,175 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Amaara private S3 media tiers and public CloudFront OAC delivery. Deploy only with owner approval.
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, staging, prod]
+  UniqueSuffix:
+    Type: String
+    AllowedPattern: '[a-z0-9-]{6,24}'
+  PublicOrigin:
+    Type: String
+    Description: Exact HTTPS storefront origin allowed to read public images from canvas.
+    AllowedPattern: 'https://[^/]+'
+    Default: 'https://store.example.test'
+Resources:
+  PublicBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub 'amaara-${Environment}-public-${UniqueSuffix}'
+      OwnershipControls:
+        Rules: [{ObjectOwnership: BucketOwnerEnforced}]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      VersioningConfiguration: {Status: Enabled}
+      LifecycleConfiguration:
+        Rules:
+          - Id: ApprovedRecoveryWindow
+            Status: Enabled
+            AbortIncompleteMultipartUpload: {DaysAfterInitiation: 7}
+            NoncurrentVersionExpiration: {NoncurrentDays: 90}
+  PrivateBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub 'amaara-${Environment}-private-${UniqueSuffix}'
+      OwnershipControls:
+        Rules: [{ObjectOwnership: BucketOwnerEnforced}]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      VersioningConfiguration: {Status: Enabled}
+      LifecycleConfiguration:
+        Rules:
+          - Id: ApprovedRecoveryWindow
+            Status: Enabled
+            AbortIncompleteMultipartUpload: {DaysAfterInitiation: 7}
+            NoncurrentVersionExpiration: {NoncurrentDays: 90}
+  PublicOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'amaara-${Environment}-${UniqueSuffix}'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+  PublicCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub 'amaara-media-${Environment}-${UniqueSuffix}'
+        DefaultTTL: 86400
+        MinTTL: 0
+        MaxTTL: 31536000
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          CookiesConfig: {CookieBehavior: none}
+          HeadersConfig: {HeaderBehavior: none}
+          QueryStringsConfig: {QueryStringBehavior: none}
+  PublicHeaders:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub 'amaara-media-security-${Environment}-${UniqueSuffix}'
+        CorsConfig:
+          AccessControlAllowCredentials: false
+          AccessControlAllowOrigins: {Items: [!Ref PublicOrigin]}
+          AccessControlAllowHeaders: {Items: ['*']}
+          AccessControlAllowMethods: {Items: [GET, HEAD, OPTIONS]}
+          AccessControlMaxAgeSec: 600
+          OriginOverride: true
+        SecurityHeadersConfig:
+          ContentTypeOptions: {Override: true}
+          ContentSecurityPolicy: {ContentSecurityPolicy: "default-src 'none'; sandbox", Override: true}
+          FrameOptions: {FrameOption: DENY, Override: true}
+          ReferrerPolicy: {ReferrerPolicy: no-referrer, Override: true}
+          StrictTransportSecurity: {AccessControlMaxAgeSec: 31536000, IncludeSubdomains: true, Override: true}
+  PublicDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Origins:
+          - Id: PublicMedia
+            DomainName: !GetAtt PublicBucket.RegionalDomainName
+            OriginAccessControlId: !Ref PublicOAC
+            S3OriginConfig: {OriginAccessIdentity: ''}
+        DefaultCacheBehavior:
+          TargetOriginId: PublicMedia
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: !Ref PublicCachePolicy
+          ResponseHeadersPolicyId: !Ref PublicHeaders
+        ViewerCertificate: {CloudFrontDefaultCertificate: true}
+  PublicBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PublicBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: [!GetAtt PublicBucket.Arn, !Sub '${PublicBucket.Arn}/*']
+            Condition: {Bool: {'aws:SecureTransport': 'false'}}
+          - Sid: AllowOnlyThisCloudFrontDistribution
+            Effect: Allow
+            Principal: {Service: cloudfront.amazonaws.com}
+            Action: s3:GetObject
+            Resource: [!Sub '${PublicBucket.Arn}/avatars/*', !Sub '${PublicBucket.Arn}/products/*']
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${PublicDistribution}'
+  PrivateBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PrivateBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: [!GetAtt PrivateBucket.Arn, !Sub '${PrivateBucket.Arn}/*']
+            Condition: {Bool: {'aws:SecureTransport': 'false'}}
+  ApplicationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Attach to the dedicated Amaara execution role; no bucket or IAM administration.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+            Resource:
+              - !Sub '${PublicBucket.Arn}/avatars/*'
+              - !Sub '${PublicBucket.Arn}/products/*'
+              - !Sub '${PrivateBucket.Arn}/custom-artwork/*'
+              - !Sub '${PrivateBucket.Arn}/custom-proofs/*'
+Outputs:
+  PublicBucketName: {Value: !Ref PublicBucket}
+  PrivateBucketName: {Value: !Ref PrivateBucket}
+  PublicBaseUrl: {Value: !Sub 'https://${PublicDistribution.DomainName}'}
+  ApplicationPolicyArn: {Value: !Ref ApplicationPolicy}

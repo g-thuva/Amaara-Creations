@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "MediaObjectsOnly",
+    "Effect": "Allow",
+    "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+    "Resource": [
+      "arn:aws:s3:::REPLACE_PUBLIC_BUCKET/avatars/*",
+      "arn:aws:s3:::REPLACE_PUBLIC_BUCKET/products/*",
+      "arn:aws:s3:::REPLACE_PRIVATE_BUCKET/custom-artwork/*",
+      "arn:aws:s3:::REPLACE_PRIVATE_BUCKET/custom-proofs/*"
+    ]
+  }]
+}
