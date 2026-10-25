@@ -7,7 +7,9 @@ test('photo crop cancels safely, retries a failed upload and persists a normaliz
   const image = await page.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = 80; canvas.height = 40; const context = canvas.getContext('2d')!; context.fillStyle = '#336699'; context.fillRect(0, 0, 80, 40); return canvas.toDataURL().split(',')[1]; });
   const file = { name: 'portrait.png', mimeType: 'image/png', buffer: Buffer.from(image, 'base64') };
   let uploads = 0;
-  await page.route('**/api/v1/upload/avatar', async route => { uploads++; if (uploads === 1) return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'Temporary test rejection' }) }); return route.continue(); });
+  let releaseUpload!: () => void;
+  const uploadGate = new Promise<void>(resolve => { releaseUpload = resolve; });
+  await page.route('**/api/v1/upload/avatar', async route => { uploads++; if (uploads === 1) return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'Temporary test rejection' }) }); const response = await route.fetch(); await uploadGate; return route.fulfill({ response }); });
   await page.getByLabel('Profile photo', { exact: true }).setInputFiles(file);
   await expect(page.getByRole('dialog', { name: 'Crop profile photo' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -18,8 +20,12 @@ test('photo crop cancels safely, retries a failed upload and persists a normaliz
   await page.getByRole('button', { name: 'Save cropped photo', exact: true }).click();
   await expect(page.getByText('The photo was not saved. Your previous photo remains in place. Try again.', { exact: true })).toBeVisible();
   const uploaded = page.waitForResponse(response => response.url().endsWith('/api/v1/upload/avatar') && response.request().method() === 'POST');
+  const savedProfile = page.waitForRequest(request => request.url().endsWith('/api/v1/users/profile/avatar') && request.method() === 'POST');
   await page.getByRole('button', { name: 'Save cropped photo', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Crop profile photo' }).getByRole('status')).toContainText(/Uploading photo|Processing and saving photo/);
+  releaseUpload();
   const stored = await (await uploaded).json();
+  expect((await savedProfile).postDataJSON().avatarUrl).toBe(stored.fileUrl);
   expect((await page.request.get(`${acceptanceApi}${stored.fileUrl}`)).status()).toBe(200);
   await expect(page.getByRole('dialog', { name: 'Crop profile photo' })).not.toBeVisible();
   await page.reload();

@@ -19,4 +19,9 @@ describe('storefront contracts', () => {
   it('never exposes server exception bodies', () => { expect(customerError({ response: { status: 500, data: { message: 'SQL password details' } } })).not.toContain('SQL'); });
   it('maps actual validation dictionaries', () => { expect(customerError({ response: { status: 400, data: { errors: { Name: ['Required'] } } } })).toBe('Required'); });
   it('resolves portable media and rejects script URLs', () => { expect(resolveMediaUrl('/uploads/example.png')).toMatch(/\/uploads\/example.png$/); expect(resolveMediaUrl('javascript:alert(1)')).toBe(''); });
+  it('supports stable public API media and CDN delivery without exposing private storage references', () => {
+    expect(resolveMediaUrl('/api/v1/media/public/avatars/abc.png')).toMatch(/\/api\/v1\/media\/public\/avatars\/abc.png$/);
+    expect(resolveMediaUrl('https://cdn.example.test/products/image.png')).toBe('https://cdn.example.test/products/image.png');
+    expect(resolveMediaUrl('s3:private/custom-artwork/42/secret.png')).toBe('');
+  });
 });
