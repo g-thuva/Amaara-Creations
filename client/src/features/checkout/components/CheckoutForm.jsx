@@ -19,11 +19,11 @@ export default function CheckoutForm({ checkout }) {
         <Link to="/addresses" className="s-text-link">Manage delivery addresses</Link>
         <h2>2. Delivery option</h2>
         {quote.loading ? <p role="status">Calculating your checkout quote…</p> : quote.error ? <><ErrorState error={quote.error} retry={quote.reload} /><Button type="button" variant="secondary" onClick={() => checkout.setShippingMethodId('')}>Choose another delivery option</Button></> : <>
-          <label>Shipping method<select value={checkout.shippingMethodId} onChange={e => checkout.setShippingMethodId(e.target.value)} disabled={pending}>
-            <option value="">Choose delivery</option>
+          <label>Shipping method<select value={checkout.shippingMethodId} onChange={e => checkout.setShippingMethodId(e.target.value)} disabled={pending || !quote.data?.availableShippingMethods.length}>
+            <option value="">{quote.data?.availableShippingMethods.length ? 'Choose delivery' : 'No delivery options available'}</option>
             {quote.data?.availableShippingMethods.map(m => <option key={m.id} value={m.id}>{m.name} — {checkoutMoney(m.amount, m.currency)}</option>)}
           </select></label>
-          {quote.data && !quote.data.availableShippingMethods.length && <p role="alert">No delivery option is available for this address. Update your address or contact Amaara.</p>}
+          {quote.data && !quote.data.availableShippingMethods.length && <><p role="alert">No delivery option is available for this address. Update your address or contact Amaara.</p><Button type="button" variant="secondary" disabled={pending} onClick={quote.reload}>Reload delivery options</Button></>}
           {quote.data?.availableShippingMethods.filter(m => String(m.id) === checkout.shippingMethodId).map(m => <p key={m.id}>{m.isPickup ? 'Pickup: ' + m.pickupLocation : m.estimatedMinimumDays != null ? 'Estimated delivery: ' + m.estimatedMinimumDays + '–' + (m.estimatedMaximumDays ?? m.estimatedMinimumDays) + ' days.' : 'Delivery estimate will be confirmed by Amaara.'}{m.isDevelopmentValue && ' Development rate — business owner verification required.'}</p>)}
         </>}
         <h2>3. Coupon</h2>

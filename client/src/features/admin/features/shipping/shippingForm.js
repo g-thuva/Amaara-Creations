@@ -23,7 +23,7 @@ export const newMethod = () => ({
   isActive: true,
   isPickup: false,
   pickupLocation: "",
-  isDevelopmentValue: true,
+  isDevelopmentValue: false,
 });
 export const numeric = [
   "basePrice",

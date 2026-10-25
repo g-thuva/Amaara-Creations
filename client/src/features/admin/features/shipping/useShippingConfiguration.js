@@ -14,14 +14,26 @@ export function useShippingConfiguration() {
     setPending(true);
     setMessage(null);
     try {
-      if (type === "zone") await shippingApi.saveZone(zone);
-      else
-        await shippingApi.saveMethod({
+      if (type === "zone") {
+        const saved = await shippingApi.saveZone(zone);
+        setZone(current => ({ ...current, id: saved.id }));
+        setMethod(current => current.shippingZoneId ? current : { ...current, shippingZoneId: saved.id });
+      } else {
+        const saved = await shippingApi.saveMethod({
           ...method,
           shippingZoneId: Number(method.shippingZoneId),
         });
+        setMethod(current => ({ ...current, id: saved.id }));
+      }
       resource.reload();
-      setMessage({ success: true, text: "Shipping configuration saved." });
+      const text = type === "zone"
+        ? "Delivery zone saved. Add a delivery method with your approved rate to offer it at checkout."
+        : !method.isActive
+          ? "Delivery method saved. It is inactive and will not appear at checkout."
+          : method.isDevelopmentValue
+            ? "Delivery method saved as a test rate. It is excluded from regular checkout."
+            : "Delivery method saved. It is available at checkout for matching addresses and currency.";
+      setMessage({ success: true, text });
     } catch (e) {
       setMessage({
         text:

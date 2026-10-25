@@ -78,6 +78,7 @@ public static class IdentityBootstrapper
                 if (app.Environment.IsDevelopment())
                 {
                     await CustomBuilderDevelopmentSeeder.SeedAsync(scope.ServiceProvider);
+                    await ShippingDevelopmentSeeder.SeedAsync(scope.ServiceProvider);
                 }
             }
         }

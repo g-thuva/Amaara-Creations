@@ -16,6 +16,14 @@ export default function ShippingPage() {
         explicitly enabled in Development.
       </p>
       <ResourceState resource={resource} errorTitle="Shipping configuration could not be loaded.">
+      {!resource.data?.methods.length && (
+        <p role="status">
+          No delivery methods are configured. {resource.data?.zones.length
+            ? 'Add a delivery method below using your approved rate.'
+            : 'Create a delivery zone first, then add a delivery method using your approved rate.'}{' '}
+          Checkout will show delivery options once an active method matches the customer’s address and currency.
+        </p>
+      )}
       {message && (
         <p role={message.success ? "status" : "alert"}>{message.text}</p>
       )}

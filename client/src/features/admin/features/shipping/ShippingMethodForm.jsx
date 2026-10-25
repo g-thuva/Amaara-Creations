@@ -18,6 +18,7 @@ export function ShippingMethodForm({
         </button>
       </div>
       <div className="card-body">
+        {!resource.data?.zones.length && <p>Create a delivery zone before adding a method.</p>}
         <label>
           Edit delivery method
           <select
@@ -40,97 +41,100 @@ export function ShippingMethodForm({
           </select>
         </label>
         <form onSubmit={(e) => save(e, "method")} className="add-product-form">
-          <div className="form-row">
-            <label>
-              Zone
-              <select
-                className="form-control"
-                required
-                value={method.shippingZoneId || ""}
-                onChange={(e) =>
-                  setMethod({ ...method, shippingZoneId: e.target.value })
-                }
-              >
-                <option value="">Choose zone</option>
-                {resource.data?.zones.map((z) => (
-                  <option key={z.id} value={z.id}>
-                    {z.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {["name", "code", "currency"].map((field) => (
-              <label key={field}>
-                {field}
-                <input
+          <fieldset disabled={pending || !resource.data?.zones.length}>
+            <legend>Delivery method details</legend>
+            <div className="form-row">
+              <label>
+                Zone
+                <select
                   className="form-control"
                   required
-                  value={method[field]}
-                  maxLength={
-                    field === "currency" ? 3 : field === "code" ? 50 : 120
-                  }
-                  pattern={field === "code" ? "[A-Z0-9_-]+" : undefined}
+                  value={method.shippingZoneId || ""}
                   onChange={(e) =>
-                    setMethod({ ...method, [field]: e.target.value })
+                    setMethod({ ...method, shippingZoneId: e.target.value })
                   }
-                />
+                >
+                  <option value="">Choose zone</option>
+                  {resource.data?.zones.map((z) => (
+                    <option key={z.id} value={z.id}>
+                      {z.name}
+                    </option>
+                  ))}
+                </select>
               </label>
-            ))}
-          </div>
-          <div className="form-row">
-            {numeric.map((field) => (
-              <label key={field}>
-                {field.replace(/([A-Z])/g, " $1")}
-                <input
-                  className="form-control"
-                  type="number"
-                  min="0"
-                  step={
-                    field.includes("Days") || field === "displayOrder"
-                      ? 1
-                      : 0.01
-                  }
-                  value={method[field] ?? ""}
-                  onChange={(e) =>
-                    setMethod({
-                      ...method,
-                      [field]:
-                        e.target.value === "" ? null : Number(e.target.value),
-                    })
-                  }
-                />
-              </label>
-            ))}
-          </div>
-          <div className="form-row">
-            {["isActive", "isPickup", "isDevelopmentValue"].map((field) => (
-              <label key={field}>
-                <input
-                  type="checkbox"
-                  checked={method[field]}
-                  onChange={(e) =>
-                    setMethod({ ...method, [field]: e.target.checked })
-                  }
-                />
-                {field.replace(/([A-Z])/g, " $1")}
-              </label>
-            ))}
-          </div>
-          <label>
-            Pickup location
-            <input
-              className="form-control"
-              required={method.isPickup}
-              value={method.pickupLocation || ""}
-              maxLength="500"
-              onChange={(e) =>
-                setMethod({ ...method, pickupLocation: e.target.value })
-              }
-            />
-          </label>
-          <button className="btn btn-primary" disabled={pending}>
-            Save delivery method
-          </button>
+              {["name", "code", "currency"].map((field) => (
+                <label key={field}>
+                  {field}
+                  <input
+                    className="form-control"
+                    required
+                    value={method[field]}
+                    maxLength={
+                      field === "currency" ? 3 : field === "code" ? 50 : 120
+                    }
+                    pattern={field === "code" ? "[A-Z0-9_-]+" : undefined}
+                    onChange={(e) =>
+                      setMethod({ ...method, [field]: e.target.value })
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="form-row">
+              {numeric.map((field) => (
+                <label key={field}>
+                  {field.replace(/([A-Z])/g, " $1")}
+                  <input
+                    className="form-control"
+                    type="number"
+                    min="0"
+                    step={
+                      field.includes("Days") || field === "displayOrder"
+                        ? 1
+                        : 0.01
+                    }
+                    value={method[field] ?? ""}
+                    onChange={(e) =>
+                      setMethod({
+                        ...method,
+                        [field]:
+                          e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="form-row">
+              {["isActive", "isPickup", "isDevelopmentValue"].map((field) => (
+                <label key={field}>
+                  <input
+                    type="checkbox"
+                    checked={method[field]}
+                    onChange={(e) =>
+                      setMethod({ ...method, [field]: e.target.checked })
+                    }
+                  />
+                  {{ isActive: 'Active', isPickup: 'Customer pickup', isDevelopmentValue: 'Test rate (excluded from regular checkout)' }[field]}
+                </label>
+              ))}
+            </div>
+            <label>
+              Pickup location
+              <input
+                className="form-control"
+                required={method.isPickup}
+                value={method.pickupLocation || ""}
+                maxLength="500"
+                onChange={(e) =>
+                  setMethod({ ...method, pickupLocation: e.target.value })
+                }
+              />
+            </label>
+            <button className="btn btn-primary" disabled={pending}>
+              Save delivery method
+            </button>
+          </fieldset>
         </form>
       </div>
     </section>
