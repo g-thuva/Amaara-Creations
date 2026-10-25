@@ -16,5 +16,7 @@ export function useCheckout(cartVersion = '') {
   const payment = useCheckoutPayment(request, key, quote);
   const { pending, error, pay, session, setError, setSession } = payment;
   const chooseAddress = value => { setAddressId(value); setShippingMethodId(''); setError(null); setSession(null); };
-  return { addresses, selectedAddress, chooseAddress, shippingMethodId, setShippingMethodId, couponCode, setCouponCode, quote, pending, error, pay, session };
+  const chooseShipping = value => { setShippingMethodId(value); setError(null); setSession(null); };
+  const chooseCoupon = value => { setCouponCode(value.trim()); setError(null); setSession(null); };
+  return { addresses, selectedAddress, chooseAddress, shippingMethodId, setShippingMethodId: chooseShipping, couponCode, setCouponCode: chooseCoupon, quote, pending, error, pay, session };
 }

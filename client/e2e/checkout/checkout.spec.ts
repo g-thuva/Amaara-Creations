@@ -5,6 +5,8 @@ for (const mixed of [false, true]) test('checkout sends identifiers once and wai
   const state = await checkoutFixture(page, { mixed }); const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('./checkout');
   const pay = page.getByRole('button', { name: 'Pay securely', exact: true });
+  await expect(page.getByLabel('Coupon code (optional)', { exact: true })).not.toHaveAttribute('required');
+  await expect(page.locator('#checkout-payment-status')).toContainText('Choose a delivery option');
   await expect(pay).toBeDisabled(); await page.getByRole('combobox', { name: 'Shipping method', exact: true }).selectOption('1');
   await expect(pay).toBeEnabled();
   await expect(page.getByText('Test payment — no real money will be charged.', { exact: true })).toBeVisible();
@@ -17,6 +19,7 @@ for (const mixed of [false, true]) test('checkout sends identifiers once and wai
   await expect(page.getByRole('heading', { name: 'Payment confirmed' })).toHaveCount(0);
   expect(state.sessions).toHaveLength(1); const body = state.sessions[0];
   expect(body.addressId).toBe(1); expect(body.shippingMethodId).toBe(1); expect(body.quoteVersion).toBe('test-quote-version');
+  expect(body.couponCode).toBeNull();
   expect(body.idempotencyKey).toMatch(/^[a-f0-9-]{36}$/);
   for (const forbidden of ['total', 'shippingPrice', 'discountAmount', 'status', 'cardNumber', 'cvv']) expect(body).not.toHaveProperty(forbidden);
   const reads = state.cartReads; state.status = 'Paid'; state.orderStatus = 'Confirmed';
@@ -43,9 +46,36 @@ test('quote refreshes after coupon and address changes and blocks invalid checko
 test('unconfigured payment gateway is not offered by checkout', async ({ page }) => {
   const state = await checkoutFixture(page, { paymentAvailable: false }); await page.goto('./checkout');
   await page.getByRole('combobox', { name: 'Shipping method', exact: true }).selectOption('1');
-  await expect(page.getByText('Secure online payment is not available for this checkout yet. Your cart has not been charged.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Online payment is not enabled for this checkout. Please contact Amaara to complete your order. Your cart has not been charged.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pay securely', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Pay securely', exact: true })).toHaveAttribute('aria-describedby', 'checkout-payment-status');
+  const reads = state.quotes.length;
+  await page.getByRole('button', { name: 'Check payment availability', exact: true }).click();
+  await expect.poll(() => state.quotes.length).toBeGreaterThan(reads);
   expect(state.sessions).toHaveLength(0);
+});
+
+test('clearing a rejected optional coupon restores payment without applying another code', async ({ page }) => {
+  const state = await checkoutFixture(page);
+  await page.goto('./checkout');
+  const coupon = page.getByLabel('Coupon code (optional)', { exact: true });
+  const pay = page.getByRole('button', { name: 'Pay securely', exact: true });
+  await page.getByRole('combobox', { name: 'Shipping method', exact: true }).selectOption('1');
+  await expect(pay).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Apply coupon', exact: true })).toBeDisabled();
+  await coupon.fill('BAD');
+  await page.getByRole('button', { name: 'Apply coupon', exact: true }).click();
+  await expect(pay).toBeDisabled();
+  await expect(page.locator('#checkout-payment-status')).toContainText('Remove the optional coupon');
+  await coupon.fill('   ');
+  await expect(pay).toBeEnabled();
+  await expect(page.locator('#coupon-feedback')).toHaveCount(0);
+  await expect(page.getByRole('definition').last()).toContainText('225.00');
+  expect(state.quotes.at(-1)?.couponCode).toBeNull();
+  await pay.click();
+  await expect(page).toHaveURL(/payment\/success/);
+  expect(state.sessions).toHaveLength(1);
+  expect(state.sessions[0].couponCode).toBeNull();
 });
 
 for (const status of ['Failed', 'Cancelled']) test('payment ' + status + ' preserves cart and retries the same order', async ({ page }) => {

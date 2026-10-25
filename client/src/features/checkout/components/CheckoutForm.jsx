@@ -3,12 +3,18 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button.jsx';
 import { ErrorState } from '@/shared/components/feedback/ErrorState.jsx';
 import { formatIsoCurrency as checkoutMoney } from '@/shared/utils/formatCurrency.ts';
+import { paymentBlocker } from '@/features/checkout/paymentReadiness.js';
 
 export default function CheckoutForm({ checkout }) {
   const [couponInput, setCouponInput] = useState('');
   const [notes, setNotes] = useState('');
   const { addresses, selectedAddress, quote, pending } = checkout;
   const selected = addresses.data?.find(a => String(a.id) === selectedAddress);
+  const blocker = paymentBlocker(checkout);
+  const changeCoupon = value => {
+    setCouponInput(value);
+    if (!value.trim() && checkout.couponCode) checkout.setCouponCode('');
+  };
   return (
       <form className="s-form s-checkout-form" onSubmit={event => { event.preventDefault(); checkout.pay(notes); }} aria-busy={pending}>
         <h2>1. Delivery address</h2>
@@ -26,20 +32,21 @@ export default function CheckoutForm({ checkout }) {
           {quote.data && !quote.data.availableShippingMethods.length && <><p role="alert">No delivery option is available for this address. Update your address or contact Amaara.</p><Button type="button" variant="secondary" disabled={pending} onClick={quote.reload}>Reload delivery options</Button></>}
           {quote.data?.availableShippingMethods.filter(m => String(m.id) === checkout.shippingMethodId).map(m => <p key={m.id}>{m.isPickup ? 'Pickup: ' + m.pickupLocation : m.estimatedMinimumDays != null ? 'Estimated delivery: ' + m.estimatedMinimumDays + '–' + (m.estimatedMaximumDays ?? m.estimatedMinimumDays) + ' days.' : 'Delivery estimate will be confirmed by Amaara.'}{m.isDevelopmentValue && ' Development rate — business owner verification required.'}</p>)}
         </>}
-        <h2>3. Coupon</h2>
-        <label>Coupon code<input value={couponInput} onChange={e => setCouponInput(e.target.value)} maxLength="40" disabled={pending} aria-describedby={quote.data?.couponResult ? 'coupon-feedback' : undefined} /></label>
-        <div className="s-actions"><Button type="button" variant="secondary" disabled={pending || quote.loading} onClick={() => checkout.setCouponCode(couponInput)}>Apply coupon</Button>{checkout.couponCode && <Button type="button" variant="secondary" disabled={pending} onClick={() => { checkout.setCouponCode(''); setCouponInput(''); }}>Remove coupon</Button>}</div>
+        <h2>3. Coupon (optional)</h2>
+        <label>Coupon code (optional)<input value={couponInput} onChange={e => changeCoupon(e.target.value)} maxLength="40" disabled={pending} aria-describedby={quote.data?.couponResult ? 'coupon-help coupon-feedback' : 'coupon-help'} /></label>
+        <p id="coupon-help">You can pay without a coupon. Leave this field empty to continue at the listed price.</p>
+        <div className="s-actions"><Button type="button" variant="secondary" disabled={pending || quote.loading || !couponInput.trim()} onClick={() => checkout.setCouponCode(couponInput.trim())}>Apply coupon</Button>{checkout.couponCode && <Button type="button" variant="secondary" disabled={pending} onClick={() => { checkout.setCouponCode(''); setCouponInput(''); }}>Remove coupon</Button>}</div>
         {quote.data?.couponResult && <p id="coupon-feedback" role={quote.data.couponResult.applied ? 'status' : 'alert'}>{quote.data.couponResult.message}</p>}
         <h2>4. Review and pay</h2>
         <label>Order notes (optional)<textarea rows="3" value={notes} onChange={e => setNotes(e.target.value)} maxLength="500" disabled={pending} /></label>
         {quote.data?.paymentAvailable && quote.data.paymentProvider === 'Zahls' && quote.data.paymentMode === 'TEST' &&
           <p role="status" className="s-test-payment-banner">Test payment — no real money will be charged.</p>}
-        {quote.data?.paymentAvailable
-          ? <p>Payment takes place on the payment provider’s hosted page. Your order is confirmed after our server verifies payment.</p>
-          : quote.data && <p role="status">Secure online payment is not available for this checkout yet. Your cart has not been charged.</p>}
+        {quote.data?.paymentAvailable && <p>Payment takes place on the payment provider’s hosted page. Your order is confirmed after our server verifies payment.</p>}
         {checkout.error && <p role="alert" className="s-error-text">{checkout.error.response?.data?.title || 'Payment could not be started. Check your connection and try again.'}</p>}
         {checkout.session && !checkout.session.redirectUrl && <p role="status">This payment is {checkout.session.status.toLowerCase()}. <Link to={'/checkout/payment/return?paymentId=' + checkout.session.paymentId}>Check payment status</Link></p>}
-        <div className="s-actions"><Link to="/cart" className="s-text-link">Back to cart</Link><Button type="submit" disabled={pending || quote.loading || !quote.data?.canPay}>{pending ? 'Starting secure payment…' : 'Pay securely'}</Button></div>
+        {blocker && <p id="checkout-payment-status" role="status">{blocker}</p>}
+        {quote.data && !quote.data.paymentAvailable && !quote.loading && <Button type="button" variant="secondary" disabled={pending} onClick={quote.reload}>Check payment availability</Button>}
+        <div className="s-actions"><Link to="/cart" className="s-text-link">Back to cart</Link><Button type="submit" aria-describedby={blocker ? 'checkout-payment-status' : undefined} disabled={pending || quote.loading || Boolean(quote.error) || !quote.data?.canPay}>{pending ? 'Starting secure payment…' : 'Pay securely'}</Button></div>
         {pending && <p role="status">Preparing your order and opening secure payment…</p>}
       </form>
   );
