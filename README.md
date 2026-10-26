@@ -20,6 +20,8 @@ Use the [shared sign-in and authenticator setup guide](docs/security/staff-mfa-s
 
 ## Development
 
+For genuine Zahls TEST payments and normal customer sign-in, see [Zahls TEST setup](docs/payments/ZAHLS_TEST_SETUP.md). The runtime payment simulator has been removed.
+
 Use Node 22+ (`.nvmrc`), npm 10+, the .NET 8 SDK selected by `global.json`, and SQL Server for full persistence workflows. Keep source work on `develop`.
 
 ```powershell

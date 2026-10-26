@@ -38,9 +38,11 @@ export default function CheckoutForm({ checkout }) {
         <div className="s-actions"><Button type="button" variant="secondary" disabled={pending || quote.loading || !couponInput.trim()} onClick={() => checkout.setCouponCode(couponInput.trim())}>Apply coupon</Button>{checkout.couponCode && <Button type="button" variant="secondary" disabled={pending} onClick={() => { checkout.setCouponCode(''); setCouponInput(''); }}>Remove coupon</Button>}</div>
         {quote.data?.couponResult && <p id="coupon-feedback" role={quote.data.couponResult.applied ? 'status' : 'alert'}>{quote.data.couponResult.message}</p>}
         <h2>4. Review and pay</h2>
+        <p><strong>Secure online payment</strong></p>
+        <p>Continue to our secure payment partner to complete your payment.</p>
         <label>Order notes (optional)<textarea rows="3" value={notes} onChange={e => setNotes(e.target.value)} maxLength="500" disabled={pending} /></label>
         {quote.data?.paymentAvailable && quote.data.paymentProvider === 'Zahls' && quote.data.paymentMode === 'TEST' &&
-          <p role="status" className="s-test-payment-banner">Test payment — no real money will be charged.</p>}
+          <p role="status" className="s-test-payment-banner">Zahls TEST mode — use only provider-approved test payment details.</p>}
         {quote.data?.paymentAvailable && <p>Payment takes place on the payment provider’s hosted page. Your order is confirmed after our server verifies payment.</p>}
         {checkout.error && <p role="alert" className="s-error-text">{checkout.error.response?.data?.title || 'Payment could not be started. Check your connection and try again.'}</p>}
         {checkout.session && !checkout.session.redirectUrl && <p role="status">This payment is {checkout.session.status.toLowerCase()}. <Link to={'/checkout/payment/return?paymentId=' + checkout.session.paymentId}>Check payment status</Link></p>}

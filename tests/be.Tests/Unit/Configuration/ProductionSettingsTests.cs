@@ -27,6 +27,8 @@ public sealed class ProductionSettingsTests
     [InlineData("Uploads:Provider", "S3")]
     [InlineData("Email:Enabled", "true")]
     [InlineData("Zahls:Enabled", "true")]
+    [InlineData("LocalPaymentSimulator:Enabled", "true")]
+    [InlineData("Payments:Provider", "LocalSimulator")]
     public void ProductionRejectsUnsafeOrIncompleteEnabledSettings(string key, string value)
     {
         var values = Valid(); values[key] = value;

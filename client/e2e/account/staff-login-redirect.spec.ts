@@ -36,7 +36,7 @@ test('one storefront staff sign-in opens the configured management entry and res
   await page.goto('http://127.0.0.1:5179/Amaara-Creations/login');
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
-  await expect(page.getByText('Total Orders', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Total orders', exact: true })).toBeVisible();
   expect(sharedSignIns).toBe(1); expect(additionalStaffSignIns).toBe(0);
   await page.reload();
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();

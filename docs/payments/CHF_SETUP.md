@@ -41,6 +41,4 @@ A rejected code must be corrected or removed before payment. Checkout displays
 the current payment blocker beside the button, including an unavailable gateway,
 and **Check payment availability** requests a fresh quote after setup changes.
 
-The separate local simulator now defaults to CHF. It uses its own disposable
-database and demonstrates checkout without merchant access; see
-[the simulator guide](local-simulator.md).
+Use [genuine Zahls TEST setup](ZAHLS_TEST_SETUP.md). The runtime payment simulator has been removed.

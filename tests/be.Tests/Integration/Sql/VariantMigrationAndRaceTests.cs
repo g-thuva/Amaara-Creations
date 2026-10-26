@@ -56,7 +56,7 @@ public sealed class VariantMigrationAndRaceTests
         await seed.Db.Database.MigrateAsync();
         var userA = new User { Id = "a", Name = "A", UserName = "a@example.test", Email = "a@example.test" };
         var userB = new User { Id = "b", Name = "B", UserName = "b@example.test", Email = "b@example.test" };
-        var product = new Product { Name = "Variant race", Slug = "variant-race", Price = 100, BasePrice = 100, Stock = 100 };
+        var product = new Product { Name = "Variant race", Slug = "variant-race", Currency = "LKR", Price = 100, BasePrice = 100, Stock = 100 };
         var zone = new ShippingZone { Name = "Test zone", Country = "Sri Lanka", RequiresPhone = true };
         var shipping = new ShippingMethod { Name = "Test method", Code = "TEST", Currency = "LKR", BasePrice = 25, ShippingZone = zone };
         var addressA = new Address { User = userA, RecipientName = "A", AddressLine1 = "Test street", City = "Colombo", Phone = "+94770000000" };
@@ -68,6 +68,7 @@ public sealed class VariantMigrationAndRaceTests
         await seed.Db.SaveChangesAsync();
         await using var first = new CommerceFixture(new ApplicationDbContext(options));
         await using var second = new CommerceFixture(new ApplicationDbContext(options));
+        first.Settings.Currency = second.Settings.Currency = "LKR";
         var a = new CheckoutSessionRequest { AddressId = addressA.Id, ShippingMethodId = shipping.Id, IdempotencyKey = Guid.NewGuid() };
         var b = new CheckoutSessionRequest { AddressId = addressB.Id, ShippingMethodId = shipping.Id, IdempotencyKey = Guid.NewGuid() };
         a.QuoteVersion = (await first.Pricing.CalculateAsync("a", a, default)).Quote.QuoteVersion;

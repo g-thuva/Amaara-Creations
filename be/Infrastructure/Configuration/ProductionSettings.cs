@@ -8,6 +8,10 @@ public static class ProductionSettings
 {
     public static void Validate(IConfiguration configuration, IHostEnvironment environment)
     {
+        // Reject retired configuration instead of silently selecting a fallback.
+        if (configuration.GetValue<bool>("LocalPaymentSimulator:Enabled") ||
+            string.Equals(configuration["Payments:Provider"], "LocalSimulator", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("LocalSimulator is unavailable in the business API. The runtime simulator has been removed; configure genuine Zahls TEST payments.");
         if (configuration.GetValue<bool>("Uploads:Scanner:Required") && !configuration.GetValue<bool>("Uploads:Scanner:Enabled"))
             throw new InvalidOperationException("Required upload scanning must be enabled and configured.");
         if (configuration.GetValue<bool>("Uploads:Scanner:Enabled") && !be.Infrastructure.Storage.HttpUploadScanner.ValidEndpoint(configuration["Uploads:Scanner:Endpoint"], out _))

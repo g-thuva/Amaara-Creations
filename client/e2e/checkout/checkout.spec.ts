@@ -9,7 +9,9 @@ for (const mixed of [false, true]) test('checkout sends identifiers once and wai
   await expect(page.locator('#checkout-payment-status')).toContainText('Choose a delivery option');
   await expect(pay).toBeDisabled(); await page.getByRole('combobox', { name: 'Shipping method', exact: true }).selectOption('1');
   await expect(pay).toBeEnabled();
-  await expect(page.getByText('Test payment — no real money will be charged.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Zahls TEST mode — use only provider-approved test payment details.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Secure online payment', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Simulated payment|Local Test Payment|Simulate successful payment/)).toHaveCount(0);
   await expect(page.getByText('Currency: CHF', { exact: true })).toBeVisible();
   await expect(page.getByRole('definition').last()).toContainText(mixed ? '273.00' : '225.00');
   if (mixed) await expect(page.getByText('Fixture custom sticker', { exact: true })).toBeVisible();

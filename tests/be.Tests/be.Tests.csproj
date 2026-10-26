@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\be\be.csproj" />
-    <EmbeddedResource Include="Simulation/Ui/*" />
   </ItemGroup>
 
 </Project>

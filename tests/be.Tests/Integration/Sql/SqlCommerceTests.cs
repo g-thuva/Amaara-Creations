@@ -34,6 +34,7 @@ public sealed class SqlCommerceTests
         {
             Name = "Idempotency fixture",
             Slug = "idempotency-" + prefix,
+            Currency = "LKR",
             Price = 100m,
             BasePrice = 100m,
             Stock = 1
@@ -67,6 +68,7 @@ public sealed class SqlCommerceTests
         var gateway = new FakePaymentGateway();
         await using var first = new CommerceFixture(new ApplicationDbContext(options), gateway);
         await using var second = new CommerceFixture(new ApplicationDbContext(options), gateway);
+        first.Settings.Currency = second.Settings.Currency = "LKR";
         var request = new be.Application.Features.Checkout.CheckoutSessionRequest
         {
             AddressId = address.Id,
@@ -268,6 +270,7 @@ public sealed class SqlCommerceTests
         {
             Name = "Concurrency fixture",
             Slug = "test-" + prefix,
+            Currency = "LKR",
             Price = 100,
             BasePrice = 100,
             Stock = 1
@@ -295,6 +298,7 @@ public sealed class SqlCommerceTests
         var gateway = new FakePaymentGateway();
         await using var a = new CommerceFixture(new ApplicationDbContext(opts), gateway);
         await using var b = new CommerceFixture(new ApplicationDbContext(opts), gateway);
+        a.Settings.Currency = b.Settings.Currency = "LKR";
         async Task<be.Application.Features.Checkout.CheckoutSessionRequest> Request(CommerceFixture f, int i, string? code = null)
         {
             var request = new be.Application.Features.Checkout.CheckoutSessionRequest
@@ -365,6 +369,7 @@ public sealed class SqlCommerceTests
         {
             Name = "Coupon race fixture",
             Slug = "coupon-" + prefix,
+            Currency = "LKR",
             Price = 100,
             BasePrice = 100,
             Stock = 10
@@ -395,6 +400,7 @@ public sealed class SqlCommerceTests
         await seed.SaveChangesAsync();
         await using var e = new CommerceFixture(new ApplicationDbContext(opts), gateway);
         await using var f = new CommerceFixture(new ApplicationDbContext(opts), gateway);
+        e.Settings.Currency = f.Settings.Currency = "LKR";
         var couponRequests = new[]
         {
             await Request(e, 0, promotion.Code),

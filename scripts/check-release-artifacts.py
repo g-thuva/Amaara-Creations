@@ -10,7 +10,7 @@ forbidden = [p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_fil
 for path in root.rglob('*'):
     if path.is_file() and path.suffix.lower() in {'.js', '.mjs', '.html'}:
         content = path.read_text(encoding='utf-8-sig')
-        if any(marker in content for marker in ['payments.simulator.invalid', 'amaara_local_payment_lab', 'SIMULATED PAYMENTS']):
+        if any(marker in content for marker in ['payments.simulator.invalid', 'amaara_local_payment_lab', 'SIMULATED PAYMENTS', '__local-payment', 'simulator-storefront-main', '/simulator/start?port=', 'Local payment test sign-in', 'Continue as test customer', 'Choose a test outcome', 'Simulate successful payment']):
             forbidden.append(path.relative_to(root).as_posix())
 for path in forbidden:
     print('Forbidden release artifact: ' + path)
