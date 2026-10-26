@@ -13,8 +13,8 @@ public sealed class ZahlsOptions
     public string Currency { get; set; } = "CHF";
     public string FrontendBaseUrl { get; set; } = string.Empty;
     public string WebhookUrl { get; set; } = string.Empty;
-    // Use identifiers verified in this merchant's TEST account; the public method
-    // identifier reference was unavailable during implementation.
+    // Optional Gateway pm restriction. Empty means omit pm, never bypass readiness.
+    // Nonempty identifiers must be verified against the merchant's enabled methods.
     public string[] PaymentMethods { get; set; } = [];
     public bool TestProviderConfigured { get; set; }
     public bool ChfSupportedByTestProvider { get; set; }

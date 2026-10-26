@@ -143,11 +143,10 @@ public sealed class ZahlsAdapterTests
     }
 
     [Fact]
-    public void MissingAndMalformedMethodsAndLkrFailClosed()
+    public void MalformedMethodsAndLkrFailClosed()
     {
-        foreach (var methods in new[]
+        foreach (var methods in new string[][]
         {
-            Array.Empty<string>(),
             ["bad method"],
             ["test-card-fixture", "TEST-CARD-FIXTURE"]
         }
@@ -160,6 +159,32 @@ public sealed class ZahlsAdapterTests
         }
 
         Assert.Equal("PAYMENT_NOT_CONFIGURED", Assert.Throws<CommerceException>(() => Gateway(Config()).EnsureAvailable("LKR")).Code);
+    }
+
+    [Fact]
+    public async Task EmptyOptionalFilterOmitsPmButNeverBypassesProviderReadiness()
+    {
+        var o = Config(); o.PaymentMethods = [];
+        var handler = new Responses(GatewayResponse);
+        var order = new Order { Currency = "CHF", Total = 25.50m, OrderNumber = "ORD-TEST" };
+        var payment = new Payment { Id = 7, Amount = 25.50m, Currency = "CHF", ProviderReference = "AC-test" };
+        await Gateway(o, handler).InitializeAsync(new(payment, order, "test@example.test", null, Guid.NewGuid()), default);
+        using var body = JsonDocument.Parse(handler.Requests.Single().Body!);
+        Assert.False(body.RootElement.TryGetProperty("pm", out _));
+        o.TestProviderConfigured = false;
+        Assert.Throws<CommerceException>(() => Gateway(o).EnsureAvailable("CHF"));
+        o.TestProviderConfigured = true; o.ChfSupportedByTestProvider = false;
+        Assert.Throws<CommerceException>(() => Gateway(o).EnsureAvailable("CHF"));
+    }
+
+    [Theory]
+    [InlineData("https://hooks.example.test/swagger")]
+    [InlineData("https://hooks.example.test/api/v1/payments/zahls/webhook?token=secret")]
+    [InlineData("https://hooks.example.test:8443/api/v1/payments/zahls/webhook")]
+    public void WebhookMustBeTheExactPublicHttpsCallback(string url)
+    {
+        var o = Config(); o.WebhookUrl = url;
+        Assert.Throws<CommerceException>(() => Gateway(o).EnsureAvailable("CHF"));
     }
 
     [Fact]

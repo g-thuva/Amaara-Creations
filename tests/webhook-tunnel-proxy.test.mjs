@@ -24,10 +24,22 @@ test('webhook ingress rejects other routes and methods', async () => {
   const proxy = createWebhookProxy(); proxy.listen(0, '127.0.0.1'); await once(proxy, 'listening');
   const origin = `http://127.0.0.1:${proxy.address().port}`;
   try {
-    assert.equal((await fetch(origin + '/swagger/v1/swagger.json')).status, 404);
+    for (const path of ['/swagger/v1/swagger.json', '/simulator/api/session', '/api/v1/auth/sign-in', '/api/v1/admin/payments', '/__fixture/health']) {
+      assert.equal((await fetch(origin + path, { method: 'POST' })).status, 404);
+    }
     assert.equal((await fetch(origin + '/api/v1/payments/zahls/webhook')).status, 404);
     assert.equal((await fetch(origin + '/api/v1/payments/zahls/webhook?path=/admin', { method: 'POST' })).status, 404);
     assert.equal((await fetch(origin + '/api/v1/payments/datatrans/webhook', { method: 'POST' })).status, 404);
+  } finally { proxy.closeAllConnections(); proxy.close(); }
+});
+
+test('webhook ingress rejects unsigned, non-JSON and oversized requests before forwarding', async () => {
+  const proxy = createWebhookProxy(); proxy.listen(0, '127.0.0.1'); await once(proxy, 'listening');
+  const url = `http://127.0.0.1:${proxy.address().port}/api/v1/payments/zahls/webhook`;
+  try {
+    assert.equal((await fetch(url, { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } })).status, 401);
+    assert.equal((await fetch(url, { method: 'POST', body: '{}', headers: { 'X-Webhook-Signature': '0'.repeat(64) } })).status, 415);
+    assert.equal((await fetch(url, { method: 'POST', body: 'x'.repeat(65537), headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': '0'.repeat(64) } })).status, 413);
   } finally { proxy.closeAllConnections(); proxy.close(); }
 });
 test('legacy ingress remains an explicit provider choice', async () => {

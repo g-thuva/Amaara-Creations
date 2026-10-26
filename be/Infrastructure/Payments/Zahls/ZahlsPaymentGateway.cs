@@ -26,15 +26,25 @@ public sealed class ZahlsPaymentGateway(HttpClient client, IOptions<ZahlsOptions
 
     public static void ValidateConfiguration(ZahlsOptions o, string currency)
     {
-        if (!o.Enabled || o.Mode != "TEST" || o.Currency != "CHF" || currency != "CHF" || !o.TestProviderConfigured || !o.ChfSupportedByTestProvider)
-            throw new CommerceException("PAYMENT_NOT_CONFIGURED", "Zahls TEST payment is not configured for CHF.", 503);
+        if (!o.Enabled)
+            throw new CommerceException("PAYMENT_NOT_CONFIGURED", "Zahls initiation is disabled.", 503);
+        if (o.Mode != "TEST")
+            throw new CommerceException("PAYMENT_NOT_CONFIGURED", "Only Zahls TEST mode is supported; LIVE is disabled.", 503);
+        if (o.Currency != "CHF" || currency != "CHF")
+            throw new CommerceException("PAYMENT_NOT_CONFIGURED", "The order currency is unsupported by this Zahls integration.", 503);
+        if (!o.TestProviderConfigured)
+            throw new CommerceException("PAYMENT_NOT_CONFIGURED", "The merchant's genuine Zahls TEST provider has not been verified.", 503);
+        if (!o.ChfSupportedByTestProvider)
+            throw new CommerceException("PAYMENT_NOT_CONFIGURED", "CHF support has not been verified for the merchant's TEST provider.", 503);
         if (!InstancePattern.IsMatch(o.InstanceName) || string.IsNullOrWhiteSpace(o.ApiKey) || string.IsNullOrWhiteSpace(o.WebhookSigningKey) || o.TimeoutSeconds is < 2 or > 60)
             throw new CommerceException("PAYMENT_NOT_CONFIGURED", "Zahls TEST credentials or security settings are incomplete.", 503);
         if (!Uri.TryCreate(o.ApiBaseUrl, UriKind.Absolute, out var api) || api.Scheme != Uri.UriSchemeHttps || api.Host != "api.zahls.ch" || api.Port != 443 || api.AbsolutePath != "/" || !string.IsNullOrEmpty(api.UserInfo) || !string.IsNullOrEmpty(api.Query) || !string.IsNullOrEmpty(api.Fragment) || !VersionPattern.IsMatch(o.ApiVersion))
             throw new CommerceException("PAYMENT_NOT_CONFIGURED", "Zahls TEST API settings are invalid.", 503);
-        if (o.PaymentMethods is not { Length: > 0 } || o.PaymentMethods.Any(m => !MethodPattern.IsMatch(m)) || o.PaymentMethods.Distinct(StringComparer.OrdinalIgnoreCase).Count() != o.PaymentMethods.Length)
-            throw new CommerceException("PAYMENT_METHOD_UNVERIFIED", "No verified Zahls TEST payment method is configured.", 503);
-        if (!Uri.TryCreate(o.WebhookUrl, UriKind.Absolute, out var hook) || hook.Scheme != Uri.UriSchemeHttps || hook.IsLoopback || !string.IsNullOrEmpty(hook.UserInfo) || !string.IsNullOrEmpty(hook.Fragment))
+        // pm is an optional restriction, not evidence that a TEST provider is ready.
+        // An empty filter delegates method selection to the verified merchant setup.
+        if (o.PaymentMethods is null || o.PaymentMethods.Any(m => m is null || !MethodPattern.IsMatch(m)) || o.PaymentMethods.Distinct(StringComparer.OrdinalIgnoreCase).Count() != o.PaymentMethods.Length)
+            throw new CommerceException("PAYMENT_METHOD_UNVERIFIED", "The optional Zahls payment-method filter is invalid.", 503);
+        if (!Uri.TryCreate(o.WebhookUrl, UriKind.Absolute, out var hook) || hook.Scheme != Uri.UriSchemeHttps || hook.IsLoopback || hook.Port != 443 || hook.AbsolutePath != "/api/v1/payments/zahls/webhook" || !string.IsNullOrEmpty(hook.Query) || !string.IsNullOrEmpty(hook.UserInfo) || !string.IsNullOrEmpty(hook.Fragment))
             throw new CommerceException("PAYMENT_NOT_CONFIGURED", "Configure a public HTTPS Zahls TEST webhook.", 503);
         if (!Uri.TryCreate(o.FrontendBaseUrl, UriKind.Absolute, out var frontend) || !string.IsNullOrEmpty(frontend.UserInfo) || !string.IsNullOrEmpty(frontend.Query) || !string.IsNullOrEmpty(frontend.Fragment) || (frontend.Scheme != Uri.UriSchemeHttps && !(frontend.Scheme == Uri.UriSchemeHttp && frontend.IsLoopback)))
             throw new CommerceException("PAYMENT_NOT_CONFIGURED", "Configure a valid payment return address.", 503);
@@ -95,12 +105,13 @@ public sealed class ZahlsPaymentGateway(HttpClient client, IOptions<ZahlsOptions
             ["currency"] = "CHF",
             ["referenceId"] = request.Payment.ProviderReference,
             ["purpose"] = request.Order.OrderNumber,
-            ["pm"] = o.PaymentMethods,
             ["successRedirectUrl"] = Return("return"),
             ["failedRedirectUrl"] = Return("error"),
             ["cancelRedirectUrl"] = Return("cancel"),
             ["fields"] = fields
         };
+        if (o.PaymentMethods.Length > 0)
+            payload["pm"] = o.PaymentMethods;
         if (basket.Count > 0)
             payload["basket"] = basket;
         if (!string.IsNullOrWhiteSpace(o.LookAndFeelProfile))
@@ -263,7 +274,16 @@ public sealed class ZahlsPaymentGateway(HttpClient client, IOptions<ZahlsOptions
             try
             {
                 await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
-                return await JsonDocument.ParseAsync(stream, new JsonDocumentOptions { MaxDepth = 64 }, timeout.Token);
+                // Bound chunked responses too; Content-Length is optional/untrusted.
+                using var bounded = new MemoryStream();
+                var buffer = new byte[8192];
+                int count;
+                while ((count = await stream.ReadAsync(buffer, timeout.Token)) != 0)
+                {
+                    if (bounded.Length + count > 1_048_576) throw InvalidResponse();
+                    bounded.Write(buffer, 0, count);
+                }
+                return JsonDocument.Parse(bounded.ToArray(), new JsonDocumentOptions { MaxDepth = 64 });
             }
             catch (JsonException)
             {

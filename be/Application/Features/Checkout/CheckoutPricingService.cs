@@ -29,7 +29,8 @@ public sealed class CheckoutPricingService(
         PromotionService promotions,
         IPaymentGateway gateway,
         IOptions<CheckoutOptions> options,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        ILogger<CheckoutPricingService>? logger = null)
 {
     public async Task<PricedCheckout> CalculateAsync(string userId, CheckoutQuoteRequest request, CancellationToken ct)
     {
@@ -151,8 +152,10 @@ public sealed class CheckoutPricingService(
             gateway.EnsureAvailable(currency);
             return true;
         }
-        catch (CommerceException)
+        catch (CommerceException error)
         {
+            // Internal logs only: no credentials, account identifiers or provider bodies.
+            logger?.LogWarning("Checkout provider {Provider} unavailable for {Currency}: {Code}; {Reason}", gateway.Provider, currency, error.Code, error.Message);
             return false;
         }
     }
