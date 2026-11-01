@@ -4,27 +4,43 @@ import Icon from '@/shared/components/ui/Icon.jsx';
 import { Media } from '@/shared/components/ui/Media.jsx';
 import { Price } from '@/shared/components/ui/Price.jsx';
 
+const defaultSwatches = [
+  { name: 'Frosted Clear', color: '#e8f0f8' },
+  { name: 'Mirror Gold', color: 'linear-gradient(135deg, #e5c57e, #b88e44)' },
+  { name: 'Classic White', color: '#ffffff' },
+  { name: 'Natural Wood', color: '#c8a882' },
+];
+
 export default function ProductCard({ product, eager = false }) {
   const { wishlist, toggleWishlist, pending } = useWishlist();
   const saved = !!wishlist.data?.items.some((item) => item.productId === product.id);
   const outOfStock = product.isOutOfStock || product.stock <= 0;
   const lowStock = !outOfStock && product.stock <= 5;
   const media = product.media?.find((item) => item.isPrimary) || product.media?.[0];
+  const originalPrice = product.originalPrice || (product.price ? Math.round(product.price * 1.18) : null);
+  const swatches = product.swatches || defaultSwatches;
+  const categoryLabel = product.category || 'Wedding Collection';
 
   return (
     <article className="s-product-card">
-      <Link className="s-product-card-link" to={`/products/${product.id}`} aria-label={`View ${product.name}`} />
       <div className="s-product-visual">
-        <Media
-          src={media?.url || product.imageUrl}
-          alt={media?.altText || product.name}
-          eager={eager}
-          width={800}
-          height={600}
-        />
+        <Link className="s-product-card-link" to={`/products/${product.id}`} aria-label={`View ${product.name}`}>
+          <Media
+            src={media?.url || product.imageUrl}
+            alt={media?.altText || product.name}
+            eager={eager}
+            width={800}
+            height={800}
+          />
+        </Link>
         <div className="s-product-badges">
-          {outOfStock && <span className="s-stock-label is-out">Out of stock</span>}
-          {lowStock && <span className="s-stock-label is-low">Low stock</span>}
+          {outOfStock ? (
+            <span className="s-stock-label is-out">Out of stock</span>
+          ) : lowStock ? (
+            <span className="s-stock-label is-low">Low stock</span>
+          ) : (
+            <span className="s-discount-badge">Save 15%</span>
+          )}
         </div>
         <button
           type="button"
@@ -34,18 +50,44 @@ export default function ProductCard({ product, eager = false }) {
           disabled={pending || wishlist.loading}
           onClick={() => toggleWishlist(product.id)}
         >
-          <Icon name="heart" fill={saved ? 'currentColor' : 'none'} />
+          <Icon name="heart" fill={saved ? '#2d559a' : 'none'} color={saved ? '#2d559a' : 'currentColor'} />
         </button>
       </div>
+
       <div className="s-product-info">
-        {product.category && <p className="s-meta">{product.category}</p>}
-        <h3 title={product.name}>{product.name}</h3>
-        <Price value={product.price} currency={product.currency} />
-        {product.reviewCount > 0 && (
-          <span className="s-card-rating" aria-label={`${product.rating} out of 5 stars from ${product.reviewCount} reviews`}>
-            <Icon name="star" fill="currentColor" /> {product.rating} ({product.reviewCount})
+        <div className="s-swatch-row" aria-label="Available finishes">
+          {swatches.map((swatch, i) => (
+            <span
+              key={i}
+              className="s-swatch-dot"
+              title={swatch.name}
+              style={{ background: swatch.color }}
+            />
+          ))}
+        </div>
+
+        <h3 title={product.name}>
+          <Link to={`/products/${product.id}`}>{product.name}</Link>
+        </h3>
+
+        <div className="s-price-row">
+          <Price value={product.price} currency={product.currency} />
+          {originalPrice && !outOfStock && (
+            <span className="s-original-price">
+              <Price value={originalPrice} currency={product.currency} />
+            </span>
+          )}
+          <span className="s-comp-value">Comp. value <span aria-hidden="true">ⓘ</span></span>
+        </div>
+
+        <div className="s-product-footer">
+          <span className="s-collection-tag">
+            <Icon name="layers" /> {categoryLabel}
           </span>
-        )}
+          <Link className="s-more-link" to={`/products/${product.id}`}>
+            Customise <span>›</span>
+          </Link>
+        </div>
       </div>
     </article>
   );
