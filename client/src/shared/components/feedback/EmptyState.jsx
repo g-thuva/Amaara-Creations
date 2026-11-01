@@ -5,11 +5,12 @@ export function EmptyState({
   children,
   to,
   label = "Continue",
+  icon = "package",
 }) {
   return (
     <div className="s-empty">
       <span className="s-empty-symbol" aria-hidden="true">
-        <Icon name="package" />
+        <Icon name={icon} />
       </span>
       <h2>{title}</h2>
       {children && <div className="s-empty-copy">{children}</div>}

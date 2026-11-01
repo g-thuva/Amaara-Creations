@@ -41,6 +41,7 @@ import {
   FiUsers,
   FiX,
 } from 'react-icons/fi';
+import { SiTiktok } from 'react-icons/si';
 
 const icons = {
   archive: FiArchive,
@@ -79,6 +80,7 @@ const icons = {
   sliders: FiSliders,
   star: FiStar,
   tag: FiTag,
+  tiktok: SiTiktok,
   trash: FiTrash2,
   truck: FiTruck,
   user: FiUser,

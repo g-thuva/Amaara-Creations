@@ -1,8 +1,9 @@
 import { useEffect, useId, useRef } from "react";
 import AppIcon from "@/shared/components/ui/Icon.jsx";
-export function Dialog({ open, onClose, title, children, drawer = false, id }) {
+export function Dialog({ open, onClose, title, description, children, drawer = false, id }) {
   const ref = useRef(null);
   const titleId = useId();
+  const descriptionId = useId();
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
@@ -11,7 +12,7 @@ export function Dialog({ open, onClose, title, children, drawer = false, id }) {
     const dialog = ref.current;
     const previous = document.activeElement;
     const overflow = document.body.style.overflow;
-    dialog.showModal();
+    if (!dialog.open) dialog.showModal();
     document.body.style.overflow = "hidden";
     return () => {
       dialog.close();
@@ -45,6 +46,7 @@ export function Dialog({ open, onClose, title, children, drawer = false, id }) {
       ref={ref}
       className={`s-dialog ${drawer ? "s-drawer" : ""}`.trim()}
       aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
       onKeyDown={trapFocus}
       onCancel={(event) => {
         event.preventDefault();
@@ -61,6 +63,7 @@ export function Dialog({ open, onClose, title, children, drawer = false, id }) {
           <AppIcon name="x" />
         </button>
       </div>
+      {description && <p id={descriptionId} className="s-dialog-description">{description}</p>}
       {open && children}
     </dialog>
   );

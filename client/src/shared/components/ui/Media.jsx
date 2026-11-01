@@ -11,7 +11,14 @@ export function Media({
   objectPosition,
 }) {
   const [failed, setFailed] = useState(null);
-  const url = resolveMediaUrl(src);
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  const isStatic = typeof src === 'string' && (
+    src.startsWith(baseUrl) ||
+    src.startsWith('/assets/') ||
+    src.startsWith('assets/') ||
+    src.includes('/assets/')
+  );
+  const url = isStatic ? src : resolveMediaUrl(src);
 
   return (
     <div className={`s-media ${className}`.trim()}>

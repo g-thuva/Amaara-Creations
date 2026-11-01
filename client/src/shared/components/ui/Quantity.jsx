@@ -31,6 +31,7 @@ export function Quantity({
         step="1"
         value={value}
         disabled={disabled}
+        aria-live="polite"
         onChange={(event) => {
           const next = Number(event.target.value);
           if (validQuantity(next, max)) onChange(next);
