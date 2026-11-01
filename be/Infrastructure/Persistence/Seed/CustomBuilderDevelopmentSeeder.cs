@@ -8,8 +8,20 @@ public static class CustomBuilderDevelopmentSeeder
     public static async Task SeedAsync(IServiceProvider services)
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        if (await context.CustomBuilderConfigurationVersions.AnyAsync())
+        var legacyVersions = await context.CustomBuilderConfigurationVersions.Where(v => v.Currency != Money.DefaultCurrency).ToListAsync();
+        if (legacyVersions.Count > 0)
+        {
+            foreach (var v in legacyVersions)
+            {
+                v.Currency = Money.DefaultCurrency;
+                v.UpdatedAt = DateTime.UtcNow;
+            }
+            await context.SaveChangesAsync();
+        }
+
+        if (await context.CustomBuilderConfigurationVersions.AnyAsync(v => v.Currency == Money.DefaultCurrency))
             return;
+
         var published = CreateVersion(1, BuilderVersionStatus.Published);
         published.PublishedAt = DateTime.UtcNow;
         published.InternalNotes = "DEVELOPMENT INITIAL CONFIGURATION. Commercial pricing and production constraints require business-owner verification.";
