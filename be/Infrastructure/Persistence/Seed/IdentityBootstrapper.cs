@@ -79,6 +79,7 @@ public static class IdentityBootstrapper
                 {
                     await CustomBuilderDevelopmentSeeder.SeedAsync(scope.ServiceProvider);
                     await ShippingDevelopmentSeeder.SeedAsync(scope.ServiceProvider);
+                    await CatalogDevelopmentSeeder.SeedAsync(scope.ServiceProvider);
                 }
             }
         }
