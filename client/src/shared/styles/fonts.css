@@ -1,4 +1,6 @@
 /* Official Google Fonts Latin subsets; SIL OFL licenses are retained in public/fonts. */
+
+/* Local fallback fonts — kept for offline resilience and admin compatibility */
 @font-face {
   font-family: 'Inter';
   font-style: normal;

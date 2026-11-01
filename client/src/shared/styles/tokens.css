@@ -1,93 +1,148 @@
+/* ─── Artisanal Studio Design Tokens ─── */
+
 :root {
-  font-family: 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  color: #1a202c;
-  background: #f6f9fc;
+  /* Font stacks */
+  font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #0e1b2e;
+  background: #faf8f5;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Existing admin styles consume these compatibility variables. */
-  --primary-color: #1a365d;
-  --primary-light: #2c5282;
-  --primary-dark: #0f2d4a;
-  --accent-color: #4299e1;
-  --accent-light: #90cdf4;
-  --background: #e5edf6;
+  /* Admin compatibility aliases — mapped to new palette */
+  --primary-color: #2d559a;
+  --primary-light: #3a68b5;
+  --primary-dark: #1b3560;
+  --accent-color: #2d559a;
+  --accent-light: #3a68b5;
+  --background: #faf8f5;
   --surface: #ffffff;
-  --text-primary: #1a202c;
-  --text-secondary: #4a5568;
-  --border: rgb(26 54 93 / 0.14);
-  --success: #1f7a4d;
-  --warning: #8a5a00;
+  --text-primary: #0e1b2e;
+  --text-secondary: #2b3b4e;
+  --border: rgb(14 27 46 / 0.12);
+  --success: #487e66;
+  --warning: #b87514;
   --error: #b42318;
-  --font-main: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Poppins', var(--font-main);
+  --font-main: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-heading: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --shadow-sm: 0 1px 3px rgb(15 45 74 / 0.08);
-  --shadow-md: 0 6px 18px rgb(15 45 74 / 0.1);
-  --shadow-lg: 0 14px 32px rgb(15 45 74 / 0.14);
-}
-.storefront {
-  --brand-navy-900: #0f2d4a;
-  --brand-navy-700: #1a365d;
-  --brand-navy-600: #2c5282;
-  --brand-sky-500: #4299e1;
-  --brand-sky-700: #2b6cb0;
-  --brand-sky-200: #90cdf4;
-  --brand-tint: #e5edf6;
-  --bg-page: #f6f9fc;
-  --surface: #ffffff;
-  --surface-muted: #eef3f9;
-  --text-primary: #1a202c;
-  --text-secondary: #4a5568;
-  --text-muted: #5b6678;
-  --text-on-dark: #ffffff;
-  --text-on-dark-muted: #cbd5e1;
-  --border: #c9d6e5;
-  --success: #1f7a4d;
-  --warning: #8a5a00;
-  --danger: #b42318;
-  --info: #2b6cb0;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
   --radius-pill: 9999px;
-  --shadow-1: 0 1px 3px rgb(15 45 74 / 0.08);
-  --shadow-2: 0 6px 18px rgb(15 45 74 / 0.1);
-  --shadow-3: 0 14px 32px rgb(15 45 74 / 0.14);
-  --font-body: 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-heading: 'Poppins', var(--font-body);
-  --text-xs: 0.78rem;
+  --shadow-sm: 0 1px 3px rgb(14 27 46 / 0.04), 0 1px 2px rgb(14 27 46 / 0.03);
+  --shadow-md: 0 4px 16px rgb(14 27 46 / 0.06), 0 2px 6px rgb(14 27 46 / 0.04);
+  --shadow-lg: 0 12px 40px rgb(14 27 46 / 0.08), 0 4px 12px rgb(14 27 46 / 0.04);
+}
+
+.storefront {
+  /* ─── Brand Palette ─── */
+  --brand-canvas: #faf8f5;
+  --brand-navy-900: #0e1b2e;
+  --brand-navy-700: #1e3a5f;
+  --brand-navy-600: #2a5a8a;
+  --brand-sky-500: #3b82c4;
+  --brand-sky-700: #2466a7;
+  --brand-sky-200: #bcd4e7;
+  --brand-tint: #f3efe9;
+  --brand-terracotta: #2d559a;
+  --brand-terracotta-dark: #1b3560;
+  --brand-terracotta-light: #edf3fb;
+  --brand-honey: #d4a359;
+  --brand-honey-light: #faf3e6;
+  --brand-sage: #487e66;
+  --brand-sage-light: #e6f0eb;
+  --warm-accent: #2d559a;
+
+  /* ─── Surfaces ─── */
+  --bg-page: #faf8f5;
+  --surface: #ffffff;
+  --surface-muted: #f3efe9;
+  --surface-warm: #ede8e0;
+
+  /* ─── Text ─── */
+  --text-primary: #0e1b2e;
+  --text-secondary: #2b3b4e;
+  --text-muted: #526275;
+  --text-on-dark: #ffffff;
+  --text-on-dark-muted: #dce4ee;
+
+  /* ─── Borders ─── */
+  --border: #d6cfc5;
+  --border-subtle: #e8e2d9;
+
+  /* ─── Semantic ─── */
+  --success: #487e66;
+  --warning: #b87514;
+  --danger: #b42318;
+  --info: #2466a7;
+
+  /* ─── Typography ─── */
+  --font-display: 'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-body: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-body: 1rem;
+  --text-lg: 1.125rem;
   --text-h4: clamp(1.1rem, 1vw + 0.9rem, 1.3rem);
   --text-h3: clamp(1.25rem, 1.5vw + 0.9rem, 1.65rem);
-  --text-h2: clamp(1.8rem, 3vw, 2.65rem);
-  --text-h1: clamp(2.3rem, 5vw, 4.5rem);
+  --text-h2: clamp(1.65rem, 2.5vw, 2.5rem);
+  --text-h1: clamp(2rem, 3.8vw, 3.5rem);
+
+  /* ─── Spacing ─── */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
+  --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
   --space-12: 3rem;
   --space-16: 4rem;
+  --space-18: 4.5rem;
   --space-24: 6rem;
-  --container: 1200px;
+  --space-28: 7rem;
+  --space-32: 8rem;
+
+  /* ─── Layout ─── */
+  --container: 1280px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --radius-pill: 9999px;
+
+  /* ─── Shadows (warm) ─── */
+  --shadow-1: 0 1px 3px rgb(14 27 46 / 0.04), 0 1px 2px rgb(14 27 46 / 0.03);
+  --shadow-2: 0 4px 16px rgb(14 27 46 / 0.06), 0 2px 6px rgb(14 27 46 / 0.04);
+  --shadow-3: 0 12px 40px rgb(14 27 46 / 0.08), 0 4px 12px rgb(14 27 46 / 0.04);
+
+  /* ─── Motion ─── */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --dur-fast: 150ms;
   --dur: 250ms;
+  --dur-slow: 400ms;
+  --focus-ring: 0 0 0 3px var(--surface), 0 0 0 6px var(--brand-terracotta);
+  --control-height: 48px;
+
+  /* ─── Z-index ─── */
   --z-header: 30;
   --z-drawer: 60;
   --z-dialog: 70;
   --z-toast: 100;
+
+  /* ─── Admin compat aliases ─── */
   --primary-color: var(--brand-navy-700);
   --primary-dark: var(--brand-navy-900);
   --primary-light: var(--brand-navy-600);
-  --accent-color: var(--brand-sky-500);
+  --accent-color: var(--brand-terracotta);
   --background: var(--bg-page);
   --font-main: var(--font-body);
+
+  /* ─── Study motif colors (kept for editorial hero) ─── */
+  --study-paper: #f7f3e8;
+  --study-blue: #c5d5df;
+  --study-sand: #ddc5ac;
+  --study-rust: #97563c;
 }
