@@ -14,6 +14,9 @@ export function useProducts() {
   });
   const [formData, setFormData] = useState(emptyForm);
   const [editingProduct, setEditingProduct] = useState(null);
+  // Pending media files to upload after product creation
+  const [pendingMediaFiles, setPendingMediaFiles] = useState([]);
+
   const resource = useResource(
     (signal) =>
       productsApi.getProducts(
@@ -38,10 +41,12 @@ export function useProducts() {
   const resetForm = () => {
     setEditingProduct(null);
     setFormData(emptyForm);
+    setPendingMediaFiles([]);
   };
 
   const startEdit = (product) => {
     setEditingProduct(product);
+    setPendingMediaFiles([]);
     setFormData({
       name: product.name || "",
       slug: product.slug || "",
@@ -70,10 +75,24 @@ export function useProducts() {
     };
 
     return mutation.run(async () => {
+      let productId;
       if (editingProduct) {
         await productsApi.updateProduct(editingProduct.id, payload);
+        productId = editingProduct.id;
       } else {
-        await productsApi.createProduct(payload);
+        const created = await productsApi.createProduct(payload);
+        productId = created?.id ?? created?.productId;
+      }
+      // Upload any pending media files after save
+      if (productId && pendingMediaFiles.length > 0) {
+        for (let i = 0; i < pendingMediaFiles.length; i++) {
+          const { file, altText } = pendingMediaFiles[i];
+          await productsApi.uploadProductMedia(productId, file, {
+            altText,
+            isPrimary: i === 0,
+            sortOrder: i,
+          });
+        }
       }
       resetForm();
       loadProducts();
@@ -104,5 +123,7 @@ export function useProducts() {
     startEdit,
     saveProduct,
     toggleArchive,
+    pendingMediaFiles,
+    setPendingMediaFiles,
   };
 }

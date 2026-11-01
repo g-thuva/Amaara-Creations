@@ -1,0 +1,162 @@
+/* ──────────────────────────────────────────────────────────────
+   Product Form — user-friendly two-column layout with media drop
+   ────────────────────────────────────────────────────────────── */
+
+/* Card wrapper */
+.admin-app .pf-card { margin-top: var(--space-8); }
+
+/* Two-column grid */
+.admin-app .pf-form { padding: 0; }
+.admin-app .pf-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: var(--space-8);
+  padding: var(--space-6);
+}
+@media (max-width: 960px) {
+  .admin-app .pf-layout { grid-template-columns: 1fr; }
+  .admin-app .pf-right { order: -1; }
+}
+
+/* Section blocks */
+.admin-app .pf-section {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+.admin-app .pf-section:last-child { border-bottom: none; margin-bottom: 0; }
+
+.admin-app .pf-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-4);
+}
+.admin-app .pf-section-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-4);
+}
+
+/* Textarea */
+.admin-app .pf-textarea { resize: vertical; min-height: 100px; }
+
+/* Editing badge */
+.admin-app .pf-editing-badge {
+  font-size: 12px;
+  background: var(--gold-100, #fef3c7);
+  color: var(--gold-800, #92400e);
+  border: 1px solid var(--gold-300, #fcd34d);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+/* ── Drag & Drop zone ── */
+.admin-app .pf-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg-page);
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.admin-app .pf-dropzone:hover,
+.admin-app .pf-dropzone--over {
+  border-color: var(--navy-600);
+  background: var(--navy-50, #eff6ff);
+}
+.admin-app .pf-dropzone-icon { font-size: 32px; line-height: 1; }
+.admin-app .pf-dropzone-label { margin: 0; font-size: 14px; color: var(--text-muted); }
+.admin-app .pf-dropzone-label strong { color: var(--navy-900); display: block; margin-bottom: 4px; }
+
+/* ── Preview grid ── */
+.admin-app .pf-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.admin-app .pf-preview-card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+}
+.admin-app .pf-preview-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+.admin-app .pf-badge-primary {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: var(--navy-900);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+  letter-spacing: .04em;
+}
+.admin-app .pf-alt-input {
+  border: none;
+  border-top: 1px solid var(--border);
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg-surface);
+  width: 100%;
+}
+.admin-app .pf-alt-input:focus { outline: 2px solid var(--navy-400); outline-offset: -2px; }
+.admin-app .pf-remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  border: none;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}
+.admin-app .pf-remove-btn:hover { background: #c00; }
+
+/* ── Toggle row ── */
+.admin-app .pf-toggle-row { display: flex; flex-direction: column; gap: var(--space-3); }
+.admin-app .pf-toggle { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; }
+.admin-app .pf-toggle input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: var(--navy-700); cursor: pointer;
+}
+.admin-app .pf-toggle-label { font-size: 14px; }
+
+/* ── Actions ── */
+.admin-app .pf-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border);
+  background: var(--bg-page);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+}
+.admin-app .pf-submit-btn {
+  min-width: 180px;
+}

@@ -70,6 +70,8 @@ export default function ProductsPage() {
           categories={lookups.data?.categories || []}
           collections={lookups.data?.collections || []}
           pending={mutation.pending}
+          pendingMediaFiles={products.pendingMediaFiles}
+          setPendingMediaFiles={products.setPendingMediaFiles}
         />
       </ResourceState>
       {activeProduct && (
