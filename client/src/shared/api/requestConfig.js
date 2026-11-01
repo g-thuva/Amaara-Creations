@@ -14,11 +14,16 @@ export const resolveMediaUrl = (url) => {
     return url;
   }
 
-  if (/^(https?:|blob:)/i.test(url)) {
+  if (/^(https?:|blob:|data:)/i.test(url)) {
     return url;
   }
 
   if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('//') || url.includes('\\')) return '';
+
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  if ((baseUrl !== '/' && url.startsWith(baseUrl)) || url.startsWith('/assets/') || url.startsWith('assets/')) {
+    return url;
+  }
 
   return `${MEDIA_BASE_URL}/${url.replace(/^\/+/, '')}`;
 };
