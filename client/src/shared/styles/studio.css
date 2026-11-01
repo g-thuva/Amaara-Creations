@@ -930,3 +930,102 @@
   color: #1b3560;
   transform: translateX(2px);
 }
+
+/* ───────── Shop page ───────── */
+.storefront .s-shop-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: clamp(15rem, 34vh, 21rem);
+  overflow: hidden;
+  color: #ffffff;
+  background: #081220;
+  isolation: isolate;
+}
+.storefront .s-shop-hero-bg {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 82% 40%;
+}
+.storefront .s-shop-hero-scrim {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(7, 14, 26, 0.9) 0%, rgba(7, 14, 26, 0.7) 48%, rgba(7, 14, 26, 0.3) 100%),
+    linear-gradient(180deg, rgba(7, 14, 26, 0.35) 0%, rgba(7, 14, 26, 0.55) 100%);
+}
+.storefront .s-shop-hero-inner { padding-block: clamp(2.25rem, 5vw, 3.5rem); }
+.storefront .s-shop-hero h1 {
+  max-width: 18ch;
+  margin: 0 0 0.9rem;
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 4.6vw, 3.6rem);
+  line-height: 1.08;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+.storefront .s-shop-hero h1 em { color: #8fb7e8; font-style: italic; font-weight: 500; }
+.storefront .s-shop-hero p {
+  max-width: 50ch;
+  margin: 0 0 1.4rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(0.98rem, 1.2vw, 1.1rem);
+  line-height: 1.6;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+.storefront .s-shop-hero-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+
+.storefront .s-catalog-page { padding-top: clamp(1.5rem, 3vw, 2.25rem); }
+
+/* Category pills */
+.storefront .s-category-pills {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.storefront .s-category-pills::-webkit-scrollbar { display: none; }
+.storefront .s-category-pills button {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0.55rem 1.15rem;
+  color: #1e3a5f;
+  background: #ffffff;
+  border: 1px solid #d6cfc5;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 160ms var(--ease), color 160ms var(--ease), border-color 160ms var(--ease);
+}
+.storefront .s-category-pills button:hover { border-color: #2d559a; color: #2d559a; }
+.storefront .s-category-pills button.is-active { color: #ffffff; background: #2d559a; border-color: #2d559a; }
+
+/* Toolbar + sidebar */
+.storefront .s-catalog-toolbar {
+  background: #ffffff;
+  border: 1px solid #ebe5dc;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(14, 27, 46, 0.04);
+}
+.storefront .s-catalog-layout { margin-top: 1.75rem; }
+.storefront .s-desktop-filters {
+  background: #ffffff;
+  border: 1px solid #ebe5dc;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(14, 27, 46, 0.04);
+}
+.storefront .s-desktop-filters h2 {
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid #ebe5dc;
+  font-family: var(--font-display);
+}
+.storefront .s-result-count { margin-bottom: 1.1rem; font-weight: 600; letter-spacing: 0.02em; }

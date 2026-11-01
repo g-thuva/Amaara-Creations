@@ -20,10 +20,10 @@ export default function CatalogResults({ catalog }) {
                   </div>
                 ) : (
                   <EmptyState title={data.data?.publishedCount === 0 ? 'Begin with your own design' : 'No products match those filters'} to={null}>
-                    <p>{data.data?.publishedCount === 0 ? 'The ready-made collection is currently empty. The designer shows the shapes, materials and pricing currently configured by the studio.' : 'Try a broader search, clear the active filters, or preview a custom sticker idea.'}</p>
+                    <p>{data.data?.publishedCount === 0 ? 'Our ready-made collection is being prepared. In the meantime, you can design your own piece in the studio.' : 'Try a broader search, clear the active filters, or design your own piece.'}</p>
                     <div className="s-actions">
                       {data.data?.publishedCount !== 0 && <Button onClick={clear}>Clear filters</Button>}
-                      <Link className="s-button s-button-secondary" to="/custom">Design a custom sticker</Link>
+                      <Link className="s-button s-button-secondary" to="/custom">Design your own</Link>
                     </div>
                   </EmptyState>
                 )}
