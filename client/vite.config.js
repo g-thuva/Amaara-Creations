@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
   plugins: [react(), ...(mode === 'admin' ? [{ name: 'staff-entry', transformIndexHtml: { order: 'pre', handler: html => html.replace('/src/main.jsx', '/src/admin-main.jsx').replace('<title>Amaara Creations</title>', '<title>Amaara studio operations</title><meta name="robots" content="noindex,nofollow,noarchive" />') } }] : [])],
   test: { include: ['src/**/*.test.{js,jsx,ts,tsx}'] },
   base: process.env.VITE_PUBLIC_BASE_PATH || '/Amaara-Creations/',
+  cacheDir: mode === 'admin' ? 'node_modules/.vite-admin' : 'node_modules/.vite',
   build: {
     outDir: mode === 'admin' ? 'dist-admin' : 'dist',
     sourcemap: false,

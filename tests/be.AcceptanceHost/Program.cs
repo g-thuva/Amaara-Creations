@@ -7,7 +7,17 @@ if (args.Contains("--smtp"))
     Environment.ExitCode = await ExternalSmtpAcceptance.RunAsync(repository, args.Contains("--outbox-only"));
     return;
 }
-await using var factory = new AcceptanceApiFactory();
+var storefrontOrigin = Environment.GetEnvironmentVariable("AMAARA_E2E_STOREFRONT_ORIGIN") ?? "http://127.0.0.1:5178";
+var managementOrigin = Environment.GetEnvironmentVariable("AMAARA_E2E_MANAGEMENT_ORIGIN") ?? "http://127.0.0.1:5179";
+await using var factory = new AcceptanceApiFactory
+{
+    ExtraConfiguration = new Dictionary<string, string?>
+    {
+        ["Cors:AllowedOrigins:0"] = storefrontOrigin,
+        ["Cors:AllowedOrigins:1"] = managementOrigin,
+        ["Administration:AllowedOrigins:0"] = managementOrigin
+    }
+};
 using var api = factory.CreateClient(new() { HandleCookies = false, AllowAutoRedirect = false });
 await factory.SeedCatalogueAsync();
 var builder = WebApplication.CreateBuilder(args);

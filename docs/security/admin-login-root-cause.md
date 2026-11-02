@@ -1,4 +1,4 @@
-﻿# Administrator sign-in diagnosis
+# Administrator sign-in diagnosis
 
 The original `/profile` redirect came from `useLogin`: it ignored the authenticated user's roles and always chose a customer destination. A read-only inspection of the configured local SQL identity confirmed both `Admin` and `SuperAdmin` memberships, a confirmed email and no completed MFA. Missing roles were not the cause. No existing password, role, enrollment or business record was changed to correct navigation.
 
@@ -23,7 +23,7 @@ For details use the [audit](authentication-mfa-audit.md), [architecture](mfa-arc
 
 Current work is local on `fix/admin-auth-dashboard`, based on `develop` at `0e3d890`. The earlier boutique feature was already merged to develop and deleted; this focused authentication branch has not been pushed, merged or deployed.
 
-Use `http://localhost:5173/Amaara-Creations/login`. Management runs at `http://localhost:5179/Amaara-Creations/login` and the configured API at `http://localhost:5192`. Use one consistent loopback hostname. The server checks current memberships independently of public navigation, editable profile data and browser storage. The actual account owner must enroll their own phone privately; tests use synthetic users only.
+Storefront runs at `http://localhost:5179/Amaara-Creations/login`. Management runs at `http://localhost:5173/Amaara-Creations/login` and the configured API at `http://localhost:5192`. Use one consistent loopback hostname. The server checks current memberships independently of public navigation, editable profile data and browser storage. The actual account owner must enroll their own phone privately; tests use synthetic users only.
 
 Private Development configuration already enables administration, keeps bootstrap disabled and supplies existing credentials/SQL/JWT settings. Do not print those settings. The read-only operator inspection is available without mutating accounts:
 

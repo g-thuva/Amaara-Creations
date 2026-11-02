@@ -1,6 +1,6 @@
 # Staff authenticator setup
 
-Open the usual Amaara Creations sign-in page. Enter your existing email and password once. The server checks your assigned permissions; there is no customer/staff selector.
+Open the usual Amaara Creations sign-in page. Enter your existing email and password once. Complete authenticator verification or first-time QR setup on the same page. The browser opens admin only after authentication completes. The server checks your assigned permissions; there is no customer/staff selector.
 
 - Customers normally go straight to their account.
 - Returning staff enter the current six-digit code from their authenticator and reach their permitted workspace.
@@ -21,7 +21,7 @@ If you already enrolled this account but cannot find its authenticator entry, us
 
 ## Local development
 
-Use Node 22+, the repository's .NET 8 SDK and existing private backend configuration. Start the API with `dotnet run --project be` (configured HTTP port 5192), the storefront with `npm --prefix client run dev` (5173), and management with `npm --prefix client run dev:admin` (5179). Open `http://localhost:5173/Amaara-Creations/login`; management entry returns here when sign-in is needed. Keep the same loopback hostname for all three.
+Use Node 22+, the repository's .NET 8 SDK and existing private backend configuration. Start the API with `dotnet run --project be` (configured HTTP port 5192), the storefront with `npm --prefix client run dev` (5179), and management with `npm --prefix client run dev:admin` (5173), each in its own terminal. Open `http://localhost:5179/Amaara-Creations/login`. Password entry, verification, QR setup and recovery-code acknowledgment stay on 5179. A completed sign-in redirects to the permitted admin workspace on 5173. Refreshing an unfinished sign-in keeps verification on 5179. Keep the same loopback hostname for all three.
 
 Administration must be deliberately enabled in private Development configuration. No account is promoted or enrolled by starting the applications. The configured local administrative identity was read-only verified as email-confirmed with `Admin` and `SuperAdmin` membership and no enrolled MFA; its owner must perform the real phone setup privately. No real account credentials were submitted during automated verification.
 
