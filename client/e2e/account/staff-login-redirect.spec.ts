@@ -3,27 +3,23 @@ import { fillAuthenticator } from '../staffAuth';
 
 const managementEntry = 'https://management.example.test/Amaara-Creations/login';
 
-test('one storefront staff sign-in opens the configured management entry and restores the dashboard without repeating credentials', async ({ page, fixture }) => {
+test('completed storefront verification opens the management dashboard without repeating credentials', async ({ page, fixture }) => {
   let navigation: { url: string; method: string; body: string | null } | undefined;
   let sharedSignIns = 0; let additionalStaffSignIns = 0;
   page.on('request', request => {
+    if (request.url() === managementEntry && request.isNavigationRequest()) navigation = { url: request.url(), method: request.method(), body: request.postData() };
     if (request.method() !== 'POST') return;
     if (request.url().endsWith('/auth/sign-in')) sharedSignIns++;
     if (request.url().endsWith('/auth/staff/login')) additionalStaffSignIns++;
   });
-  // This HTTPS host stands in for the deployment destination. The real staff
-  // application and its MFA/session checks are exercised by the staff project.
-  await page.route('https://management.example.test/**', async route => {
-    const request = route.request();
-    navigation = { url: request.url(), method: request.method(), body: request.postData() };
-    await route.fulfill({ contentType: 'text/html', body: '<h1>Separate management sign-in destination</h1>' });
-  });
+  // The context fixture maps the configured destination to the real staff app.
   await page.goto('./login');
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.adminEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
   await fillAuthenticator(page);
+  expect(new URL(page.url()).port).toBe('5178');
   await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
-  await expect(page).toHaveURL(managementEntry);
+  await expect(page).toHaveURL(/\/admin\/dashboard$/);
   expect(navigation).toEqual({ url: managementEntry, method: 'GET', body: null });
   expect((await page.context().cookies()).some(cookie => cookie.name === 'amaara_refresh_staff' && cookie.httpOnly && cookie.path === '/api/v1/auth/staff')).toBe(true);
   const restored = await page.request.post(acceptanceApi + '/api/v1/auth/refresh');
