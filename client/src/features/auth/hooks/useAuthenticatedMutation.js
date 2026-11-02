@@ -7,7 +7,7 @@ import { useRequireLogin } from '@/features/auth/hooks/useRequireLogin.js';
 export function useAuthenticatedMutation() {
   const mutation = useMutation();
   const requireLogin = useRequireLogin();
-  const { notify } = useToast();
+  const { notify = () => {} } = useToast() || {};
   const mutate = (action, refresh, message) => {
     if (!requireLogin()) return Promise.resolve(false);
     return mutation.run(action, {

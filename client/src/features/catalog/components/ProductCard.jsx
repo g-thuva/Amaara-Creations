@@ -1,4 +1,8 @@
+import { useState } from 'react';
 import { useWishlist } from '@/features/wishlist/WishlistProvider.jsx';
+import { useCart } from '@/features/cart/CartProvider.jsx';
+import { useAuthenticatedMutation } from '@/features/auth/hooks/useAuthenticatedMutation.js';
+import { cartApi } from '@/features/cart/cartApi.js';
 import { Link } from 'react-router-dom';
 import Icon from '@/shared/components/ui/Icon.jsx';
 import { Media } from '@/shared/components/ui/Media.jsx';
@@ -12,14 +16,39 @@ const defaultSwatches = [
 ];
 
 export default function ProductCard({ product, eager = false }) {
-  const { wishlist, toggleWishlist, pending } = useWishlist();
-  const saved = !!wishlist.data?.items.some((item) => item.productId === product.id);
+  const { wishlist, toggleWishlist, pending } = useWishlist?.() || { wishlist: { data: { items: [] } } };
+  const cartContext = useCart?.();
+  const cart = cartContext?.cart;
+  const { mutate, pending: cartPending } = useAuthenticatedMutation?.() || { mutate: () => Promise.resolve(false), pending: false };
+  const [added, setAdded] = useState(false);
+
+  const saved = !!wishlist?.data?.items?.some((item) => item.productId === product.id);
   const outOfStock = product.isOutOfStock || product.stock <= 0;
   const lowStock = !outOfStock && product.stock <= 5;
   const media = product.media?.find((item) => item.isPrimary) || product.media?.[0];
   const originalPrice = product.originalPrice || (product.price ? Math.round(product.price * 1.18) : null);
   const swatches = product.swatches || defaultSwatches;
   const categoryLabel = product.category || 'Wedding Collection';
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (outOfStock || cartPending) return;
+    mutate(
+      () => cartApi.addToCart(product.id, 1, product.variants?.[0]?.id ?? null),
+      () => {
+        cart?.reload?.();
+        setAdded(true);
+        setTimeout(() => setAdded(false), 2200);
+      },
+      <>
+        Added to your cart.{' '}
+        <Link to="/cart" style={{ textDecoration: 'underline', fontWeight: 600 }}>
+          View cart →
+        </Link>
+      </>,
+    );
+  };
 
   return (
     <article className="s-product-card">
@@ -42,16 +71,31 @@ export default function ProductCard({ product, eager = false }) {
             <span className="s-discount-badge">Save 15%</span>
           )}
         </div>
-        <button
-          type="button"
-          className="s-save"
-          aria-label={`${saved ? 'Remove' : 'Save'} ${product.name} ${saved ? 'from' : 'to'} wishlist`}
-          aria-pressed={saved}
-          disabled={pending || wishlist.loading}
-          onClick={() => toggleWishlist(product.id)}
-        >
-          <Icon name="heart" fill={saved ? '#2d559a' : 'none'} color={saved ? '#2d559a' : 'currentColor'} />
-        </button>
+
+        <div className="s-product-actions">
+          <button
+            type="button"
+            className="s-save"
+            aria-label={`${saved ? 'Remove' : 'Save'} ${product.name} ${saved ? 'from' : 'to'} wishlist`}
+            aria-pressed={saved}
+            disabled={pending || wishlist?.loading}
+            onClick={() => toggleWishlist?.(product.id)}
+            title={saved ? 'In wishlist' : 'Save to wishlist'}
+          >
+            <Icon name="heart" fill={saved ? '#2d559a' : 'none'} color={saved ? '#2d559a' : 'currentColor'} />
+          </button>
+
+          <button
+            type="button"
+            className={`s-action-cart ${added ? 'is-added' : ''}`}
+            aria-label={`Add ${product.name} to cart`}
+            disabled={outOfStock || cartPending}
+            onClick={handleAddToCart}
+            title={outOfStock ? 'Out of stock' : added ? 'Added to cart' : 'Add to cart'}
+          >
+            <Icon name={added ? 'check' : 'cart'} />
+          </button>
+        </div>
       </div>
 
       <div className="s-product-info">
