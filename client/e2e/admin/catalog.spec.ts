@@ -33,7 +33,8 @@ test("extracted product form, variants, media and archive actions persist throug
     await page.goto("./admin/products");
     const name = "TEST architecture product " + Date.now();
     await page.getByLabel("Search products", { exact: true }).fill(name);
-    await page.getByLabel("Name", { exact: true }).fill(name);
+    await page.getByRole("button", { name: "New Product", exact: true }).click();
+    await page.getByLabel("Product name", { exact: true }).fill(name);
     await page
       .getByRole("combobox", { name: "Currency", exact: true })
       .selectOption("CHF");
@@ -43,7 +44,7 @@ test("extracted product form, variants, media and archive actions persist throug
       .getByLabel("SKU", { exact: true })
       .fill("TEST-ARCH-" + Date.now());
     await page
-      .getByLabel("Description", { exact: true })
+      .getByLabel("Full description", { exact: true })
       .fill("Test-only catalog migration coverage.");
     const created = page.waitForResponse(
       (response) =>
@@ -58,18 +59,18 @@ test("extracted product form, variants, media and archive actions persist throug
     productId = (await response.json()).id;
     const row = page.getByRole("row").filter({ hasText: name });
     await expect(row).toBeVisible();
-    await row.getByRole("button", { name: "Edit", exact: true }).click();
+    await row.getByRole("button", { name: `Edit ${name}`, exact: true }).click();
     await expect(page.getByLabel("Stock", { exact: true })).toBeDisabled();
     await expect(
       page.getByRole("combobox", { name: "Currency", exact: true }),
     ).toBeDisabled();
     await page.getByLabel("Base price", { exact: true }).fill("125");
     await page
-      .getByRole("button", { name: "Save Product", exact: true })
+      .getByRole("button", { name: "Save Changes", exact: true })
       .click();
     await expect(row).toContainText("125.00");
     await row
-      .getByRole("button", { name: "Media and variants", exact: true })
+      .getByRole("button", { name: `Media and variants for ${name}`, exact: true })
       .click();
     await page
       .getByLabel("Variant SKU", { exact: true })
@@ -95,7 +96,7 @@ test("extracted product form, variants, media and archive actions persist throug
       .fill("TEST product image");
     await page.getByRole("button", { name: "Upload", exact: true }).click();
     await expect(
-      page.getByRole("table", { name: "Product images", exact: true }),
+      page.locator(".pf-preview-card").filter({ hasText: "TEST product image" }),
     ).toContainText("TEST product image");
     const accessibility = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -106,6 +107,7 @@ test("extracted product form, variants, media and archive actions persist throug
         targets: v.nodes.map((n) => n.target),
       })),
     ).toEqual([]);
+    await page.getByRole("dialog", { name: `${name}: Media and variants`, exact: true }).getByRole("button", { name: "Cancel", exact: true }).click();
     await row.getByRole("button", { name: "Archive", exact: true }).click();
     await page.getByRole('dialog', { name: 'Archive product', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
     await expect(
@@ -153,7 +155,7 @@ test("catalog and content editors retain their form behavior and accessible labe
   const originalDescription = await description.inputValue();
   try {
     await description.fill("TEST category edit");
-    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await page.getByRole("button", { name: "Save Changes", exact: true }).click();
     await expect(
       page.getByText("Changes saved.", { exact: true }),
     ).toBeVisible();
@@ -162,7 +164,7 @@ test("catalog and content editors retain their form behavior and accessible labe
       .getByRole("button", { name: `Edit ${name}`, exact: true })
       .click();
     await description.fill(originalDescription);
-    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await page.getByRole("button", { name: "Save Changes", exact: true }).click();
     await expect(
       page.getByText("Changes saved.", { exact: true }),
     ).toBeVisible();

@@ -1,27 +1,23 @@
-import { blank } from "@/features/admin/features/categories/categoriesForm.js";
 export function CategoryForm({
   items,
   form,
   setForm,
   editing,
-  setEditing,
   save,
   pending,
+  formId,
 }) {
   return (
-    <div className="card">
-      <div className="card-header">
-        <h2 className="card-title">
-          {editing ? "Edit Category" : "Create Category"}
-        </h2>
-      </div>
-      <form className="add-product-form" onSubmit={save}>
+    <form id={formId} className="add-product-form" onSubmit={save}>
+      <fieldset className="admin-form-fields" disabled={pending}>
+
         <div className="form-row">
           <label className="form-group">
-            Name
+            Name <span aria-hidden="true" className="admin-required" />
             <input
               className="form-control"
               required
+              data-dialog-autofocus
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
@@ -81,22 +77,7 @@ export function CategoryForm({
           />{" "}
           Active
         </label>
-        <div className="form-actions">
-          <button
-            type="button"
-            className="btn-cancel"
-            onClick={() => {
-              setForm(blank);
-              setEditing(null);
-            }}
-          >
-            Clear
-          </button>
-          <button type="submit" className="btn-submit" disabled={pending}>
-            Save
-          </button>
-        </div>
-      </form>
-    </div>
+      </fieldset>
+    </form>
   );
 }

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { resolveMediaUrl } from "@/shared/api/requestConfig.js";
 
 export function ProductMediaEditor({
@@ -12,15 +12,19 @@ export function ProductMediaEditor({
   pending,
 }) {
   const inputRef = useRef(null);
+  const previewRef = useRef(null);
+  useEffect(() => () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); }, []);
   const [dragging, setDragging] = useState(false);
   const [localFile, setLocalFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
   const pickFile = (file) => {
-    if (!file) return;
+    if (!file || pending) return;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setLocalFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    const preview = URL.createObjectURL(file);
+    previewRef.current = preview;
+    setPreviewUrl(preview);
     setMediaFile(file);
   };
 
@@ -32,9 +36,10 @@ export function ProductMediaEditor({
   };
 
   const handleSubmit = async (e) => {
-    await uploadMedia(e);
+    const saved = await uploadMedia(e);
+    if (!saved) return;
     setLocalFile(null);
-    if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); previewRef.current = null; }
   };
 
   return (
@@ -78,6 +83,7 @@ export function ProductMediaEditor({
 
       {/* Upload new */}
       <form onSubmit={handleSubmit}>
+        <fieldset className="admin-form-fields" disabled={pending}>
         <div
           className={`pf-dropzone${dragging ? " pf-dropzone--over" : ""}`}
           style={{ padding: "24px 16px" }}
@@ -87,14 +93,15 @@ export function ProductMediaEditor({
           onClick={() => inputRef.current?.click()}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inputRef.current?.click(); } }}
         >
           <input
             ref={inputRef}
             type="file"
+            aria-label="Product image"
             accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
             style={{ display: "none" }}
-            onChange={(e) => pickFile(e.target.files?.[0])}
+            onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ""; }}
           />
           {previewUrl ? (
             localFile?.type?.startsWith("video/") ? (
@@ -119,6 +126,7 @@ export function ProductMediaEditor({
               className="form-control"
               style={{ flex: 1 }}
               placeholder="Caption / alt text (optional)"
+              aria-label="Alt text"
               value={mediaAltText}
               onChange={(e) => setMediaAltText(e.target.value)}
             />
@@ -128,10 +136,12 @@ export function ProductMediaEditor({
             <button
               type="button"
               className="btn-cancel"
+              aria-label="Remove selected media"
+              disabled={pending}
               onClick={() => {
                 setLocalFile(null);
                 if (previewUrl) URL.revokeObjectURL(previewUrl);
-                setPreviewUrl(null);
+                setPreviewUrl(null); previewRef.current = null;
                 setMediaFile(null);
               }}
             >
@@ -144,6 +154,7 @@ export function ProductMediaEditor({
             No photos yet. Upload the first one above.
           </p>
         )}
+        </fieldset>
       </form>
     </div>
   );

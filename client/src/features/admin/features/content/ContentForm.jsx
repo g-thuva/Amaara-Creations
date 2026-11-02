@@ -1,25 +1,22 @@
-import { blankPage } from "@/features/admin/features/content/contentForm.js";
 export function ContentForm({
   form,
   setForm,
-  editing,
-  setEditing,
   save,
   updateSection,
   pending,
+  formId,
 }) {
   return (
-    <div className="card">
-      <div className="card-header">
-        <h2 className="card-title">{editing ? "Edit Page" : "Create Page"}</h2>
-      </div>
-      <form className="add-product-form" onSubmit={save}>
+    <form id={formId} className="add-product-form" onSubmit={save}>
+      <fieldset className="admin-form-fields" disabled={pending}>
+
         <div className="form-row">
           <label className="form-group">
-            Title
+            Title <span aria-hidden="true" className="admin-required" />
             <input
               className="form-control"
               required
+              data-dialog-autofocus
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
@@ -104,22 +101,7 @@ export function ContentForm({
           />{" "}
           Published
         </label>
-        <div className="form-actions">
-          <button
-            type="button"
-            className="btn-cancel"
-            onClick={() => {
-              setForm(blankPage);
-              setEditing(null);
-            }}
-          >
-            Clear
-          </button>
-          <button type="submit" className="btn-submit" disabled={pending}>
-            Save
-          </button>
-        </div>
-      </form>
-    </div>
+      </fieldset>
+    </form>
   );
 }

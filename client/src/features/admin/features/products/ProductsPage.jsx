@@ -1,7 +1,8 @@
 import { useState } from "react";
 import AppIcon from "@/shared/components/ui/Icon.jsx";
 import { useProducts } from "@/features/admin/features/products/useProducts.js";
-import { ProductForm } from "@/features/admin/features/products/ProductForm.jsx";
+import { ProductEditor } from "./ProductEditor.jsx";
+import { useToast } from "@/features/admin/shared/components/Toast.jsx";
 import { ProductsTable } from "@/features/admin/features/products/ProductsTable.jsx";
 import { ProductTools } from "@/features/admin/features/products/ProductTools.jsx";
 import { Pagination } from "@/features/admin/shared/components/Pagination.jsx";
@@ -9,22 +10,32 @@ import { ResourceState } from "@/features/admin/shared/components/ResourceState.
 import { MutationFeedback } from "@/features/admin/shared/components/MutationFeedback.jsx";
 export default function ProductsPage() {
   const products = useProducts();
-  const { query, setQuery, resource, lookups, mutation } = products;
+  const { query, setQuery, resource, mutation } = products;
+  const [editor, setEditor] = useState(null);
+  const [savedProduct, setSavedProduct] = useState(null);
+  const notify = useToast();
+  const saved = product => {
+    setEditor(null); setSavedProduct(product); resource.reload();
+    notify?.(`${product.name} ${editor?.product ? 'updated' : 'created'}.`);
+  };
   const [activeProduct, setActiveProduct] = useState(null);
   return (
-    <div className="admin-page">
+    <div className="admin-page admin-products-page">
       <div className="page-header">
         <div className="header-content">
           <div>
             <h1>Product Management</h1>
             <p>{resource.data ? `${resource.data.totalCount ?? resource.data.totalItems ?? resource.data.items?.length ?? 0} products` : 'Manage products, prices and availability.'}</p>
           </div>
-          <button className="btn-add-product" onClick={products.resetForm}>
+          <button className="btn-add-product" onClick={() => setEditor({ product: null })}>
             <AppIcon name="plus" /> New Product
           </button>
         </div>
       </div>
       <MutationFeedback {...mutation} />
+      {savedProduct && <p className="admin-callout" role="status">{savedProduct.name} saved. Your catalogue filters have been kept.{' '}
+        <button type="button" className="btn btn-outline-primary" onClick={() => setQuery({ ...query, page: 1, search: savedProduct.name, isActive: '' })}>Find saved product</button>
+      </p>}
       <div className="card card-body form-row">
         <input
           aria-label="Search products"
@@ -52,7 +63,7 @@ export default function ProductsPage() {
         <ProductsTable
           products={resource.data?.items || []}
           isLoading={resource.loading}
-          startEdit={products.startEdit}
+          startEdit={product => setEditor({ product })}
           openProductTools={setActiveProduct}
           toggleArchive={products.toggleArchive}
           pending={mutation.pending}
@@ -64,21 +75,13 @@ export default function ProductsPage() {
           size={20}
         />
       </ResourceState>
-      <ResourceState resource={lookups}>
-        <ProductForm
-          {...products}
-          categories={lookups.data?.categories || []}
-          collections={lookups.data?.collections || []}
-          pending={mutation.pending}
-          pendingMediaFiles={products.pendingMediaFiles}
-          setPendingMediaFiles={products.setPendingMediaFiles}
-        />
-      </ResourceState>
+      {editor && <ProductEditor product={editor.product} onClose={() => setEditor(null)} onSaved={saved} />}
       {activeProduct && (
         <ProductTools
           key={activeProduct.id}
           product={activeProduct}
           changed={resource.reload}
+          onClose={() => setActiveProduct(null)}
         />
       )}
     </div>

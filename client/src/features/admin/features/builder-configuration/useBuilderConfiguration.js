@@ -22,6 +22,14 @@ export function useBuilderConfiguration() {
   useEffect(() => {
     load();
   }, []);
+  const dirty = Boolean(draft && data?.draft && JSON.stringify(draft) !== JSON.stringify(data.draft));
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const protect = event => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', protect);
+    return () => window.removeEventListener('beforeunload', protect);
+  }, [dirty]);
+  const discard = () => { setDraft(structuredClone(data.draft)); setError(''); setNotice('Draft changes discarded.'); };
   const change = (field, value) =>
     setDraft((current) => ({
       ...current,
@@ -51,6 +59,7 @@ export function useBuilderConfiguration() {
         draft,
       );
       setDraft(updated);
+      setData(current => ({ ...current, draft: structuredClone(updated) }));
       setNotice("Draft saved.");
     } catch (requestError) {
       setError(customerError(requestError));
@@ -118,6 +127,7 @@ export function useBuilderConfiguration() {
       options: current.options.filter((_, itemIndex) => itemIndex !== index),
     }));
   return {
+    dirty, discard,
     reload: load,
     data,
     draft,

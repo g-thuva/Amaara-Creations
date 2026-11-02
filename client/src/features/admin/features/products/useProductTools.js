@@ -68,6 +68,7 @@ export function useProductTools(activeProduct, changed) {
     mutation,
     variantForm,
     setVariantForm,
+    mediaFile,
     setMediaFile,
     mediaAltText,
     setMediaAltText,

@@ -42,7 +42,10 @@ export function useCategories() {
       await load();
     });
   };
+  const reset = () => { setForm(blank); setEditing(null); mutation.reset();  };
+  const dirty = JSON.stringify(form) !== JSON.stringify(editing ? { ...editing, parentCategoryId: editing.parentCategoryId || "" } : blank);
   return {
+    reset, dirty,
     items,
     form,
     setForm,

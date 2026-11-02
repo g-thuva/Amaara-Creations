@@ -108,14 +108,14 @@ test("marketing creates a disabled coupon, edits it and opens redemption history
     .selectOption("CHF");
   await page.getByLabel("Discount value", { exact: true }).fill("5");
   await page.getByLabel("Starts", { exact: true }).fill("2026-01-01T00:00");
-  await page.getByRole("button", { name: "Save promotion" }).click();
+  await page.getByRole("button", { name: "Create Promotion", exact: true }).click();
   await expect(
     page.getByRole("cell", { name: code, exact: true }),
   ).toBeVisible();
   await page.getByRole('button', { name: `Actions for ${code}`, exact: true }).click();
   await page.getByRole("button", { name: `Edit ${code}`, exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("TEST campaign edited");
-  await page.getByRole("button", { name: "Save promotion" }).click();
+  await page.getByRole("button", { name: "Save Changes", exact: true }).click();
   await expect(
     page.getByRole("cell", { name: "TEST campaign edited", exact: true }),
   ).toBeVisible();

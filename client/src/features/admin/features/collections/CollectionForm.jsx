@@ -1,29 +1,24 @@
-import { blank } from "@/features/admin/features/collections/collectionsForm.js";
 export function CollectionForm({
   products,
   form,
   setForm,
-  editing,
-  setEditing,
   selectedProducts,
   setSelectedProducts,
   save,
   pending,
+  formId,
 }) {
   return (
-    <div className="card">
-      <div className="card-header">
-        <h2 className="card-title">
-          {editing ? "Edit Collection" : "Create Collection"}
-        </h2>
-      </div>
-      <form className="add-product-form" onSubmit={save}>
+    <form id={formId} className="add-product-form" onSubmit={save}>
+      <fieldset className="admin-form-fields" disabled={pending}>
+
         <div className="form-row">
           <label className="form-group">
-            Name
+            Name <span aria-hidden="true" className="admin-required" />
             <input
               className="form-control"
               required
+              data-dialog-autofocus
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
@@ -85,23 +80,7 @@ export function CollectionForm({
             Active
           </label>
         </div>
-        <div className="form-actions">
-          <button
-            type="button"
-            className="btn-cancel"
-            onClick={() => {
-              setForm(blank);
-              setEditing(null);
-              setSelectedProducts([]);
-            }}
-          >
-            Clear
-          </button>
-          <button type="submit" className="btn-submit" disabled={pending}>
-            Save
-          </button>
-        </div>
-      </form>
-    </div>
+      </fieldset>
+    </form>
   );
 }

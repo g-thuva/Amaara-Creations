@@ -39,7 +39,10 @@ export function useContent() {
       ),
     });
   };
+  const reset = () => { setForm(blankPage); setEditing(null); mutation.reset();  };
+  const dirty = JSON.stringify(form) !== JSON.stringify(editing ? { ...editing, sections: editing.sections.length ? editing.sections : blankPage.sections } : blankPage);
   return {
+    reset, dirty,
     pages,
     form,
     setForm,

@@ -7,7 +7,7 @@ async function openDashboard(page: Page, fixture: { adminEmail: string; password
   })).ok()).toBe(true);
   await page.goto('./admin/dashboard');
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
-  await expect(page.getByText('Total Orders', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Total orders', exact: true })).toBeVisible();
 }
 
 test('sidebar and header stay mounted through a cold page import and slow background permission checks', async ({ page, fixture }) => {

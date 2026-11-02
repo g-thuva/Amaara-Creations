@@ -1,17 +1,18 @@
+import { AdminFormDialog } from "@/features/admin/shared/components/AdminFormDialog.jsx";
 import { useProductTools } from "@/features/admin/features/products/useProductTools.js";
 import { ProductMediaEditor } from "@/features/admin/features/products/ProductMediaEditor.jsx";
 import { ProductVariantsEditor } from "@/features/admin/features/products/ProductVariantsEditor.jsx";
 import { ResourceState } from "@/features/admin/shared/components/ResourceState.jsx";
 import { MutationFeedback } from "@/features/admin/shared/components/MutationFeedback.jsx";
-export function ProductTools({ product, changed }) {
+export function ProductTools({ product, changed, onClose }) {
   const tools = useProductTools(product, changed);
+  const dirty = Boolean(tools.mediaFile || tools.mediaAltText || tools.variantForm.sku || tools.variantForm.name
+    || tools.variantForm.priceOverride || Number(tools.variantForm.stockQuantity) || !tools.variantForm.isActive);
   return (
-    <section className="card">
-      <div className="card-header">
-        <h2 className="card-title">{product.name}</h2>
-      </div>
-      <div className="card-body">
-        <MutationFeedback {...tools.mutation} />
+    <AdminFormDialog title={`${product.name}: Media and variants`} description="Manage existing media, cover images and product variants."
+      width="wide" onClose={onClose} dirty={dirty} pending={tools.mutation.pending} error={tools.mutation.error} submitLabel={null}>
+      {() => <>
+        <MutationFeedback pending={tools.mutation.pending} success={tools.mutation.success} />
         <ResourceState resource={tools.resource}>
           <ProductMediaEditor
             {...tools}
@@ -25,7 +26,7 @@ export function ProductTools({ product, changed }) {
             pending={tools.mutation.pending}
           />
         </ResourceState>
-      </div>
-    </section>
+      </>}
+    </AdminFormDialog>
   );
 }

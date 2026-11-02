@@ -1,21 +1,23 @@
 import { localDate } from "@/features/admin/features/promotions/promotionForm.js";
-export function PromotionForm({ editing, setEditing, submit, pending }) {
+export function PromotionForm({ editing, formId, submit, pending }) {
   return (
     <form
+      id={formId}
       key={editing.id || "new"}
-      className="card card-body add-product-form"
+      className="add-product-form"
       onSubmit={submit}
     >
-      <h2>{editing.id ? "Edit promotion" : "New promotion"}</h2>
+      <fieldset className="admin-form-fields" disabled={pending}>
       <p>
         Dates use your local time and are stored in UTC. Checkout validates
         every redemption.
       </p>
       <div className="form-row">
         <label>
-          Code
+          Code <span aria-hidden="true" className="admin-required" />
           <input
             name="code"
+            data-dialog-autofocus
             className="form-control"
             maxLength="40"
             pattern="[A-Za-z0-9_-]+"
@@ -24,7 +26,7 @@ export function PromotionForm({ editing, setEditing, submit, pending }) {
           />
         </label>
         <label>
-          Name
+          Name <span aria-hidden="true" className="admin-required" />
           <input
             className="form-control"
             name="name"
@@ -34,7 +36,7 @@ export function PromotionForm({ editing, setEditing, submit, pending }) {
           />
         </label>
         <label>
-          Currency
+          Currency <span aria-hidden="true" className="admin-required" />
           <select
             className="form-control"
             name="currency"
@@ -63,7 +65,7 @@ export function PromotionForm({ editing, setEditing, submit, pending }) {
           </select>
         </label>
         <label>
-          Discount value
+          Discount value <span aria-hidden="true" className="admin-required" />
           <input
             className="form-control"
             name="discountValue"
@@ -75,7 +77,7 @@ export function PromotionForm({ editing, setEditing, submit, pending }) {
           />
         </label>
         <label>
-          Starts
+          Starts <span aria-hidden="true" className="admin-required" />
           <input
             className="form-control"
             name="startsAt"
@@ -124,16 +126,7 @@ export function PromotionForm({ editing, setEditing, submit, pending }) {
           {label}
         </label>
       ))}
-      <button className="btn btn-primary" disabled={pending}>
-        Save promotion
-      </button>
-      <button
-        type="button"
-        className="btn btn-outline-primary"
-        onClick={() => setEditing(null)}
-      >
-        Cancel
-      </button>
+      </fieldset>
     </form>
   );
 }

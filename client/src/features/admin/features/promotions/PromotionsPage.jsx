@@ -1,3 +1,4 @@
+import { AdminFormDialog } from "@/features/admin/shared/components/AdminFormDialog.jsx";
 import { usePromotions } from "@/features/admin/features/promotions/usePromotions.js";
 import { blank } from "@/features/admin/features/promotions/promotionForm.js";
 import { PromotionForm } from "@/features/admin/features/promotions/PromotionForm.jsx";
@@ -13,16 +14,12 @@ export default function PromotionsPage() {
     promotions;
   return (
     <div className="admin-page">
-      <PageHeader title="Promotions" description="Create and manage offer rules, limits and committed redemptions." actions={<Button variant="accent" onClick={() => setEditing(blank)}>Create promotion</Button>} />
+      <PageHeader title="Promotions" description="Create and manage offer rules, limits and committed redemptions." actions={<Button variant="accent" onClick={() => { mutation.reset(); setEditing(blank); }}>Create promotion</Button>} />
       <MutationFeedback {...mutation} />
-      {editing && (
-        <PromotionForm
-          editing={editing}
-          setEditing={setEditing}
-          submit={promotions.submit}
-          pending={mutation.pending}
-        />
-      )}
+      {editing && <AdminFormDialog title={editing.id ? 'Edit Promotion' : 'New Promotion'} description="Set offer rules, dates and redemption limits."
+        onClose={() => setEditing(null)} pending={mutation.pending} error={mutation.error} submitLabel={editing.id ? 'Save Changes' : 'Create Promotion'}>
+        {formId => <PromotionForm formId={formId} editing={editing} submit={promotions.submit} pending={mutation.pending} />}
+      </AdminFormDialog>}
       <ResourceState resource={resource}>
         <PromotionsTable
           resource={resource}

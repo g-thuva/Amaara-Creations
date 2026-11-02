@@ -9,13 +9,13 @@ export default function BuilderConfigurationPage() {
   const { draft, data, error, notice, pending, test, save, publish } = config;
   if (!draft)
     return (
-      <div className="admin-page">
+      <div className="admin-page admin-builder-editor">
         <h1>Custom builder</h1>
         {error ? <ErrorState message={error} retry={config.reload} /> : <Skeleton label="Loading configuration…" />}
       </div>
     );
   return (
-    <div className="admin-page">
+    <div className="admin-page admin-builder-editor">
       <div className="page-header">
         <div className="header-content">
           <div>
@@ -26,6 +26,7 @@ export default function BuilderConfigurationPage() {
             </p>
           </div>
           <div className="action-buttons">
+            {config.dirty && <ConfirmAction onConfirm={config.discard} pending={pending} title="Discard draft changes" detail="Restore the last saved draft? Your unsaved changes will be lost."><button className="btn btn-outline-primary" disabled={pending}>Discard changes</button></ConfirmAction>}
             <button
               className="btn btn-outline-primary"
               disabled={pending}

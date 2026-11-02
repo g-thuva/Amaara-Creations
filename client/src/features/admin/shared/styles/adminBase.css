@@ -244,3 +244,8 @@
   .admin-app .toggle-sidebar,.admin-app .back-button { width:44px; height:44px; flex-basis:44px; }
 }
 @media (prefers-reduced-motion:reduce) { .admin-app *,.admin-app *::before,.admin-app *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+
+/* Complex builder drafts retain their dedicated editor and visible action bar. */
+.admin-app .admin-builder-editor > .page-header { position: sticky; top: var(--admin-header-height); z-index: calc(var(--admin-z-header) - 1); background: var(--bg-page); padding-block: 16px; border-bottom: 1px solid var(--border); }
+.admin-app .admin-builder-editor .header-content { flex-wrap: wrap; }
+.admin-app .admin-builder-editor .action-buttons { flex-wrap: wrap; }

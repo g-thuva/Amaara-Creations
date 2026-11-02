@@ -3,7 +3,7 @@ import { StatusBadge } from '@/features/admin/shared/components/StatusBadge.jsx'
 import { ConfirmAction } from '@/features/admin/shared/components/ConfirmAction.jsx';
 import AppIcon from '@/shared/components/ui/Icon.jsx';
 export function CategoriesTable({ items, edit, toggle }) {
-  return <DataTable caption="Categories" rows={items} empty="No categories yet" emptyDescription="Create a category below to organise your products." columns={[
+  return <DataTable caption="Categories" rows={items} empty="No categories yet" emptyDescription="Choose New Category to organise your products." columns={[
     { key: 'name', label: 'Name' }, { key: 'slug', label: 'Slug' },
     { key: 'parent', label: 'Parent', render: category => items.find(item => item.id === category.parentCategoryId)?.name || '—' },
     { key: 'sortOrder', label: 'Sort' },
