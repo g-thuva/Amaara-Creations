@@ -48,19 +48,6 @@ export default function HomePage() {
       )}
 
       <div className="s-container">
-        {(categories.loading || categories.error || categories.data?.length > 0) && (
-          <section className="s-section">
-            <SectionHeading title={<>Shop by <em>category</em></>} to="/products" label="Shop all" />
-            {categories.loading ? (
-              <Skeleton count={3} />
-            ) : categories.error ? (
-              <ErrorState error={categories.error} retry={categories.reload} />
-            ) : (
-              <CategoryCards categories={categories.data} />
-            )}
-          </section>
-        )}
-
         {/* Real Creations & Instagram Portfolio Spotlight */}
         <InstagramShowcase />
       </div>
@@ -69,7 +56,7 @@ export default function HomePage() {
 
       <div className="s-container">
         <section className="s-section">
-          <SectionHeading title={<>Featured designs <em>entirely yours</em></>} to="/products" label="View all products" />
+          <SectionHeading title={<>Featured designs <em>entirely yours</em></>} to="/products" label="View all products" align="left" />
           <FeaturedVideos />
         </section>
 
@@ -82,6 +69,19 @@ export default function HomePage() {
         )}
 
         <HowItWorks />
+
+        {(categories.loading || categories.error || categories.data?.length > 0) && (
+          <section className="s-section" aria-labelledby="shop-by-category">
+            <SectionHeading title={<span id="shop-by-category">Shop by <em>category</em></span>} to="/products" label="Shop all" />
+            {categories.loading ? (
+              <Skeleton count={3} />
+            ) : categories.error ? (
+              <ErrorState error={categories.error} retry={categories.reload} />
+            ) : (
+              <CategoryCards categories={categories.data} />
+            )}
+          </section>
+        )}
 
         {content.error && <ErrorState error={content.error} retry={content.reload} />}
         <CmsSections sections={content.data?.sections.filter((section) => section !== heroSection)} />

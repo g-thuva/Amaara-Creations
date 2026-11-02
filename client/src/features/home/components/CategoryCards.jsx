@@ -5,8 +5,11 @@ import { Media } from '@/shared/components/ui/Media.jsx';
 const igAssetPath = `${import.meta.env.BASE_URL}assets/instagram`;
 const heroAssetPath = `${import.meta.env.BASE_URL}assets/hero`;
 
+// Order matters: the first keyword found in the category name wins.
 const categoryFallbackImages = {
-  wedding: `${igAssetPath}/mirror-arch-sunset.jpg`,
+  stationery: `${heroAssetPath}/wedding-stationery.jpg`,
+  milestone: `${igAssetPath}/birthday-board.jpg`,
+  wedding: `${heroAssetPath}/luxury-welcome-sign-hero.jpg`,
   sign: `${igAssetPath}/tamil-wedding-sign.jpg`,
   sticker: `${heroAssetPath}/wedding-stationery.jpg`,
   decal: `${igAssetPath}/banana-leaf-sign.jpg`,
@@ -26,23 +29,27 @@ export default function CategoryCards({ categories = [] }) {
   if (!categories.length) return null;
   return (
     <div className="s-category-grid">
-      {categories.map((category) => {
+      {categories.map((category, index) => {
         const image = category.imageUrl || getCategoryFallback(category.name);
         return (
           <article className="s-category-card" key={category.id}>
             <Link className="s-category-link" to={`/products?categoryId=${category.id}`}>
-              {image ? (
-                <Media src={image} alt={category.name} width={800} height={600} />
-              ) : (
-                <div className="s-category-fallback" aria-hidden="true">
-                  <span>{category.name?.trim().charAt(0).toUpperCase() || 'A'}</span>
-                </div>
-              )}
-              <span className="s-category-overlay" aria-hidden="true" />
+              <div className="s-category-media">
+                {image ? (
+                  <Media src={image} alt={category.name} width={800} height={600} />
+                ) : (
+                  <div className="s-category-fallback" aria-hidden="true">
+                    <span>{category.name?.trim().charAt(0).toUpperCase() || 'A'}</span>
+                  </div>
+                )}
+                <span className="s-category-index" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+              </div>
               <div className="s-category-content">
                 <h3>{category.name}</h3>
                 {category.description && <p>{category.description}</p>}
-                <span className="s-button s-button-outline-light">Shop now <Icon name="arrow" /></span>
+                <span className="s-category-cta">
+                  Shop now <Icon name="arrow" />
+                </span>
               </div>
             </Link>
           </article>
