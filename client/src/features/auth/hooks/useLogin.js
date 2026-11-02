@@ -30,8 +30,19 @@ export function useLogin() {
       if (!response.token) return;
       const destination = loginDestination(response.user, location.state?.from);
       if (!destination) { setError('Your account was verified, but the management address is unavailable. Contact the operator.'); return; }
-      if (destination.external) window.location.replace(destination.url);
-      else navigate(destination.url, { replace: true });
+      if (destination.external) {
+        if (import.meta.env.DEV && /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])/i.test(destination.url)) {
+          try {
+            await fetch(destination.url, { mode: 'no-cors', signal: AbortSignal.timeout(1500) });
+          } catch {
+            setError(`Authentication succeeded, but the admin workspace at ${new URL(destination.url).origin} is not running. Please start it using 'npm run dev:admin' (or 'npm run dev:all') in a separate terminal.`);
+            return;
+          }
+        }
+        window.location.replace(destination.url);
+      } else {
+        navigate(destination.url, { replace: true });
+      }
     } catch (failure) {
       const code = failure.response?.data?.code;
       setError(code === 'MFA_CODE_INVALID' ? "That code didn't work. Check your authenticator app and try the current code." : code === 'MFA_CHALLENGE_EXPIRED' ? 'Your sign-in expired or changed. Please enter your email and password again.' : code === 'MANAGEMENT_DISABLED' ? 'Staff sign-in is unavailable in this environment. Contact the operator.' : failure.response?.status === 401 ? 'Unable to sign in. Check your email and password, and confirm your email before trying again.' : customerError(failure));
