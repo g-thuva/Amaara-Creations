@@ -1,5 +1,6 @@
 import { Button } from '@/shared/components/ui/Button.jsx';
 import Icon from '@/shared/components/ui/Icon.jsx';
+import { CustomDropdown } from '@/shared/components/ui/CustomDropdown.jsx';
 import { catalogParams, sortOptions } from '@/features/catalog/catalogQuery.ts';
 
 export default function CatalogToolbar({ catalog, categories = [] }) {
@@ -62,18 +63,14 @@ export default function CatalogToolbar({ catalog, categories = [] }) {
         <div className="s-toolbar-controls">
           <div className="s-sort-wrapper">
             <span className="s-sort-label">Sort by:</span>
-            <div className="s-sort-select-wrap">
-              <select
-                aria-label="Sort products"
-                value={catalogParams(params).sort}
-                onChange={(event) => update({ sort: event.target.value })}
-              >
-                {sortOptions.map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-              <Icon name="chevronDown" className="s-sort-chevron" aria-hidden="true" />
-            </div>
+            <CustomDropdown
+              ariaLabel="Sort products"
+              value={catalogParams(params).sort}
+              onChange={(value) => update({ sort: value })}
+              options={sortOptions}
+              className="s-sort-custom-dropdown"
+              align="right"
+            />
           </div>
 
           <Button

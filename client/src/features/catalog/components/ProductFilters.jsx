@@ -1,5 +1,6 @@
 import { Button } from '@/shared/components/ui/Button.jsx';
 import Icon from '@/shared/components/ui/Icon.jsx';
+import { CustomDropdown } from '@/shared/components/ui/CustomDropdown.jsx';
 
 export default function ProductFilters({ params, categories, collections, apply, clear, currency }) {
   const hasActiveFilters = Boolean(
@@ -20,15 +21,16 @@ export default function ProductFilters({ params, categories, collections, apply,
         <label className="s-filter-label" htmlFor="filter-category">
           <span>Category</span>
         </label>
-        <div className="s-filter-select-wrap">
-          <select id="filter-category" name="categoryId" defaultValue={params.get('categoryId') || ''}>
-            <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>{category.name}</option>
-            ))}
-          </select>
-          <Icon name="chevronDown" className="s-filter-select-arrow" />
-        </div>
+        <CustomDropdown
+          id="filter-category"
+          name="categoryId"
+          defaultValue={params.get('categoryId') || ''}
+          ariaLabel="Filter by category"
+          options={[
+            { value: '', label: 'All categories' },
+            ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+          ]}
+        />
       </div>
 
       {/* Collection */}
@@ -36,15 +38,16 @@ export default function ProductFilters({ params, categories, collections, apply,
         <label className="s-filter-label" htmlFor="filter-collection">
           <span>Collection</span>
         </label>
-        <div className="s-filter-select-wrap">
-          <select id="filter-collection" name="collectionId" defaultValue={params.get('collectionId') || ''}>
-            <option value="">All collections</option>
-            {collections.map((collection) => (
-              <option key={collection.id} value={collection.id}>{collection.name}</option>
-            ))}
-          </select>
-          <Icon name="chevronDown" className="s-filter-select-arrow" />
-        </div>
+        <CustomDropdown
+          id="filter-collection"
+          name="collectionId"
+          defaultValue={params.get('collectionId') || ''}
+          ariaLabel="Filter by collection"
+          options={[
+            { value: '', label: 'All collections' },
+            ...collections.map((c) => ({ value: String(c.id), label: c.name })),
+          ]}
+        />
       </div>
 
       {/* Price range */}
