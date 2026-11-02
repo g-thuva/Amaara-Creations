@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { PageHeader } from '@/shared/components/ui/PageHeader.jsx';
+import Icon from '@/shared/components/ui/Icon.jsx';
 
 const questions = [
   ['Where do I start?', 'Browse the published shop or open the sticker designer. Available options come from the current studio configuration.'],
@@ -15,6 +15,87 @@ const questions = [
   ['What if I need a reprint, special size or bulk quantity?', 'Use the studio’s published contact channels to discuss the request. Confirm suitability, pricing, production timing and any applicable policy before placing an order.'],
 ];
 
+const quickStarts = [
+  {
+    icon: 'edit',
+    eyebrow: 'Make it yours',
+    title: 'Start a custom design',
+    copy: 'Choose a size, add your words and build a piece that feels made for your occasion.',
+    to: '/custom',
+    action: 'Open Design Studio',
+  },
+  {
+    icon: 'layers',
+    eyebrow: 'See the collection',
+    title: 'Browse ready-made designs',
+    copy: 'Explore the currently published collection for a quicker route to a beautiful detail.',
+    to: '/products',
+    action: 'Visit the shop',
+  },
+  {
+    icon: 'package',
+    eyebrow: 'Already ordered?',
+    title: 'Find your order',
+    copy: 'Sign in to review order status, proofs and any tracking details available for your order.',
+    to: '/orders',
+    action: 'View orders',
+  },
+];
+
 export default function HelpPage() {
-  return <div className="s-container s-page"><nav className="s-breadcrumb" aria-label="Breadcrumb"><Link to="/">Home</Link><span aria-current="page">Help</span></nav><PageHeader eyebrow="A little guidance" title="From an idea to a printed detail">Practical answers for designing, saving and ordering.</PageHeader><div className="s-help-layout"><aside><h2>Make a start</h2><p>Try a size and your own words in the designer, or browse the currently published collection.</p><div className="s-actions"><Link className="s-button s-button-primary" to="/custom">Open the designer</Link><Link className="s-text-link" to="/contact">Contact the studio</Link></div></aside><div>{questions.map(([question, answer]) => <section className="s-help-question" key={question}><h2>{question}</h2><p>{answer}</p></section>)}</div></div></div>;
+  return (
+    <div className="s-help-page">
+      <section className="s-container s-help-start" aria-labelledby="help-start-title">
+        <div className="s-help-section-heading">
+          <div>
+            <p className="s-eyebrow">Choose your path</p>
+            <h2 id="help-start-title">Where would you like to begin?</h2>
+          </div>
+        </div>
+
+        <div className="s-help-start-grid">
+          {quickStarts.map((item) => (
+            <Link className="s-help-start-card" to={item.to} key={item.title}>
+              <span className="s-help-card-icon"><Icon name={item.icon} /></span>
+              <span className="s-help-card-eyebrow">{item.eyebrow}</span>
+              <h3>{item.title}</h3>
+              <p>{item.copy}</p>
+              <span className="s-help-card-action">{item.action} <Icon name="arrow" /></span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="s-help-answers" id="answers" aria-labelledby="answers-title">
+        <div className="s-container s-help-answers-grid">
+          <div className="s-help-answers-intro">
+            <p className="s-eyebrow">The useful bits</p>
+            <h2 id="answers-title">Answers for the moments that matter.</h2>
+            <p>Jump into the question you have now. Open another whenever you need it — your place will stay easy to find.</p>
+            <div className="s-help-contact-card">
+              <span className="s-help-contact-icon"><Icon name="mail" /></span>
+              <div>
+                <strong>Still not sure?</strong>
+                <p>Our studio can help with special sizes, bulk quantities and reprints.</p>
+                <Link className="s-text-link" to="/contact">Contact the studio <Icon name="arrow" /></Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="s-help-questions">
+            {questions.map(([question, answer], index) => (
+              <details className="s-help-question" key={question} open={index === 0}>
+                <summary>
+                  <span className="s-help-question-number">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="s-help-question-title">{question}</span>
+                  <span className="s-help-question-toggle" aria-hidden="true"><Icon name="plus" /></span>
+                </summary>
+                <p>{answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }

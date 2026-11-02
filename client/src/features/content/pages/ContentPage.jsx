@@ -16,6 +16,7 @@ export default function ContentPage({ page }) {
   const current = page || slug;
   const resource = useResource((signal) => contentApi.page(current, signal), current);
   const { settings, values } = useSiteContent();
+  const about = current === 'about';
   const contact = current === 'contact';
   const missing = !page && !resource.loading && !resource.error && !resource.data;
   const channels = [
@@ -28,16 +29,16 @@ export default function ContentPage({ page }) {
   return (
     <>
       {resource.data && !resource.loading && <ContentSeo page={resource.data} path={page ? `/${page}` : `/pages/${encodeURIComponent(current)}`} />}
-      <div className="s-page-band">
+      {!about && <div className="s-page-band">
         <div className="s-container">
           <nav className="s-breadcrumb" aria-label="Breadcrumb"><Link to="/">Home</Link><Icon name="chevronRight" /><span aria-current="page">{resource.data?.title || current}</span></nav>
-          <PageHeader eyebrow="Amaara Creations" title={resource.data?.title || (missing ? 'Page not found' : contact ? 'Contact Amaara' : current === 'about' ? 'About Amaara' : 'More from Amaara')}>
+          <PageHeader eyebrow="Amaara Creations" title={resource.data?.title || (missing ? 'Page not found' : contact ? 'Contact Amaara' : 'More from Amaara')}>
             {resource.data?.summary}
           </PageHeader>
         </div>
-      </div>
+      </div>}
 
-      <div className="s-container s-page s-content-page">
+      <div className={`s-container s-page s-content-page ${about ? 's-about-page' : ''}`}>
         {resource.loading ? <Skeleton count={2} /> : resource.error ? (
           <ErrorState error={resource.error} retry={resource.reload} />
         ) : resource.data ? (

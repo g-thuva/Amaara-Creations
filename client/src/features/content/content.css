@@ -1,6 +1,9 @@
 /* Feature-owned styles; scoped without adding specificity. */
 
 :where(.storefront) .s-content-page { max-width: min(var(--container), 78rem); }
+:where(.storefront) .s-about-page { padding-top: clamp(2.25rem, 5vw, 4.5rem); }
+:where(.storefront) .s-about-page .s-cms-sections { max-width: 74rem; margin-inline: auto; }
+:where(.storefront) .s-about-page .s-cms-sections > .s-prose:first-child { max-width: 58rem; }
 :where(.storefront) .s-cms-sections { display: grid; gap: clamp(2.5rem, 6vw, 5rem); }
 :where(.storefront) .s-cms-sections:not(:empty) { padding-bottom: 3rem; }
 :where(.storefront) .s-prose { max-width: 70ch; }
