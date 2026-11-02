@@ -46,7 +46,7 @@ dotnet run --project be --urls http://localhost:5192
 
 Open [Swagger UI](http://localhost:5192/swagger/index.html) for interactive API documentation, or [OpenAPI JSON](http://localhost:5192/swagger/v1/swagger.json) for the API definition. [Database readiness](http://localhost:5192/health/ready) must return `200` with `{"status":"ready"}`; a running Swagger page alone does not confirm database connectivity or an up-to-date schema.
 
-In a second terminal:
+Start the storefront on port 5179 in a second terminal. Run `npm --prefix client run dev:admin` in a third terminal for admin on port 5173. Staff complete password entry and authenticator verification at `http://localhost:5179/Amaara-Creations/login`, then open their verified admin workspace on port 5173.
 
 ```powershell
 npm --prefix client run dev
