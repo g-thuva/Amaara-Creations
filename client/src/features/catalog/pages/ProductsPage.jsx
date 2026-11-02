@@ -57,10 +57,17 @@ export default function ProductsPage() {
         )}
 
         <div className={emptyCatalogue ? 's-catalog-empty' : 's-catalog-layout'}>
-          {!emptyCatalogue && <aside className="s-desktop-filters" aria-label="Product filters">
-            <h2>Filter products</h2>
-            {filters}
-          </aside>}
+          {!emptyCatalogue && (
+            <aside className="s-desktop-filters" aria-label="Product filters">
+              <div className="s-filter-header">
+                <div className="s-filter-header-title">
+                  <Icon name="sliders" />
+                  <h2>Filter products</h2>
+                </div>
+              </div>
+              {filters}
+            </aside>
+          )}
           <CatalogResults catalog={catalog} />
         </div>
 
