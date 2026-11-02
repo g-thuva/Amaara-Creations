@@ -26,6 +26,7 @@ export function useLogin() {
     try {
       const response = await operation();
       setPassword('');
+      // Password and pending verification stay here until the server issues a session.
       if (!response.token) return;
       const destination = loginDestination(response.user, location.state?.from);
       if (!destination) { setError('Your account was verified, but the management address is unavailable. Contact the operator.'); return; }

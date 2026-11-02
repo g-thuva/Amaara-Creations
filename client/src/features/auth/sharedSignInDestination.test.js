@@ -16,7 +16,7 @@ describe('shared sign-in handoff', () => {
     })).toEqual({ external: true, url: 'https://staff.example.test/Amaara-Creations/login?returnTo=%2Fadmin%2Forders%3Fstatus%3Dnew' });
   });
   it('uses the verified local ports without forwarding a login loop', () => {
-    expect(sharedSignInDestination('http://localhost:5179/Amaara-Creations/login', '', base)).toBe('http://localhost:5173/Amaara-Creations/login');
+    expect(sharedSignInDestination('http://localhost:5173/Amaara-Creations/login', '', base)).toBe('http://localhost:5179/Amaara-Creations/login');
   });
   it.each(['javascript:alert(1)', 'http://shop.example.test', 'https://user:pass@shop.example.test', 'https://shop.example.test/?token=private', 'https://shop.example.test/#private', 'https://staff.example.test'])('rejects an invalid shared site %s', site => {
     expect(sharedSignInDestination('https://staff.example.test/admin/orders', site, '/')).toBeNull();

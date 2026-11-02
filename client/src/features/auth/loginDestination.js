@@ -22,7 +22,7 @@ export function loginDestination(user, from, {
     let configured = managementLoginUrl?.trim();
     if (!configured && development && loopbackHosts.has(current.hostname)) {
       const local = new URL(basePath, current.origin);
-      local.port = '5179';
+      local.port = '5173';
       local.pathname = local.pathname.replace(/\/?$/, '/') + 'login';
       configured = local.href;
     }
