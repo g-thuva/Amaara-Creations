@@ -28,10 +28,13 @@
   --radius-lg: 24px;
   --shadow-1: 0 2px 6px rgb(14 27 46 / 0.05), 0 1px 3px rgb(14 27 46 / 0.04);
   --shadow-2: 0 8px 24px rgb(14 27 46 / 0.08), 0 3px 8px rgb(14 27 46 / 0.04);
+  --space-section-py: clamp(2.5rem, 4.5vw, 3.75rem);
 }
 .storefront h1, .storefront h2 { color: var(--brand-navy-900); font-weight: 600; letter-spacing: -0.02em; }
 .storefront h3 { color: var(--brand-navy-900); font-weight: 600; letter-spacing: -0.015em; }
 .storefront .s-button, .storefront .btn-auth { border-radius: var(--radius-pill); font-weight: 650; }
+.storefront .s-section { padding-block: var(--space-section-py); }
+.storefront .s-page { padding-block: clamp(2rem, 4vw, 3.25rem) clamp(2.5rem, 5vw, 4rem); }
 
 /* Full-bleed 100vh Luxury Hero matching reference layout with NO white space on first page */
 .storefront .s-editorial-hero {
@@ -192,7 +195,10 @@
   color: #f4c675;
 }
 
-.storefront .s-section-heading { align-items: flex-end; }
+.storefront .s-section-heading {
+  align-items: flex-end;
+  margin-bottom: clamp(1.5rem, 3.2vw, 2.25rem);
+}
 .storefront .s-section-heading > div { margin-inline: 0; text-align: left; }
 .storefront .s-section-heading .s-title-accent { margin-inline: 0; }
 .storefront .s-section-heading > a {
@@ -215,13 +221,21 @@
 .storefront .s-section-heading > a:hover svg {
   transform: translateX(4px);
 }
+@media (max-width: 600px) {
+  .storefront .s-section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1.35rem;
+  }
+}
 
 /* Full-Width Luxury Royal Navy Interactive Studio Banner */
 .storefront .s-custom-cta-section {
   position: relative;
   width: 100%;
-  padding-block: clamp(3.5rem, 6vw, 5.25rem);
-  margin-block: clamp(3rem, 5vw, 4.5rem);
+  padding-block: clamp(2.75rem, 5vw, 4.25rem);
+  margin-block: 0;
   background: radial-gradient(circle at 85% 25%, rgba(68, 119, 185, 0.28), transparent 48%),
               linear-gradient(135deg, #091526 0%, #132a4a 50%, #1b3a64 100%);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
@@ -460,7 +474,8 @@
 
 /* How It Works - Seamless Process Timeline */
 .storefront .s-how-section {
-  padding-block: clamp(2.5rem, 5vw, 4.5rem);
+  padding-block: var(--space-section-py);
+  margin: 0;
   text-align: center;
 }
 .storefront .s-how-header {
@@ -639,8 +654,8 @@
 .storefront .s-help-card-action svg, .storefront .s-help-contact-card .s-text-link svg { width: 1rem; height: 1rem; transition: transform 180ms ease; }
 .storefront .s-help-contact-card .s-text-link:hover { color: #2d559a !important; }
 .storefront .s-help-card-action:hover svg, .storefront .s-help-contact-card .s-text-link:hover svg { transform: translateX(4px); }
-.storefront .s-help-start { padding-block: clamp(2.75rem, 5vw, 4.5rem); }
-.storefront .s-help-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: 2.5rem; }
+.storefront .s-help-start { padding-block: var(--space-section-py); }
+.storefront .s-help-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: clamp(1.5rem, 3vw, 2.25rem); }
 .storefront .s-help-section-heading h2 { max-width: 18ch; margin-bottom: 0; font-size: clamp(2rem, 4vw, 3.4rem); }
 .storefront .s-help-start-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .storefront .s-help-start-card { position: relative; display: flex; min-height: 24rem; flex-direction: column; padding: clamp(1.5rem, 3vw, 2.2rem); color: var(--text-primary); background: #ffffff; border: 1px solid var(--border); box-shadow: var(--shadow-1); transition: transform 220ms var(--ease), box-shadow 220ms var(--ease), border-color 220ms ease; }
@@ -658,7 +673,7 @@
 .storefront .s-help-start-card p { max-width: 31ch; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.65; }
 .storefront .s-help-card-action { display: inline-flex; align-items: center; gap: 0.45rem; margin-top: auto; color: #2d559a; font-size: 0.85rem; font-weight: 750; }
 .storefront .s-help-start-card:nth-child(2) .s-help-card-action { color: #ffffff; }
-.storefront .s-help-answers { padding-block: clamp(4.5rem, 8vw, 7.5rem); color: var(--text-primary); background: #f3efe9; }
+.storefront .s-help-answers { padding-block: clamp(2.75rem, 5vw, 4.25rem); color: var(--text-primary); background: #f3efe9; }
 .storefront .s-help-answers-grid { display: grid; grid-template-columns: minmax(15rem, 0.65fr) minmax(0, 1.35fr); gap: clamp(3rem, 9vw, 9rem); align-items: start; }
 .storefront .s-help-answers-intro { position: sticky; top: 6rem; }
 .storefront .s-help-answers-intro h2 { max-width: 12ch; font-size: clamp(2rem, 3.4vw, 3.3rem); }
@@ -729,7 +744,7 @@
 
 /* ─── Real Creations / Product Showcase Grid ─── */
 .storefront .s-ig-showcase {
-  padding-block: clamp(3rem, 6vw, 5.5rem);
+  padding-block: var(--space-section-py);
 }
 .storefront .s-ig-header {
   display: flex;
@@ -909,7 +924,8 @@
   align-items: center;
   justify-content: center;
   gap: 1.1rem;
-  margin-top: 1.85rem;
+  margin-top: clamp(1.25rem, 2.5vw, 1.75rem);
+  margin-bottom: 0;
 }
 .storefront .s-gallery-arrow {
   display: grid;
@@ -1669,6 +1685,7 @@
   left: 0;
   width: 100%;
   min-width: 210px;
+  max-width: calc(100vw - 32px);
   max-height: 290px;
   overflow-y: auto;
   overscroll-behavior: contain;

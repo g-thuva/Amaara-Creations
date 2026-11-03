@@ -38,7 +38,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section className="s-how-section" aria-labelledby="how-it-works-heading">
+    <section className="s-section s-how-section" aria-labelledby="how-it-works-heading">
       <div className="s-how-header">
         <span className="s-how-eyebrow">SEAMLESS PROCESS</span>
         <h2 id="how-it-works-heading">How it works</h2>

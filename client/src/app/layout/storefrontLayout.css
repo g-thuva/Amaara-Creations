@@ -407,6 +407,36 @@
     grid-column: 1 / -1;
   }
 }
+@media (max-width: 899px) {
+  :where(.storefront) .s-desktop-nav {
+    display: none;
+  }
+  :where(.storefront) .s-menu-button {
+    display: inline-grid;
+  }
+  :where(.storefront) .s-header-cta {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  :where(.storefront) .s-header-inner {
+    min-height: 64px;
+  }
+  :where(.storefront) .s-brand-logo-img {
+    height: 38px;
+    max-width: 155px;
+  }
+  :where(.storefront) .s-header-actions {
+    gap: 0.3rem;
+  }
+  :where(.storefront) .s-header-actions .s-icon-link {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+  }
+}
+
 @media (max-width: 640px) {
   :where(.storefront) .s-footer-main {
     grid-template-columns: 1fr;
@@ -515,6 +545,9 @@
   }
   .storefront .main-content {
     padding-bottom: 68px;
+  }
+  :where(.storefront) .s-footer {
+    padding-bottom: calc(clamp(1.75rem, 3vw, 2.5rem) + 68px + env(safe-area-inset-bottom, 0px));
   }
   :where(.storefront) .s-header-cta {
     display: none;
