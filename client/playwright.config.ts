@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
-  testIgnore: process.env.AMAARA_E2E_PRODUCTION === '1' ? undefined : '**/release-production.spec.ts',
+  testIgnore: ['**/staff-workspace-availability.spec.ts', ...(process.env.AMAARA_E2E_PRODUCTION === '1' ? [] : ['**/release-production.spec.ts'])],
   testDir: './e2e', workers: 1, fullyParallel: false, timeout: 60000,
   projects: [
     { name: 'storefront', testIgnore: ['**/admin/**', ...(process.env.AMAARA_E2E_PRODUCTION === '1' ? [] : ['**/release-production.spec.ts'])], use: { baseURL: 'http://127.0.0.1:5178/Amaara-Creations/' } },

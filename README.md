@@ -46,11 +46,11 @@ dotnet run --project be --urls http://localhost:5192
 
 Open [Swagger UI](http://localhost:5192/swagger/index.html) for interactive API documentation, or [OpenAPI JSON](http://localhost:5192/swagger/v1/swagger.json) for the API definition. [Database readiness](http://localhost:5192/health/ready) must return `200` with `{"status":"ready"}`; a running Swagger page alone does not confirm database connectivity or an up-to-date schema.
 
-Start the storefront on port 5179 in a second terminal. Run `npm --prefix client run dev:admin` in a third terminal for admin on port 5173 (or run `npm --prefix client run dev:all` to run both storefront and admin concurrently in one terminal). Staff complete password entry and authenticator verification at `http://localhost:5179/Amaara-Creations/login`, then open their verified admin workspace on port 5173.
+Run `npm --prefix client run dev` in a second terminal. It starts both the storefront on port 5179 and the staff workspace on port 5173, and Ctrl+C stops both. Startup fails and closes both if either configured port is unavailable. Staff complete password entry and authenticator verification at `http://localhost:5179/Amaara-Creations/login`, then open their verified admin workspace on port 5173. A stopped local staff workspace offers a retry on the completed sign-in page instead of navigating to a connection-refused page.
 
 ```powershell
-npm --prefix client run dev:all
-# Or separately: npm --prefix client run dev  and  npm --prefix client run dev:admin
+npm --prefix client run dev
+# Optional separate processes: dev:storefront and dev:admin. dev:all also starts both.
 ```
 
 Copy `client/.env.example` to a private local environment file when overriding public URLs. The default API/media origin is `http://localhost:5192`; public API routes are canonical `/api/v1/*`. The development frontend base is `/Amaara-Creations/`. Swagger is enabled in Development only.
@@ -65,10 +65,12 @@ dotnet ef migrations has-pending-model-changes --project be --configuration Rele
 npm --prefix client run lint
 npm --prefix client run typecheck
 npm --prefix client test -- --run
+npm --prefix client run test:dev
 npm --prefix client run build
 npm --prefix client run build:admin
 npm --prefix client run check:isolation
 npm --prefix client run test:e2e
+npm --prefix client run test:e2e:dev
 npm --prefix client run test:e2e:production
 npm --prefix client run check:performance
 node --test tests/webhook-tunnel-proxy.test.mjs

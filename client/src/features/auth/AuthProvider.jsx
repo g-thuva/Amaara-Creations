@@ -25,9 +25,11 @@ export const AuthProvider = ({ children }) => {
   const [challenge, setChallenge] = useState(null);
   const [restoreRevision, setRestoreRevision] = useState(0);
   const [sessionVersion, setSessionVersion] = useState(0);
+  const [workspaceHandoff, setWorkspaceHandoff] = useState(null);
   useSessionActivity(authStatus === 'authenticated');
   const retrySession = () => { setAuthStatus('loading'); setRestoreRevision(value => value + 1); };
   useEffect(() => subscribeSessionEvents(type => {
+    setWorkspaceHandoff(null);
     beginAuthOperation(); authApi.cancelRefresh(); clearAccessToken(); setChallenge(null); setUser(null);
     if (type === 'signed-out') setAuthStatus('unauthenticated');
     else retrySession();
@@ -50,6 +52,7 @@ export const AuthProvider = ({ children }) => {
       setSessionVersion(value => value + 1); setAuthStatus('authenticated');
     });
     setAuthFailureHandler(() => {
+      setWorkspaceHandoff(null);
       beginAuthOperation();
       clearAccessToken();
       setChallenge(null);
@@ -93,6 +96,7 @@ export const AuthProvider = ({ children }) => {
 
   const authenticate = async (operation) => {
     const ticket = beginAuthOperation();
+    setWorkspaceHandoff(null);
     authApi.cancelRefresh();
     setAuthStatus('authenticating');
     let response;
@@ -130,6 +134,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async (onSignedOut) => {
+    setWorkspaceHandoff(null);
     const ticket = beginAuthOperation();
     authApi.cancelRefresh();
     setAuthStatus('signing-out');
@@ -167,6 +172,8 @@ export const AuthProvider = ({ children }) => {
     authStatus,
     retrySession,
     sessionVersion,
+    workspaceHandoff,
+    setWorkspaceHandoff,
     challenge,
     advanceSignIn,
     login,

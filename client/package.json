@@ -7,7 +7,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "vite --port 5179 --strictPort",
+    "dev": "node scripts/dev-all.mjs",
+    "dev:storefront": "vite --port 5179 --strictPort",
     "dev:admin": "vite --mode admin --port 5173 --strictPort",
     "dev:all": "node scripts/dev-all.mjs",
     "build": "vite build",
@@ -16,7 +17,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:dev": "node --test scripts/dev-all.test.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:dev": "playwright test --config playwright.dev.config.ts",
     "preview": "vite preview",
     "deploy": "gh-pages -d dist",
     "predeploy": "npm run build",

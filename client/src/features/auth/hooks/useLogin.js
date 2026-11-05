@@ -4,6 +4,8 @@ import { useAuth } from '@/features/auth/AuthProvider.jsx';
 import { customerError } from '@/shared/api/apiError.ts';
 import { loginDestination } from '@/features/auth/loginDestination.js';
 import { AUTH_BASE_PATH } from '@/shared/api/requestConfig.js';
+import { verifyStaffWorkspace } from '@/features/auth/staffWorkspace.js';
+import { currentAuthOperation, isCurrentAuthOperation } from '@/shared/api/authSession.js';
 
 export function useLogin() {
   const [email, setEmail] = useState('');
@@ -12,7 +14,9 @@ export function useLogin() {
   const [notice, setNotice] = useState('');
   const busy = useRef(false);
   const navigate = useNavigate(); const location = useLocation();
-  const { login, advanceSignIn, challenge, authStatus } = useAuth();
+  const { login, advanceSignIn, challenge, authStatus, workspaceHandoff, setWorkspaceHandoff } = useAuth();
+  const workspaceDestination = workspaceHandoff?.url;
+  const openingWorkspace = workspaceHandoff?.opening ?? false;
   // A slow anonymous session restore must not prevent a new credential entry.
   // AuthProvider invalidates that restore when this explicit sign-in starts.
   const isLoading = authStatus === 'authenticating';
@@ -21,6 +25,24 @@ export function useLogin() {
     const timer = setTimeout(() => setNotice('Your sign-in expired. Enter your email and password again.'), Math.max(0, new Date(challenge.expiresAt).getTime() - Date.now()));
     return () => clearTimeout(timer);
   }, [challenge]);
+  async function openWorkspace(url) {
+    const ticket = currentAuthOperation();
+    setWorkspaceHandoff({ url, opening: true, error: '' }); setError('');
+    try {
+      await verifyStaffWorkspace(url);
+      if (!isCurrentAuthOperation(ticket)) return;
+      window.location.replace(url);
+    } catch {
+      if (!isCurrentAuthOperation(ticket)) return;
+      setWorkspaceHandoff({ url, opening: false, error: 'Your sign-in is complete, but your staff workspace is currently unavailable. Please try again shortly.' });
+    } finally { if (isCurrentAuthOperation(ticket)) setWorkspaceHandoff(current => current?.url === url ? { ...current, opening: false } : current); }
+  }
+  const retryWorkspace = async () => {
+    if (busy.current || !workspaceDestination) return;
+    busy.current = true;
+    try { await openWorkspace(workspaceDestination); }
+    finally { busy.current = false; }
+  };
   async function run(operation) {
     if (busy.current) return;
     busy.current = true; setError(''); setNotice('');
@@ -34,7 +56,7 @@ export function useLogin() {
       if (AUTH_BASE_PATH === '/auth/staff') return;
       const destination = loginDestination(response.user, location.state?.from);
       if (!destination) { setError('Your sign-in was verified, but your workspace address is unavailable. Contact the operator.'); return; }
-      if (destination.external) window.location.replace(destination.url);
+      if (destination.external) await openWorkspace(destination.url);
       else navigate(destination.url, { replace: true });
     } catch (failure) {
       const code = failure.response?.data?.code;
@@ -55,5 +77,5 @@ export function useLogin() {
   const verify = values => run(() => advanceSignIn(challenge?.status === 'enroll' ? 'confirm' : 'verify', values));
   const finish = () => run(() => advanceSignIn('complete', { savedRecoveryCodes: true }));
   const cancel = () => run(async () => { try { return await advanceSignIn('cancel'); } catch (failure) { if (failure.response?.status !== 401) throw failure; return { status: 'credentials' }; } });
-  return { email, setEmail, password, setPassword, error, notice, isLoading, message: location.state?.message, challenge, handleLogin, verify, finish, cancel };
+  return { email, setEmail, password, setPassword, error: workspaceHandoff?.error || error, notice, isLoading, message: location.state?.message, challenge, handleLogin, verify, finish, cancel, workspaceDestination, openingWorkspace, retryWorkspace };
 }

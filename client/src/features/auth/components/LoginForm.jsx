@@ -7,6 +7,17 @@ import { AUTH_BASE_PATH } from '@/shared/api/requestConfig.js';
 export default function LoginForm() {
   const flow = useLogin();
   const { email, setEmail, password, setPassword, error, notice, isLoading, message, handleLogin, challenge } = flow;
+  if (flow.workspaceDestination) return <section className="auth-card" aria-labelledby="workspace-heading">
+    <div className="auth-header">
+      <h1 className="auth-title" id="workspace-heading">Your sign-in is complete</h1>
+      <p className="auth-subtitle">Continue to your staff workspace.</p>
+    </div>
+    {error && <p className="error-message" role="alert">{error}</p>}
+    {flow.openingWorkspace && <p role="status">Opening your workspace...</p>}
+    <button type="button" className="btn-auth" disabled={flow.openingWorkspace} onClick={flow.retryWorkspace}>
+      {flow.openingWorkspace ? 'Opening workspace...' : 'Open staff workspace'}
+    </button>
+  </section>;
   if (challenge) return <MfaFlow {...flow} />;
   return (
     <>
