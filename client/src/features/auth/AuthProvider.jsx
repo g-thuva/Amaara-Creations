@@ -1,16 +1,37 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect, startTransition } from 'react';
+import { createContext, useContext, useState, useEffect, startTransition, Fragment } from 'react';
 import { authApi } from '@/features/auth/authApi.js';
+import { useSessionActivity } from './hooks/useSessionActivity.js';
+import { publishSessionEvent, subscribeSessionEvents } from '@/shared/api/sessionEvents.js';
 import { AUTH_BASE_PATH } from '@/shared/api/requestConfig.js';
+import { acceptsIdentity } from './sessionIdentity.js';
 import { reportClientError } from '@/shared/api/clientTelemetry.js';
-import { beginAuthOperation, isCurrentAuthOperation, clearAccessToken, setAccessToken, setAuthFailureHandler } from '@/shared/api/authSession.js';
+import { beginAuthOperation, isCurrentAuthOperation, clearAccessToken, setAccessToken, setAuthFailureHandler, setSessionHandler } from '@/shared/api/authSession.js';
 
 const AuthContext = createContext(null);
+const management = AUTH_BASE_PATH === '/auth/staff';
+function validateSession(response) {
+  if (!response?.token || !acceptsIdentity(response.user, management)) {
+    const error = new Error('The session does not belong to this sign-in page. Please sign in again.');
+    error.response = { status: 401 };
+    throw error;
+  }
+  return response;
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authStatus, setAuthStatus] = useState('loading');
   const [challenge, setChallenge] = useState(null);
+  const [restoreRevision, setRestoreRevision] = useState(0);
+  const [sessionVersion, setSessionVersion] = useState(0);
+  useSessionActivity(authStatus === 'authenticated');
+  const retrySession = () => { setAuthStatus('loading'); setRestoreRevision(value => value + 1); };
+  useEffect(() => subscribeSessionEvents(type => {
+    beginAuthOperation(); authApi.cancelRefresh(); clearAccessToken(); setChallenge(null); setUser(null);
+    if (type === 'signed-out') setAuthStatus('unauthenticated');
+    else retrySession();
+  }), []);
   useEffect(() => {
     if (!challenge) return undefined;
     const timer = setTimeout(() => { setChallenge(null); clearAccessToken(); setUser(null); setAuthStatus('expired'); }, Math.max(0, new Date(challenge.expiresAt).getTime() - Date.now()));
@@ -20,6 +41,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let active = true;
     const ticket = beginAuthOperation();
+    authApi.cancelRefresh();
+    setSessionHandler(response => {
+      if (!active) return;
+      try { validateSession(response); }
+      catch { clearAccessToken(); setUser(null); setAuthStatus('expired'); return; }
+      setUser(previous => ({ ...response.user, ...(previous?.id === response.user.id && previous.permissions ? { permissions: previous.permissions } : {}) }));
+      setSessionVersion(value => value + 1); setAuthStatus('authenticated');
+    });
     setAuthFailureHandler(() => {
       beginAuthOperation();
       clearAccessToken();
@@ -30,38 +59,49 @@ export const AuthProvider = ({ children }) => {
 
     const restoreSession = async () => {
       try {
-        if (AUTH_BASE_PATH === '/auth') {
+        {
           try {
             const pending = await authApi.pendingSignIn();
             if (!active || !isCurrentAuthOperation(ticket)) return;
-            setChallenge(pending); clearAccessToken(); setUser(null); setAuthStatus('pending');
-            return;
-          } catch { /* No pending first factor: restore the completed session. */ }
+            if (pending.status === 'credentials') {
+              setChallenge(null); clearAccessToken(); setUser(null); setAuthStatus('unauthenticated');
+              return;
+            }
+            if (pending.status !== 'session') {
+              setChallenge(pending); clearAccessToken(); setUser(null); setAuthStatus('pending');
+              return;
+            }
+          } catch (error) { if (error.response?.status !== 401) throw error; }
           if (!active || !isCurrentAuthOperation(ticket)) return;
         }
-        const response = await authApi.refresh();
+        const response = validateSession(await authApi.refresh());
         if (!active || !isCurrentAuthOperation(ticket)) return;
         setAccessToken(response.token);
         setUser(response.user);
         setAuthStatus('authenticated');
-      } catch {
+      } catch (error) {
         if (!active || !isCurrentAuthOperation(ticket)) return;
         clearAccessToken();
         setUser(null);
-        setAuthStatus('unauthenticated');
+        setAuthStatus(authApi.isSessionRejected(error) ? 'unauthenticated' : 'unavailable');
       }
     };
 
     restoreSession();
-    return () => { active = false; };
-  }, []);
+    return () => { active = false; setSessionHandler(null); setAuthFailureHandler(null); };
+  }, [restoreRevision]);
 
   const authenticate = async (operation) => {
     const ticket = beginAuthOperation();
     authApi.cancelRefresh();
     setAuthStatus('authenticating');
     let response;
-    try { response = await operation(); }
+    try {
+      response = await operation();
+      // Hand a completed staff sign-in to the management app without installing
+      // its access token as the storefront's active identity.
+      if (response.token && (management || !acceptsIdentity(response.user, true))) validateSession(response);
+    }
     catch (error) {
       if (isCurrentAuthOperation(ticket)) {
         clearAccessToken(); setUser(null);
@@ -71,8 +111,10 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
     if (!isCurrentAuthOperation(ticket)) throw new Error('This sign-in attempt was replaced. Please try again.');
-    if (response.token && response.user) {
-      setChallenge(null); setAccessToken(response.token); setUser(response.user); setAuthStatus('authenticated');
+    if (response.token && !management && acceptsIdentity(response.user, true)) {
+      setChallenge(null); clearAccessToken(); setUser(null); setAuthStatus('unauthenticated');
+    } else if (response.token && response.user) {
+      setChallenge(null); setAccessToken(response.token); setUser(response.user); setAuthStatus('authenticated'); publishSessionEvent('signed-in');
     } else {
       clearAccessToken(); setUser(null);
       setChallenge(response.status === 'credentials' ? null : response);
@@ -95,20 +137,22 @@ export const AuthProvider = ({ children }) => {
       await authApi.logout();
     } catch (error) {
       reportClientError('auth.logout', error);
-    } finally {
-      if (isCurrentAuthOperation(ticket)) {
-        clearAccessToken();
-        setChallenge(null);
-        // Complete caller navigation after cookie revocation and before guards
-        // observe the cleared session. Always clear local state if it throws.
-        startTransition(() => {
-          try { onSignedOut?.(); }
-          finally {
-            setUser(null);
-            setAuthStatus('unauthenticated');
-          }
-        });
-      }
+      if (isCurrentAuthOperation(ticket)) { clearAccessToken(); setUser(null); setChallenge(null); setAuthStatus('logout-error'); }
+      return;
+    }
+    if (isCurrentAuthOperation(ticket)) {
+      clearAccessToken();
+      setChallenge(null);
+      publishSessionEvent('signed-out');
+      // Complete caller navigation after cookie revocation and before guards
+      // observe the cleared session. Always clear local state if it throws.
+      startTransition(() => {
+        try { onSignedOut?.(); }
+        finally {
+          setUser(null);
+          setAuthStatus('unauthenticated');
+        }
+      });
     }
   };
 
@@ -121,6 +165,8 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: authStatus === 'authenticated',
     isLoading: ['loading', 'authenticating', 'signing-out'].includes(authStatus),
     authStatus,
+    retrySession,
+    sessionVersion,
     challenge,
     advanceSignIn,
     login,
@@ -129,7 +175,7 @@ export const AuthProvider = ({ children }) => {
     updateUser,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}><Fragment key={user?.id ?? 'anonymous'}>{children}</Fragment></AuthContext.Provider>;
 };
 
 export const useAuth = () => {

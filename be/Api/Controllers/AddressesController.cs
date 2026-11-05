@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace be.Api.Controllers;
 [ApiController]
 [Route("api/v1/addresses")]
-[Authorize]
+[Authorize(Policy = AppPolicies.CustomerAccess)]
 public class AddressesController(AddressBookService service) : ControllerBase
 {
     [HttpGet]

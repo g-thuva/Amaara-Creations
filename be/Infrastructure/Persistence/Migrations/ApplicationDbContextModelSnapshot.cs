@@ -1314,10 +1314,16 @@ namespace be.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime?>("AbsoluteExpiresAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FamilyCreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("FamilyId")
@@ -1325,18 +1331,45 @@ namespace be.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<DateTime?>("IdleExpiresAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("IpAddress")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<DateTime?>("LastActivityAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("LastUsedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("Management")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("MfaVerifiedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("Privileged")
+                        .HasColumnType("bit");
 
                     b.Property<long?>("ReplacedBySessionId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("RevocationReason")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("RolesHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SecurityStampHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()

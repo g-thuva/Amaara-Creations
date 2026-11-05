@@ -8,18 +8,21 @@ namespace be.Api.Controllers;
 public sealed class OrdersController(OrderService service) : ControllerBase
 {
     [HttpGet]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult<List<OrderResponse>>> GetUserOrders(CancellationToken ct)
     {
         return Ok(await service.GetUserOrders(ct));
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult<OrderResponse>> GetOrder(int id, CancellationToken ct)
     {
         return Ok(await service.GetOrder(id, ct));
     }
 
     [HttpPost]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public IActionResult CreateOrder()
     {
         return Problem(statusCode: 410, title: "Use the authoritative checkout quote and payment session endpoints.");

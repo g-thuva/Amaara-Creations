@@ -30,7 +30,7 @@ public sealed class RedesignSecurityTests
         using var client = factory.CreateClient();
         var email = fixture.GetProperty("adminEmail").GetString()!;
         var password = fixture.GetProperty("password").GetString()!;
-        var pending = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
+        var pending = await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email, password });
         Assert.Equal(HttpStatusCode.Accepted, pending.StatusCode);
         Assert.False((await pending.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("token", out _));
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
@@ -57,8 +57,8 @@ public sealed class RedesignSecurityTests
         var password = fixture.GetProperty("password").GetString();
         var wrongCode = TotpFixture.Code == "000000" ? "111111" : "000000";
         for (var attempt = 0; attempt < 5; attempt++)
-            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password, authenticatorCode = wrongCode })).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password, authenticatorCode = TotpFixture.Code })).StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email, password, authenticatorCode = wrongCode })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email, password, authenticatorCode = TotpFixture.Code })).StatusCode);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class RedesignSecurityTests
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(url)).StatusCode);
         // Missing factor cannot establish a new session; a role-bearing token
         // without verified MFA is independently denied on the owner file route.
-        var pending = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
+        var pending = await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email, password });
         Assert.Equal(HttpStatusCode.Accepted, pending.StatusCode);
         Assert.False((await pending.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("token", out _));
         using var scope = factory.Services.CreateScope();
@@ -93,7 +93,8 @@ public sealed class RedesignSecurityTests
         var tokenService = scope.ServiceProvider.GetRequiredService<be.Application.Abstractions.Identity.ITokenService>();
         var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(client.DefaultRequestHeaders.Authorization!.Parameter);
         client.DefaultRequestHeaders.Authorization = new("Bearer", tokenService.GenerateToken(staffUser, await users.GetRolesAsync(staffUser), jwt.Claims.Single(c => c.Type == "session_family").Value));
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(url)).StatusCode);
+        // Missing MFA cannot authenticate an existing privileged session at all.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(url)).StatusCode);
     }
 
     [Fact]
@@ -128,7 +129,8 @@ public sealed class RedesignSecurityTests
 
     [Theory]
     [InlineData(false, 1, false, false)]
-    [InlineData(true, 901, false, false)]
+    [InlineData(true, 901, false, true)]
+    [InlineData(true, 43201, false, false)]
     [InlineData(true, 301, true, false)]
     [InlineData(true, 299, true, true)]
     [InlineData(true, -100, false, false)]

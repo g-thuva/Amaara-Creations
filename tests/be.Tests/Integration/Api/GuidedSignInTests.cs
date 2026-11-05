@@ -16,7 +16,7 @@ public sealed class GuidedSignInTests
     {
         await factory.SeedCatalogueAsync(); return JsonSerializer.SerializeToElement(await factory.CreateBrowserFixtureAsync());
     }
-    private static Task<HttpResponseMessage> Start(HttpClient client, JsonElement fixture, bool staff = true) => client.PostAsJsonAsync("/api/v1/auth/sign-in", new { email = fixture.GetProperty(staff ? "adminEmail" : "customerEmail").GetString(), password = fixture.GetProperty("password").GetString() });
+    private static Task<HttpResponseMessage> Start(HttpClient client, JsonElement fixture, bool staff = true) => client.PostAsJsonAsync(staff ? "/api/v1/auth/staff/sign-in" : "/api/v1/auth/sign-in", new { email = fixture.GetProperty(staff ? "adminEmail" : "customerEmail").GetString(), password = fixture.GetProperty("password").GetString() });
     private static async Task AssertNoSessions(AcceptanceApiFactory factory)
     {
         using var scope = factory.Services.CreateScope(); Assert.False(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().RefreshSessions.AnyAsync());
@@ -66,15 +66,15 @@ public sealed class GuidedSignInTests
         await using var factory = new AcceptanceApiFactory(); var fixture = await Fixture(factory); using var client = factory.CreateClient();
         var response = await Start(client, fixture); Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("verify", body.GetProperty("status").GetString()); Assert.False(body.TryGetProperty("token", out _));
-        Assert.Contains(response.Headers.GetValues("Set-Cookie"), value => value.StartsWith("amaara_refresh_signin=") && value.Contains("httponly", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(response.Headers.GetValues("Set-Cookie"), value => value.StartsWith("amaara_refresh_staff_signin=") && value.Contains("httponly", StringComparison.OrdinalIgnoreCase));
         Assert.True(response.Headers.CacheControl!.NoStore); await AssertNoSessions(factory);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/staff/refresh", new { })).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { code = "invalid" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/verify", new { code = "invalid" })).StatusCode);
         await AssertNoSessions(factory);
-        var verified = await client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { code = TotpFixture.Code }); verified.EnsureSuccessStatusCode();
+        var verified = await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/verify", new { code = TotpFixture.Code }); verified.EnsureSuccessStatusCode();
         Assert.True((await verified.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("token", out _));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { code = TotpFixture.Code })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/verify", new { code = TotpFixture.Code })).StatusCode);
         var refresh = await client.PostAsJsonAsync("/api/v1/auth/staff/refresh", new { }); refresh.EnsureSuccessStatusCode();
         client.DefaultRequestHeaders.Authorization = new("Bearer", (await refresh.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
@@ -97,7 +97,7 @@ public sealed class GuidedSignInTests
         }
         var started = await Start(client, fixture); Assert.Equal(HttpStatusCode.Accepted, started.StatusCode);
         var view = await started.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("verify", view.GetProperty("status").GetString()); Assert.Equal(JsonValueKind.Null, view.GetProperty("enrollment").ValueKind);
-        var result = await client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { code = TotpFixture.Code });
+        var result = await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/verify", new { code = TotpFixture.Code });
         Assert.Equal(format == "legacy-valid" ? HttpStatusCode.OK : HttpStatusCode.BadRequest, result.StatusCode);
         using var verification = factory.Services.CreateScope(); var users = verification.ServiceProvider.GetRequiredService<UserManager<User>>();
         var current = (await users.FindByEmailAsync(fixture.GetProperty("adminEmail").GetString()!))!;
@@ -121,18 +121,18 @@ public sealed class GuidedSignInTests
         var uri = enrollment.GetProperty("authenticatorUri").GetString()!;
         Assert.Contains(Uri.EscapeDataString("Amaara Creations:" + fixture.GetProperty("adminEmail").GetString()), uri);
         Assert.Contains("issuer=Amaara%20Creations", uri);
-        var restored = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/sign-in"); Assert.Equal(secret, restored.GetProperty("enrollment").GetProperty("sharedKey").GetString());
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/sign-in/enrollment/confirm", new { code = "invalid" })).StatusCode);
+        var restored = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/staff/sign-in"); Assert.Equal(secret, restored.GetProperty("enrollment").GetProperty("sharedKey").GetString());
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/enrollment/confirm", new { code = "invalid" })).StatusCode);
         using (var scope = factory.Services.CreateScope()) Assert.False((await scope.ServiceProvider.GetRequiredService<UserManager<User>>().FindByEmailAsync(fixture.GetProperty("adminEmail").GetString()!))!.TwoFactorEnabled);
         await AssertNoSessions(factory);
-        var confirmed = await client.PostAsJsonAsync("/api/v1/auth/sign-in/enrollment/confirm", new { code = TotpFixture.For(secret, DateTimeOffset.UtcNow) }); confirmed.EnsureSuccessStatusCode();
+        var confirmed = await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/enrollment/confirm", new { code = TotpFixture.For(secret, DateTimeOffset.UtcNow) }); confirmed.EnsureSuccessStatusCode();
         var codes = await confirmed.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("recovery_codes", codes.GetProperty("status").GetString()); Assert.Equal(10, codes.GetProperty("recoveryCodes").GetArrayLength()); Assert.False(codes.TryGetProperty("token", out _));
         await AssertNoSessions(factory);
-        var restoredCodes = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/sign-in"); Assert.Equal(codes.GetProperty("recoveryCodes").GetRawText(), restoredCodes.GetProperty("recoveryCodes").GetRawText());
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/sign-in/complete", new { savedRecoveryCodes = false })).StatusCode);
+        var restoredCodes = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/staff/sign-in"); Assert.Equal(codes.GetProperty("recoveryCodes").GetRawText(), restoredCodes.GetProperty("recoveryCodes").GetRawText());
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/complete", new { savedRecoveryCodes = false })).StatusCode);
         await AssertNoSessions(factory);
-        (await client.PostAsJsonAsync("/api/v1/auth/sign-in/complete", new { savedRecoveryCodes = true })).EnsureSuccessStatusCode();
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/sign-in/complete", new { savedRecoveryCodes = true })).StatusCode);
+        (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/complete", new { savedRecoveryCodes = true })).EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/complete", new { savedRecoveryCodes = true })).StatusCode);
         using (var scope = factory.Services.CreateScope())
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>(); var user = (await users.FindByEmailAsync(fixture.GetProperty("adminEmail").GetString()!))!;
@@ -155,13 +155,13 @@ public sealed class GuidedSignInTests
         var clock = new Clock(); await using var factory = new AcceptanceApiFactory { Clock = clock }; var fixture = await Fixture(factory); using var client = factory.CreateClient();
         (await Start(client, fixture)).EnsureSuccessStatusCode();
         if (change == "expired") clock.Now = clock.Now.AddMinutes(11);
-        if (change == "cancel") (await client.PostAsJsonAsync("/api/v1/auth/sign-in/cancel", new { })).EnsureSuccessStatusCode();
+        if (change == "cancel") (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/cancel", new { })).EnsureSuccessStatusCode();
         if (change == "logout")
         {
-            var pendingCookie = (await Start(client, fixture)).Headers.GetValues("Set-Cookie").Last(value => value.StartsWith("amaara_refresh_signin=")).Split(';')[0];
-            (await client.PostAsJsonAsync("/api/v1/auth/logout", new { })).EnsureSuccessStatusCode();
+            var pendingCookie = (await Start(client, fixture)).Headers.GetValues("Set-Cookie").Last(value => value.StartsWith("amaara_refresh_staff_signin=")).Split(';')[0];
+            (await client.PostAsJsonAsync("/api/v1/auth/staff/logout", new { })).EnsureSuccessStatusCode();
             using var replay = factory.CreateClient(new() { HandleCookies = false }); replay.DefaultRequestHeaders.Add("Cookie", pendingCookie);
-            Assert.Equal(HttpStatusCode.Unauthorized, (await replay.GetAsync("/api/v1/auth/sign-in")).StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await replay.GetAsync("/api/v1/auth/staff/sign-in")).StatusCode);
         }
         if (change is "stamp" or "role" or "password")
         {
@@ -178,7 +178,7 @@ public sealed class GuidedSignInTests
                 Assert.True(user.TwoFactorEnabled); Assert.Equal(key, await users.GetAuthenticatorKeyAsync(user));
             }
         }
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { code = TotpFixture.Code })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/verify", new { code = TotpFixture.Code })).StatusCode);
         await AssertNoSessions(factory);
     }
 
@@ -187,7 +187,7 @@ public sealed class GuidedSignInTests
     {
         await using var factory = new AcceptanceApiFactory(); var fixture = await Fixture(factory); using var client = factory.CreateClient();
         (await Start(client, fixture)).EnsureSuccessStatusCode(); var code = TotpFixture.Code;
-        var responses = await Task.WhenAll(Enumerable.Range(0, 2).Select(_ => client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { code })));
+        var responses = await Task.WhenAll(Enumerable.Range(0, 2).Select(_ => client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/verify", new { code })));
         Assert.Single(responses, response => response.StatusCode == HttpStatusCode.OK); Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Unauthorized);
     }
 
@@ -216,7 +216,7 @@ public sealed class GuidedSignInTests
     public async Task FiveBadCodesPersistLockoutAndNoSessions()
     {
         await using var factory = new AcceptanceApiFactory(); var fixture = await Fixture(factory); using var client = factory.CreateClient(); (await Start(client, fixture)).EnsureSuccessStatusCode();
-        for (var attempt = 0; attempt < 5; attempt++) Assert.False((await client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { code = "invalid" })).IsSuccessStatusCode);
+        for (var attempt = 0; attempt < 5; attempt++) Assert.False((await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/verify", new { code = "invalid" })).IsSuccessStatusCode);
         using var scope = factory.Services.CreateScope(); var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         Assert.True(await users.IsLockedOutAsync((await users.FindByEmailAsync(fixture.GetProperty("adminEmail").GetString()!))!)); await AssertNoSessions(factory);
     }
@@ -236,7 +236,7 @@ public sealed class GuidedSignInTests
             recovery = codes![0];
         }
         (await Start(client, fixture)).EnsureSuccessStatusCode();
-        var repair = await client.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { recoveryCode = recovery }); repair.EnsureSuccessStatusCode();
+        var repair = await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/verify", new { recoveryCode = recovery }); repair.EnsureSuccessStatusCode();
         var body = await repair.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("enroll", body.GetProperty("status").GetString()); Assert.False(body.TryGetProperty("token", out _));
         using (var scope = factory.Services.CreateScope())
         {
@@ -245,9 +245,9 @@ public sealed class GuidedSignInTests
         }
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
         var key = body.GetProperty("enrollment").GetProperty("sharedKey").GetString()!; Assert.NotEqual(oldKey, key);
-        (await client.PostAsJsonAsync("/api/v1/auth/sign-in/enrollment/confirm", new { code = TotpFixture.For(key, DateTimeOffset.UtcNow) })).EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/enrollment/confirm", new { code = TotpFixture.For(key, DateTimeOffset.UtcNow) })).EnsureSuccessStatusCode();
         using (var scope = factory.Services.CreateScope()) Assert.NotNull((await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().RefreshSessions.SingleAsync(session => session.Id == oldSessionId)).RevokedAt);
-        (await client.PostAsJsonAsync("/api/v1/auth/sign-in/complete", new { savedRecoveryCodes = true })).EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync("/api/v1/auth/staff/sign-in/complete", new { savedRecoveryCodes = true })).EnsureSuccessStatusCode();
         using (var scope = factory.Services.CreateScope())
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>(); var user = (await users.FindByEmailAsync(fixture.GetProperty("adminEmail").GetString()!))!;
@@ -255,6 +255,6 @@ public sealed class GuidedSignInTests
             Assert.Contains(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().AuditLogs.ToListAsync(), log => log.Action == "AuthenticatorRecoveryVerified");
         }
         using var replay = factory.CreateClient(); (await Start(replay, fixture)).EnsureSuccessStatusCode();
-        Assert.Equal(HttpStatusCode.BadRequest, (await replay.PostAsJsonAsync("/api/v1/auth/sign-in/verify", new { recoveryCode = recovery })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await replay.PostAsJsonAsync("/api/v1/auth/staff/sign-in/verify", new { recoveryCode = recovery })).StatusCode);
     }
 }

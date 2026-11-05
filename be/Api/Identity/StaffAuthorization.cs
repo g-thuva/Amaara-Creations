@@ -1,4 +1,5 @@
 using System.Globalization;
+using be.Application.Features.Identity;
 using Microsoft.AspNetCore.Authorization;
 
 namespace be.Api.Identity;
@@ -10,7 +11,7 @@ public sealed class StaffAuthorizationHandler(IConfiguration configuration) : Au
 {
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, StaffAuthorization requirement)
     {
-        var seconds = requirement.Sensitive ? 300 : 900;
+        var seconds = requirement.Sensitive ? 300 : (long)SessionPolicy.Absolute(configuration, true).TotalSeconds;
         if (configuration.GetValue<bool>("Administration:Enabled") &&
             context.User.HasClaim("session_kind", "management") &&
             context.User.HasClaim("amr", "mfa") &&

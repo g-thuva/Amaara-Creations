@@ -1,26 +1,28 @@
-import api, { cancelSessionRefresh, refreshSession } from '@/shared/api/httpClient.js';
+import api, { cancelSessionRefresh, refreshSession, isSessionRejected } from '@/shared/api/httpClient.js';
 import { AUTH_BASE_PATH } from '@/shared/api/requestConfig.js';
 
 export const authApi = {
   cancelRefresh: cancelSessionRefresh,
+  isSessionRejected,
+  activity: () => api.post('/auth/activity'),
   register: async (userData) => {
     const response = await api.post('/auth/register', userData);
     return response.data;
   },
 
   login: async (credentials) => {
-    const response = await api.post('/auth/sign-in', credentials);
+    const response = await api.post(`${AUTH_BASE_PATH}/sign-in`, credentials);
     return response.data;
   },
-  pendingSignIn: async () => (await api.get('/auth/sign-in')).data,
+  pendingSignIn: async () => (await api.get(`${AUTH_BASE_PATH}/sign-in`)).data,
   advanceSignIn: async (action, values = {}) => {
     const paths = { verify: 'verify', confirm: 'enrollment/confirm', complete: 'complete', cancel: 'cancel' };
     if (!paths[action]) throw new Error('Unknown sign-in step');
-    return (await api.post(`/auth/sign-in/${paths[action]}`, values)).data;
+    return (await api.post(`${AUTH_BASE_PATH}/sign-in/${paths[action]}`, values)).data;
   },
 
   logout: async () => {
-    await api.post(`${AUTH_BASE_PATH}/logout`);
+    await api.post(`${AUTH_BASE_PATH}/logout`, undefined, { _skipAuthRefresh: true });
   },
 
   logoutAll: async () => {

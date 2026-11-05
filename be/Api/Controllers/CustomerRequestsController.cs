@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace be.Api.Controllers;
-[ApiController, Route("api/v1/account/requests"), Authorize]
+[ApiController, Route("api/v1/account/requests"), Authorize(Policy = AppPolicies.CustomerAccess)]
 public sealed class CustomerRequestsController(CustomerRequestService service) : ControllerBase
 {
     [HttpGet]

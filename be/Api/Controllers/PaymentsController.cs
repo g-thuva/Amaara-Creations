@@ -10,6 +10,7 @@ namespace be.Api.Controllers;
 public sealed class PaymentsController(PaymentOperationsService service, PaymentWebhookService webhooks) : ControllerBase
 {
     [HttpGet("{id:long}")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     [ProducesResponseType(typeof(PaymentStatusDto), 200)]
     public async Task<IActionResult> Status(long id, CancellationToken ct) => Ok(await service.Status(id, ct));
     [HttpGet("/api/v1/admin/payments/{id:long}")]

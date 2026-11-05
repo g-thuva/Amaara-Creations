@@ -16,7 +16,10 @@ export function useResource(loader, key = '', enabled = true, { keepPreviousData
     setRevision(v => v + 1);
   }, []);
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setState({ key: null, revision: -1, data: null, loading: false, error: null });
+      return;
+    }
     const controller = new AbortController();
     request.current = controller;
     const currentGeneration = generation.current;

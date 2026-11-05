@@ -1,4 +1,4 @@
-import { test, expect, acceptanceApi } from '../fixtures';
+import { test, expect, acceptanceApi, managementUrl } from '../fixtures';
 import { fillAuthenticator } from '../staffAuth';
 
 test('a freshly verified owner approves employee recovery through confirmation and forces replacement enrollment', async ({ page, request }) => {
@@ -9,7 +9,7 @@ test('a freshly verified owner approves employee recovery through confirmation a
   await fillAuthenticator(page);
   await page.getByRole('button', { name: 'Verify and sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
-  await page.goto('http://127.0.0.1:5179/Amaara-Creations/admin/staff');
+  await page.goto(managementUrl + 'admin/staff');
   await page.getByLabel('Recovery account email', { exact: true }).fill(fixture.basic.adminEmail);
   await page.getByLabel('Verified recovery reason', { exact: true }).fill('Disposable employee identity verified through independent test procedure.');
   await page.getByRole('button', { name: 'Review authenticator recovery', exact: true }).click();
@@ -18,7 +18,7 @@ test('a freshly verified owner approves employee recovery through confirmation a
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click();
   expect((await approval).status()).toBe(200);
   await expect(page.getByRole('status').filter({ hasText: 'Changes saved.' })).toBeVisible();
-  const pending = await page.request.post(acceptanceApi + '/api/v1/auth/sign-in', { data: { email: fixture.basic.adminEmail, password: fixture.basic.password } });
+  const pending = await page.request.post(acceptanceApi + '/api/v1/auth/staff/sign-in', { data: { email: fixture.basic.adminEmail, password: fixture.basic.password } });
   expect(pending.status()).toBe(202);
   const body = await pending.json();
   expect(body.status).toBe('enroll'); expect(body.token).toBeUndefined();

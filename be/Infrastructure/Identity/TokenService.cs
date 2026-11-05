@@ -1,5 +1,6 @@
 using be.Application.Abstractions.Identity;
 using be.Domain.Identity;
+using be.Application.Features.Identity;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -15,7 +16,7 @@ namespace be.Infrastructure.Identity
             _configuration = configuration;
         }
 
-        public string GenerateToken(User user, IList<string> roles, string? sessionFamily = null, DateTimeOffset? secondFactorAt = null, bool management = false)
+        public string GenerateToken(User user, IList<string> roles, string? sessionFamily = null, DateTimeOffset? secondFactorAt = null, bool management = false, DateTime? sessionExpiresAt = null)
         {
             var claims = new List<Claim>
             {
@@ -40,15 +41,16 @@ namespace be.Infrastructure.Identity
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured")));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expiresAt = GetAccessTokenExpiry();
+            var expiresAt = GetAccessTokenExpiry(roles.Any(AppRoles.AdministrativeRoles.Contains), sessionExpiresAt);
             var token = new JwtSecurityToken(issuer: _configuration["Jwt:Issuer"], audience: _configuration["Jwt:Audience"], claims: claims, expires: expiresAt, signingCredentials: credentials);
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public DateTime GetAccessTokenExpiry()
+        public DateTime GetAccessTokenExpiry(bool privileged = false, DateTime? sessionExpiresAt = null)
         {
-            var accessTokenMinutes = Convert.ToDouble(_configuration["Authentication:AccessTokenMinutes"] ?? _configuration["Jwt:AccessTokenMinutes"] ?? "15");
-            return DateTime.UtcNow.AddMinutes(accessTokenMinutes);
+            var accessTokenMinutes = SessionPolicy.AccessMinutes(_configuration, privileged);
+            var expiry = DateTime.UtcNow.AddMinutes(accessTokenMinutes);
+            return sessionExpiresAt.HasValue && sessionExpiresAt < expiry ? DateTime.SpecifyKind(sessionExpiresAt.Value, DateTimeKind.Utc) : expiry;
         }
     }
 }

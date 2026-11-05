@@ -36,13 +36,26 @@ public sealed class StaffMfaRecoveryTests
         using var owner = factory.CreateClient(); var token = await Login(owner, ownerEmail, password);
         Assert.Equal(HttpStatusCode.Conflict, (await owner.PostAsJsonAsync("/api/v1/admin/staff/mfa-recovery", new { email = ownerEmail, reason = request.reason })).StatusCode);
         var parsed = new JwtSecurityTokenHandler().ReadJwtToken(token);
+        var family = parsed.Claims.Single(claim => claim.Type == "session_family").Value;
         using (var scope = factory.Services.CreateScope())
         {
             var user = (await scope.ServiceProvider.GetRequiredService<UserManager<User>>().FindByEmailAsync(ownerEmail))!;
-            var old = scope.ServiceProvider.GetRequiredService<ITokenService>().GenerateToken(user, [AppRoles.SuperAdmin], parsed.Claims.Single(claim => claim.Type == "session_family").Value, DateTimeOffset.UtcNow.AddMinutes(-6), true);
+            var verifiedAt = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.AddMinutes(-6).ToUnixTimeSeconds());
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var session = await db.RefreshSessions.SingleAsync(value => value.FamilyId == family);
+            session.MfaVerifiedAt = verifiedAt;
+            await db.SaveChangesAsync();
+            var old = scope.ServiceProvider.GetRequiredService<ITokenService>().GenerateToken(user, [AppRoles.SuperAdmin], session.FamilyId, verifiedAt, true);
             owner.DefaultRequestHeaders.Authorization = new("Bearer", old);
         }
         Assert.Equal(HttpStatusCode.Forbidden, (await owner.PostAsJsonAsync("/api/v1/admin/staff/mfa-recovery", request)).StatusCode);
+        using (var restore = factory.Services.CreateScope())
+        {
+            var db = restore.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var session = await db.RefreshSessions.SingleAsync(value => value.FamilyId == family);
+            session.MfaVerifiedAt = DateTimeOffset.FromUnixTimeSeconds(long.Parse(parsed.Claims.Single(claim => claim.Type == "mfa_time").Value));
+            await db.SaveChangesAsync();
+        }
         owner.DefaultRequestHeaders.Authorization = new("Bearer", token);
         var approved = await owner.PostAsJsonAsync("/api/v1/admin/staff/mfa-recovery", request); approved.EnsureSuccessStatusCode();
         var body = await approved.Content.ReadFromJsonAsync<JsonElement>(); Assert.True(body.GetProperty("requiresEnrollment").GetBoolean()); Assert.False(body.TryGetProperty("sharedKey", out _));
@@ -64,12 +77,12 @@ public sealed class StaffMfaRecoveryTests
             var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>(); var user = (await users.FindByEmailAsync(email))!; Assert.True(user.TwoFactorEnabled); Assert.Equal(oldKey, await users.GetAuthenticatorKeyAsync(user));
         }
         target.DefaultRequestHeaders.Authorization = null;
-        var start = await target.PostAsJsonAsync("/api/v1/auth/sign-in", new { email, password, authenticatorCode = TotpFixture.Code }); Assert.Equal(HttpStatusCode.Accepted, start.StatusCode);
+        var start = await target.PostAsJsonAsync("/api/v1/auth/staff/sign-in", new { email, password, authenticatorCode = TotpFixture.Code }); Assert.Equal(HttpStatusCode.Accepted, start.StatusCode);
         var body = await start.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("enroll", body.GetProperty("status").GetString()); Assert.False(body.TryGetProperty("token", out _));
         var key = body.GetProperty("enrollment").GetProperty("sharedKey").GetString()!; Assert.NotEqual(oldKey, key);
-        (await target.PostAsJsonAsync("/api/v1/auth/sign-in/enrollment/confirm", new { code = TotpFixture.For(key, DateTimeOffset.UtcNow) })).EnsureSuccessStatusCode();
+        (await target.PostAsJsonAsync("/api/v1/auth/staff/sign-in/enrollment/confirm", new { code = TotpFixture.For(key, DateTimeOffset.UtcNow) })).EnsureSuccessStatusCode();
         Assert.Equal(HttpStatusCode.Unauthorized, (await target.GetAsync("/api/v1/admin/capabilities")).StatusCode);
-        (await target.PostAsJsonAsync("/api/v1/auth/sign-in/complete", new { savedRecoveryCodes = true })).EnsureSuccessStatusCode();
+        (await target.PostAsJsonAsync("/api/v1/auth/staff/sign-in/complete", new { savedRecoveryCodes = true })).EnsureSuccessStatusCode();
         var refreshed = await target.PostAsJsonAsync("/api/v1/auth/staff/refresh", new { }); refreshed.EnsureSuccessStatusCode();
         target.DefaultRequestHeaders.Authorization = new("Bearer", (await refreshed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString());
         Assert.Equal(HttpStatusCode.OK, (await target.GetAsync("/api/v1/admin/capabilities")).StatusCode);
@@ -84,7 +97,7 @@ public sealed class StaffMfaRecoveryTests
         using var owner = factory.CreateClient(); await Login(owner, fixture.GetProperty("superAdminEmail").GetString()!, password);
         (await owner.PostAsJsonAsync("/api/v1/admin/staff/mfa-recovery", new { email = basic.GetProperty("adminEmail").GetString(), reason = "Verified account recovery for expired approval test" })).EnsureSuccessStatusCode();
         clock.Now = clock.Now.AddMinutes(16);
-        using var target = factory.CreateClient(); var response = await target.PostAsJsonAsync("/api/v1/auth/sign-in", new { email = basic.GetProperty("adminEmail").GetString(), password, authenticatorCode = TotpFixture.Code });
+        using var target = factory.CreateClient(); var response = await target.PostAsJsonAsync("/api/v1/auth/staff/sign-in", new { email = basic.GetProperty("adminEmail").GetString(), password, authenticatorCode = TotpFixture.Code });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode); Assert.Equal("MFA_RECOVERY_APPROVAL_EXPIRED", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
         Assert.False(response.Headers.Contains("Set-Cookie"));
     }

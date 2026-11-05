@@ -1,3 +1,4 @@
+using be.Application.Features.Identity;
 using be.Application.Features.Payments;
 using be.Application.Features.Checkout;
 using System.Security.Claims;
@@ -5,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace be.Api.Controllers;
-[ApiController, Route("api/v1/checkout"), Authorize]
+[ApiController, Route("api/v1/checkout"), Authorize(Policy = AppPolicies.CustomerAccess)]
 public sealed class CheckoutController(CheckoutPricingService pricing, CheckoutService checkout) : ControllerBase
 {
     [HttpPost("quote")]

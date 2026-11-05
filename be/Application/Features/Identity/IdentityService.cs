@@ -82,12 +82,12 @@ public sealed class IdentityService(
                 await users.ResetAccessFailedCountAsync(verified.User);
                 return new(Sessions: await IssueSignInAsync(verified with { SecondFactorAt = string.IsNullOrWhiteSpace(request.AuthenticatorCode) ? null : DateTimeOffset.UtcNow }, ct, managementEntry));
             }
-            var pending = await pendingSignIn.BeginSignInAsync(verified.User, verified.Roles, ct);
+            var pending = await pendingSignIn.BeginSignInAsync(verified.User, verified.Roles, ct, managementEntry);
             // Existing API clients may supply both factors in one request. They
             // use this same transaction and cannot obtain a pending JWT.
             if (pending.View.Status == "verify" && (!string.IsNullOrWhiteSpace(request.AuthenticatorCode) || !string.IsNullOrWhiteSpace(request.RecoveryCode)))
             {
-                var advanced = await AdvanceSignInAsync(pending.Ticket, "verify", request.AuthenticatorCode, request.RecoveryCode, false, ct);
+                var advanced = await AdvanceSignInAsync(pending.Ticket, "verify", request.AuthenticatorCode, request.RecoveryCode, false, ct, managementEntry);
                 return advanced.Pending is { Ticket: null } next ? advanced with { Pending = next with { Ticket = pending.Ticket } } : advanced;
             }
             return new(Pending: pending);
@@ -97,9 +97,9 @@ public sealed class IdentityService(
         return new(Sessions: await IssueSignInAsync(verified, ct));
     }
 
-    public async Task<SignInResult> AdvanceSignInAsync(string? ticket, string operation, string? code, string? recovery, bool savedCodes, CancellationToken ct)
+    public async Task<SignInResult> AdvanceSignInAsync(string? ticket, string operation, string? code, string? recovery, bool savedCodes, CancellationToken ct, bool management = false)
     {
-        var step = await pendingSignIn.AdvanceSignInAsync(ticket, operation, code, recovery, savedCodes, ct);
+        var step = await pendingSignIn.AdvanceSignInAsync(ticket, operation, code, recovery, savedCodes, ct, management);
         if (step.ErrorCode != null) throw new CommerceException(step.ErrorCode, step.ErrorCode == "MFA_CHALLENGE_EXPIRED" ? "Your sign-in expired. Please start again." : "That code didn't work. Check your authenticator app and try the current code.", step.ErrorCode == "MFA_CHALLENGE_EXPIRED" ? 401 : 400);
         if (step.SecurityChanged)
         {
@@ -111,26 +111,26 @@ public sealed class IdentityService(
         if (step.VerifiedUser == null) return new(Pending: step);
         var current = await users.FindByIdAsync(step.VerifiedUser.Id) ?? throw InvalidLogin();
         var roles = await users.GetRolesAsync(current);
-        if (step.Management != roles.Any(AppRoles.AdministrativeRoles.Contains)) throw InvalidLogin();
+        if (step.Management != management || !AppRoles.CanBeginSignIn(roles, management)) throw InvalidLogin();
         if (!current.EmailConfirmed || await users.IsLockedOutAsync(current) || !current.TwoFactorEnabled || current.SecurityStamp != step.VerifiedUser.SecurityStamp) throw InvalidLogin();
         if (roles.Any(AppRoles.AdministrativeRoles.Contains) && !configuration.GetValue<bool>("Administration:Enabled")) throw new CommerceException("MANAGEMENT_DISABLED", "Staff sign-in is unavailable in this environment.", 503);
         if (!roles.Any(AppRoles.AdministrativeRoles.Contains) && !roles.Contains(AppRoles.Customer)) throw InvalidLogin();
-        return new(Sessions: await IssueSignInAsync(new(current, roles, step.VerifiedAt, current.SecurityStamp), ct));
+        return new(Sessions: await IssueSignInAsync(new(current, roles, step.VerifiedAt, current.SecurityStamp), ct, management));
     }
 
     private async Task<RoutedSignIn> IssueSignInAsync(VerifiedLogin verified, CancellationToken ct, bool managementOnly = false)
     {
         if (verified.Stamp != verified.User.SecurityStamp || !verified.Roles.Order(StringComparer.Ordinal).SequenceEqual((await users.GetRolesAsync(verified.User)).Order(StringComparer.Ordinal))) throw InvalidLogin();
         var staff = verified.Roles.Any(AppRoles.AdministrativeRoles.Contains);
-        if (staff && !verified.SecondFactorAt.HasValue) throw InvalidLogin();
-        var storefront = managementOnly ? null : await CreateSessionAsync(verified, ct, management: false);
+        if (!AppRoles.CanBeginSignIn(verified.Roles, managementOnly) || (staff && (!verified.User.TwoFactorEnabled || !verified.SecondFactorAt.HasValue))) throw InvalidLogin();
+        var storefront = staff ? null : await CreateSessionAsync(verified, ct, management: false);
         AuthenticatedSession? management = null;
         try
         {
             if (staff)
             {
                 management = await CreateSessionAsync(verified, ct, management: true);
-                await audit.RecordAsync("StaffSignInSucceeded", nameof(User), verified.User.Id, null, new { MfaVerified = management.StaffAssurance != null, Entry = managementOnly ? "management-compatibility" : "shared" }, actor.Audit with { UserId = verified.User.Id }, ct);
+                await audit.RecordAsync("StaffSignInSucceeded", nameof(User), verified.User.Id, null, new { MfaVerified = management.StaffAssurance != null, Entry = managementOnly ? "management" : "shared" }, actor.Audit with { UserId = verified.User.Id }, ct);
             }
             return new(storefront, management);
         }
@@ -146,7 +146,7 @@ public sealed class IdentityService(
 
     private async Task<VerifiedLogin> VerifyPasswordAsync(LoginRequest request, CancellationToken ct, bool management)
     {
-        var user = await users.FindByEmailAsync(request.Email);
+        var user = await users.FindByEmailAsync(request.Email.Trim());
         if (user == null)
             throw InvalidLogin();
         if (await users.IsLockedOutAsync(user))
@@ -160,9 +160,9 @@ public sealed class IdentityService(
             throw new CommerceException("EMAIL_CONFIRMATION_REQUIRED", "Email verification is required before signing in.", 401, new Dictionary<string, object?> { ["requiresEmailConfirmation"] = true });
         var roles = await users.GetRolesAsync(user);
         if (management && !roles.Any(AppRoles.AdministrativeRoles.Contains))
-            throw new CommerceException("MANAGEMENT_ACCESS_DENIED", "This account is not authorized for management.", 403);
-        if (roles.Count == 0 || roles.Any(role => role != AppRoles.Customer && !AppRoles.AdministrativeRoles.Contains(role)))
-            throw new CommerceException("ACCOUNT_ACCESS_DENIED", "This account is not available for sign-in.", 403);
+            throw new CommerceException("MANAGEMENT_ACCESS_DENIED", "Unable to sign in through this sign-in page.", 403);
+        if (!AppRoles.CanBeginSignIn(roles, management))
+            throw new CommerceException("ACCOUNT_ACCESS_DENIED", "Unable to sign in through this sign-in page.", 403);
         if (roles.Any(AppRoles.AdministrativeRoles.Contains) && !configuration.GetValue<bool>("Administration:Enabled"))
             throw new CommerceException("MANAGEMENT_DISABLED", "Management access is disabled. Contact the operator.", 503);
         return new(user, roles, null, user.SecurityStamp);
@@ -170,18 +170,18 @@ public sealed class IdentityService(
 
     private async Task<AuthenticatedSession> CreateSessionAsync(VerifiedLogin verified, CancellationToken ct, bool management)
     {
-        var session = await sessions.CreateSessionAsync(verified.User, actor.Session, ct);
+        var session = await sessions.CreateSessionAsync(verified.User, actor.Session with { Management = management, SecondFactorAt = verified.SecondFactorAt }, ct);
         var assurance = verified.SecondFactorAt.HasValue ? new StaffAssurance(verified.User.Id, verified.User.SecurityStamp!, session.Session.FamilyId, verified.SecondFactorAt.Value.ToUnixTimeSeconds()) : null;
-        return new(CreateResponse(verified.User, verified.Roles, session.Session.FamilyId, verified.SecondFactorAt, management), session.RawToken, session.Session.ExpiresAt, assurance);
+        return new(CreateResponse(verified.User, verified.Roles, session.Session, verified.SecondFactorAt, management), session.RawToken, session.Session.ExpiresAt, assurance);
     }
 
     public async Task<AuthenticatedSession?> RefreshAsync(string? rawToken, CancellationToken ct, StaffAssurance? assurance = null, bool management = false)
     {
         if (string.IsNullOrWhiteSpace(rawToken))
             return null;
-        var rotation = await sessions.RotateAsync(rawToken, actor.Session, ct);
+        var rotation = await sessions.RotateAsync(rawToken, actor.Session with { Management = management }, ct);
         if (rotation == null) return null;
-        if (management && (!configuration.GetValue<bool>("Administration:Enabled") || !rotation.Roles.Any(AppRoles.AdministrativeRoles.Contains)))
+        if (!AppRoles.CanSignIn(rotation.Roles, management) || (management && !configuration.GetValue<bool>("Administration:Enabled")))
         {
             await sessions.RevokeAsync(rotation.RawToken, ct);
             return null;
@@ -189,7 +189,7 @@ public sealed class IdentityService(
         var age = assurance == null ? -1 : DateTimeOffset.UtcNow.ToUnixTimeSeconds() - assurance.VerifiedAt;
         // The protected HttpOnly grant binds assurance to the original session and stamp.
         // Rotation preserves its original time; it can never renew privileged assurance.
-        var valid = assurance != null && assurance.UserId == rotation.User.Id && assurance.SecurityStamp == rotation.User.SecurityStamp && assurance.SessionFamily == rotation.Session.FamilyId && age >= 0 && age < 900;
+        var valid = assurance != null && assurance.UserId == rotation.User.Id && assurance.SecurityStamp == rotation.User.SecurityStamp && assurance.SessionFamily == rotation.Session.FamilyId && age >= 0 && rotation.Session.MfaVerifiedAt?.ToUnixTimeSeconds() == assurance.VerifiedAt;
         // Old limited sessions and expired assurance must return to shared MFA,
         // rather than minting an ordinary JWT while staff verification is absent.
         if (rotation.Roles.Any(AppRoles.AdministrativeRoles.Contains) && (!rotation.User.TwoFactorEnabled || !valid))
@@ -198,7 +198,7 @@ public sealed class IdentityService(
             return null;
         }
         var secondFactorAt = valid ? DateTimeOffset.FromUnixTimeSeconds(assurance!.VerifiedAt) : (DateTimeOffset?)null;
-        return new(CreateResponse(rotation.User, rotation.Roles, rotation.Session.FamilyId, secondFactorAt, management), rotation.RawToken, rotation.Session.ExpiresAt, valid ? assurance : null);
+        return new(CreateResponse(rotation.User, rotation.Roles, rotation.Session, secondFactorAt, management), rotation.RawToken, rotation.Session.ExpiresAt, valid ? assurance : null);
     }
 
     public async Task LogoutAsync(string? rawToken, CancellationToken ct)
@@ -207,10 +207,10 @@ public sealed class IdentityService(
         await signIn.SignOutAsync();
     }
 
-    public async Task CancelPendingSignInAsync(string? ticket, CancellationToken ct)
+    public async Task CancelPendingSignInAsync(string? ticket, CancellationToken ct, bool management = false)
     {
         if (string.IsNullOrWhiteSpace(ticket)) return;
-        try { await pendingSignIn.AdvanceSignInAsync(ticket, "cancel", null, null, false, ct); }
+        try { await pendingSignIn.AdvanceSignInAsync(ticket, "cancel", null, null, false, ct, management); }
         catch (CommerceException error) when (error.Code == "MFA_CHALLENGE_EXPIRED") { /* Already invalid; logout stays idempotent. */ }
     }
 
@@ -297,11 +297,11 @@ public sealed class IdentityService(
             throw new CommerceException(code, message, details: new Dictionary<string, object?> { ["errors"] = result.Errors.Select(e => e.Description).ToArray() });
     }
 
-    private AuthResponse CreateResponse(User user, IList<string> roles, string sessionFamily, DateTimeOffset? secondFactorAt = null, bool management = false) => new()
+    private AuthResponse CreateResponse(User user, IList<string> roles, RefreshSession session, DateTimeOffset? secondFactorAt = null, bool management = false) => new()
     {
-        Token = tokens.GenerateToken(user, roles, sessionFamily, secondFactorAt, management),
+        Token = tokens.GenerateToken(user, roles, session.FamilyId, secondFactorAt, management, session.AbsoluteExpiresAt),
         User = ToUserDto(user, roles),
-        ExpiresAt = tokens.GetAccessTokenExpiry()
+        ExpiresAt = tokens.GetAccessTokenExpiry(roles.Any(AppRoles.AdministrativeRoles.Contains), session.AbsoluteExpiresAt)
     };
     private static UserDto ToUserDto(User user, IList<string> roles) => new()
     {

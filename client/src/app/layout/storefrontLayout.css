@@ -398,6 +398,11 @@
 :where(.storefront) .s-footer-heart-note {
   color: rgba(255, 255, 255, 0.78);
 }
+@media (max-width: 639px) {
+  :where(.storefront) .s-header-inner { gap: 0.5rem; min-height: 64px; }
+  :where(.storefront) .s-header-brand .s-brand-logo-img { width: 112px; height: auto; }
+  :where(.storefront) .s-wishlist-link { display: none; }
+}
 @media (max-width: 1024px) {
   :where(.storefront) .s-footer-main {
     grid-template-columns: 1fr 1fr;

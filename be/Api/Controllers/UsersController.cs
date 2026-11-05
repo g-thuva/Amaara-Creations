@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace be.Api.Controllers;
 [ApiController]
 [Route("api/v1/users")]
-[Authorize] // All user endpoints require authentication
+[Authorize(Policy = AppPolicies.CustomerAccess)] // All user endpoints require authentication
 public class UsersController(AccountService service) : ControllerBase
 {
     // GET: api/users/profile - Get user profile

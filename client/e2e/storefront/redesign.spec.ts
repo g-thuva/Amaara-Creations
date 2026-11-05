@@ -62,12 +62,15 @@ test('preview matches shape and proportion, uses singular quantity and restores 
   await expect(page.getByAltText('Selected artwork preview')).toHaveAttribute('src', /^blob:/);
 });
 
-test('customer and staff shoppers have no staff links or routes in the storefront', async ({ page, fixture }) => {
+test('privileged shared sign-in creates only management access and exposes no storefront staff routes', async ({ page, fixture }) => {
   const code = (await (await page.request.get(`${acceptanceApi}/__fixture/authenticator-code`)).json()).code;
   const signedIn = await page.request.post(`${acceptanceApi}/api/v1/auth/login`, { data: { email: fixture.adminEmail, password: fixture.password, authenticatorCode: code } });
-  expect(signedIn.ok()).toBeTruthy();
+  expect(signedIn.status()).toBe(200);
+  const cookies = await page.context().cookies();
+  expect(cookies.some(cookie => cookie.name === 'amaara_refresh_staff' && cookie.httpOnly)).toBe(true);
+  expect(cookies.some(cookie => cookie.name === 'amaara_refresh')).toBe(false);
   await page.goto('./profile');
-  await expect(page.getByRole('heading', { name: 'Your profile', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();
   expect(await page.locator('a[href*="/admin"]').count()).toBe(0);
   await page.goto('./admin/orders');
   await expect(page.getByRole('heading', { name: 'Page not found', exact: true })).toBeVisible();

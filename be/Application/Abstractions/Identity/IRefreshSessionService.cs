@@ -11,6 +11,7 @@ namespace be.Application.Abstractions.Identity
         Task RevokeAsync(string? rawRefreshToken, CancellationToken cancellationToken = default);
         Task RevokeAllForUserAsync(string userId, CancellationToken cancellationToken = default);
         Task<bool> RevokeFamilyForUserAsync(string userId, string familyId, CancellationToken cancellationToken = default);
+        Task<bool> RecordActivityAsync(string userId, string familyId, CancellationToken cancellationToken = default);
         string GenerateRawRefreshToken();
         string HashRefreshToken(string rawRefreshToken);
     }

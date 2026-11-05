@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto';
 import jsQR from 'jsqr';
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { test, expect, acceptanceApi } from '../fixtures';
+import { test, expect, acceptanceApi, managementUrl } from '../fixtures';
 import { fillAuthenticator } from '../staffAuth';
 
 async function accessibleResponsiveStage(page: Page) {
@@ -39,7 +39,9 @@ async function qrSecret(page: Page, email: string) {
   return uri.searchParams.get('secret')!;
 }
 async function credentials(page: Page, email: string, password: string) {
-  await page.goto('http://127.0.0.1:5178/Amaara-Creations/login');
+  // Each repeated credential journey explicitly ends its previous staff session.
+  expect((await page.request.post(acceptanceApi + '/api/v1/auth/staff/logout')).ok()).toBe(true);
+  await page.goto(managementUrl + 'login');
   await page.getByLabel('Email Address', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
@@ -47,7 +49,7 @@ async function credentials(page: Page, email: string, password: string) {
 async function dashboard(page: Page) {
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
-  await expect(page.getByText('Total Orders', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Total orders', exact: true })).toBeVisible();
 }
 async function acknowledge(page: Page) {
   await expect(page.getByRole('heading', { name: 'Save your recovery codes', exact: true })).toBeVisible();
@@ -78,7 +80,7 @@ test('customers see only password sign-in while staff reveal verification only a
   await page.reload(); await expect(page.getByRole('heading', { name: 'Your profile', exact: true })).toBeVisible();
 });
 
-test('returning staff verify on the shared screen without a pending JWT, repeat password or QR setup', async ({ page, fixture }) => {
+test('returning staff verify on the dedicated screen without a pending JWT, repeat password or QR setup', async ({ page, fixture }) => {
   await credentials(page, fixture.adminEmail, fixture.password);
   await expect(page.getByRole('heading', { name: /Verify it/ })).toBeVisible();
   await expect(page.getByLabel('Password', { exact: true })).toHaveCount(0);

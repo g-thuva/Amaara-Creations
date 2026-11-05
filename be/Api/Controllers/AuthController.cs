@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace be.Api.Controllers;
 [ApiController, Route("api/v1/auth")]
 [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
-public sealed class AuthController(IdentityService identity, RefreshCookie cookie) : ControllerBase
+public sealed class AuthController(IdentityService identity, RefreshCookie cookie, be.Application.Abstractions.Identity.IRefreshSessionService sessions) : ControllerBase
 {
     [HttpPost("register"), EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
@@ -43,7 +43,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     }
 
     [HttpGet("sign-in"), EnableRateLimiting("auth-refresh")]
-    public async Task<IActionResult> SignInState(CancellationToken ct) => SignInResponse.Present(this, cookie, await identity.AdvanceSignInAsync(cookie.ReadPending(Request), "status", null, null, false, ct));
+    public Task<IActionResult> SignInState(CancellationToken ct) => SignInResponse.State(this, identity, cookie, ct);
 
     [HttpPost("sign-in/verify"), EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> VerifySignIn([FromBody] SignInVerification request, CancellationToken ct) =>
@@ -75,6 +75,15 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
         return Ok(session.Response);
     }
 
+    [HttpPost("activity"), Authorize]
+    public async Task<IActionResult> Activity(CancellationToken ct)
+    {
+        var id = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var family = User.FindFirst("session_family")?.Value;
+        if (id == null || family == null || !await sessions.RecordActivityAsync(id, family, ct)) return Unauthorized();
+        return NoContent();
+    }
+
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
@@ -89,7 +98,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
     {
         await identity.LogoutAllAsync(cancellationToken);
-        cookie.ClearAll(Response);
+        ClearCurrentSessionCookies();
         return Ok(new { message = "All sessions were revoked." });
     }
 
@@ -106,7 +115,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> ConfirmSecondFactor([FromBody] SecondFactorRequest request, CancellationToken ct)
     {
         var codes = await identity.ConfirmSecondFactorAsync(request, ct);
-        cookie.ClearAll(Response);
+        ClearCurrentSessionCookies();
         return Ok(new { recoveryCodes = codes, requiresSignIn = true });
     }
 
@@ -117,7 +126,7 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> DisableSecondFactor([FromBody] SecondFactorRequest request, CancellationToken ct)
     {
         await identity.DisableSecondFactorAsync(request, ct);
-        cookie.ClearAll(Response);
+        ClearCurrentSessionCookies();
         return Ok(new { requiresSignIn = true });
     }
     [HttpPost("forgot-password"), EnableRateLimiting("auth-sensitive")]
@@ -139,7 +148,14 @@ public sealed class AuthController(IdentityService identity, RefreshCookie cooki
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {
         await identity.ChangePasswordAsync(request, cancellationToken);
-        cookie.Clear(Response);
+        ClearCurrentSessionCookies();
         return Ok(new { message = "Password changed successfully. Please sign in again." });
+    }
+
+    private void ClearCurrentSessionCookies()
+    {
+        var management = User.HasClaim("session_kind", "management");
+        cookie.Clear(Response, management);
+        cookie.ClearPending(Response, management);
     }
 }

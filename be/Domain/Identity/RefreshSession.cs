@@ -28,6 +28,17 @@ public class RefreshSession
     [StringLength(64)]
     public string? IpAddress { get; set; }
     public DateTime? LastUsedAt { get; set; }
+    // Nullable policy fields deliberately make pre-policy sessions ineligible for renewal.
+    public DateTime? FamilyCreatedAt { get; set; }
+    public DateTime? AbsoluteExpiresAt { get; set; }
+    public DateTime? IdleExpiresAt { get; set; }
+    public DateTime? LastActivityAt { get; set; }
+    public DateTimeOffset? MfaVerifiedAt { get; set; }
+    public bool Management { get; set; }
+    public bool Privileged { get; set; }
+    [StringLength(64)] public string? SecurityStampHash { get; set; }
+    [StringLength(64)] public string? RolesHash { get; set; }
+    [StringLength(80)] public string? RevocationReason { get; set; }
 
     [ForeignKey("UserId")]
     public User? User { get; set; }

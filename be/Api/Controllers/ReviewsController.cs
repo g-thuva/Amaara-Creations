@@ -14,24 +14,28 @@ public sealed class ReviewsController(ReviewService service) : ControllerBase
     }
 
     [HttpPost("/api/v1/products/{productId:int}/reviews"), Authorize]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<IActionResult> Create(int productId, CreateReviewRequest request, CancellationToken ct)
     {
         return StatusCode(201, await service.Create(productId, request, ct));
     }
 
     [HttpGet("mine"), Authorize]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<IActionResult> Mine(int? productId, CancellationToken ct)
     {
         return Ok(await service.Mine(productId, ct));
     }
 
     [HttpPut("{id:int}"), Authorize]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<IActionResult> Edit(int id, UpdateReviewRequest request, CancellationToken ct)
     {
         return Ok(await service.Edit(id, request, ct));
     }
 
     [HttpDelete("{id:int}"), Authorize]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<IActionResult> DeleteOwn(int id, CancellationToken ct)
     {
         await service.DeleteOwn(id, ct);

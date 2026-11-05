@@ -1,4 +1,4 @@
-﻿import { test, expect, acceptanceApi } from '../fixtures';
+import { test, expect, acceptanceApi } from '../fixtures';
 
 test('abandoned first-time staff enrollment cannot reach operations and cancellation requires credentials again', async ({ page, request }) => {
   const fixture = await (await request.post(acceptanceApi + '/__fixture/operations')).json();
@@ -16,6 +16,6 @@ test('abandoned first-time staff enrollment cannot reach operations and cancella
   await expect(page.getByRole('heading', { name: 'Secure your Amaara account', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Use a different account', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();
-  expect((await page.request.get(acceptanceApi + '/api/v1/auth/sign-in')).status()).toBe(401);
+  expect((await (await page.request.get(acceptanceApi + '/api/v1/auth/staff/sign-in')).json()).status).toBe('credentials');
   expect((await page.request.get(acceptanceApi + '/api/v1/admin/capabilities')).status()).toBe(401);
 });

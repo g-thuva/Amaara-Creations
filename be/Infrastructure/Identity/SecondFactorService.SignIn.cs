@@ -12,20 +12,20 @@ public sealed partial class SecondFactorService
     private const string SignInProvider = "Amaara.SignIn.v1";
     private const string SignInName = "Pending";
     private sealed record Ticket(string UserId, string Nonce, long Expires);
-    private sealed record Pending(string NonceHash, string Stamp, string Roles, long Expires, string Stage, int Attempts = 0, long? VerifiedAt = null, IReadOnlyList<string>? Codes = null);
+    private sealed record Pending(string NonceHash, string Stamp, string Roles, long Expires, string Stage, int Attempts = 0, long? VerifiedAt = null, IReadOnlyList<string>? Codes = null, bool Management = false);
     private IDataProtector TicketProtector => protection.CreateProtector("Amaara.SignInTicket.v1");
     private IDataProtector PendingProtector => protection.CreateProtector("Amaara.SignInState.v1");
     private static string RoleSet(IEnumerable<string> roles) => string.Join('|', roles.Order(StringComparer.Ordinal));
     private static CommerceException Expired() => new("MFA_CHALLENGE_EXPIRED", "Your sign-in expired or changed. Please enter your email and password again.", 401);
 
-    public Task<SignInStep> BeginSignInAsync(User user, IEnumerable<string> verifiedRoles, CancellationToken ct)
+    public Task<SignInStep> BeginSignInAsync(User user, IEnumerable<string> verifiedRoles, CancellationToken ct, bool management = false)
     {
         var verifiedStamp = user.SecurityStamp;
         return Locked(user, async () =>
         {
             if (user.SecurityStamp != verifiedStamp || !user.EmailConfirmed || await users.IsLockedOutAsync(user)) throw Expired();
             var roles = await users.GetRolesAsync(user);
-            if (RoleSet(roles) != RoleSet(verifiedRoles)) throw Expired();
+            if (RoleSet(roles) != RoleSet(verifiedRoles) || !AppRoles.CanBeginSignIn(roles, management)) throw Expired();
             var recoveryRequired = await RecoveryRequiredAsync(user, ct);
             if (recoveryRequired)
             {
@@ -35,7 +35,7 @@ public sealed partial class SecondFactorService
             }
             var nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var expiry = clock.GetUtcNow().AddMinutes(10).ToUnixTimeSeconds();
-            var state = new Pending(Hash(nonce), user.SecurityStamp!, RoleSet(roles), expiry, user.TwoFactorEnabled && !recoveryRequired ? "verify" : "enroll");
+            var state = new Pending(Hash(nonce), user.SecurityStamp!, RoleSet(roles), expiry, user.TwoFactorEnabled && !recoveryRequired ? "verify" : "enroll", Management: management);
             AuthenticatorEnrollment? enrollment = null;
             if (state.Stage == "enroll")
             {
@@ -47,7 +47,7 @@ public sealed partial class SecondFactorService
         }, ct);
     }
 
-    public async Task<SignInStep> AdvanceSignInAsync(string? protectedTicket, string operation, string? code, string? recoveryCode, bool savedCodes, CancellationToken ct)
+    public async Task<SignInStep> AdvanceSignInAsync(string? protectedTicket, string operation, string? code, string? recoveryCode, bool savedCodes, CancellationToken ct, bool management = false)
     {
         Ticket ticket;
         try { ticket = JsonSerializer.Deserialize<Ticket>(TicketProtector.Unprotect(protectedTicket ?? "")) ?? throw Expired(); }
@@ -58,7 +58,7 @@ public sealed partial class SecondFactorService
         {
             var state = await LoadPending(user);
             var roles = await users.GetRolesAsync(user);
-            if (state == null || state.Expires <= clock.GetUtcNow().ToUnixTimeSeconds() || state.Stamp != user.SecurityStamp || state.Roles != RoleSet(roles) ||
+            if (state == null || state.Management != management || !AppRoles.CanBeginSignIn(roles, management) || state.Expires <= clock.GetUtcNow().ToUnixTimeSeconds() || state.Stamp != user.SecurityStamp || state.Roles != RoleSet(roles) ||
                 !CryptographicOperations.FixedTimeEquals(Convert.FromHexString(state.NonceHash), Convert.FromHexString(Hash(ticket.Nonce))) ||
                 !user.EmailConfirmed || await users.IsLockedOutAsync(user)) throw Expired();
             if (!roles.Any(AppRoles.AdministrativeRoles.Contains) && !roles.Contains(AppRoles.Customer)) throw Expired();
@@ -114,7 +114,7 @@ public sealed partial class SecondFactorService
     {
         if (!user.TwoFactorEnabled || state.Stamp != user.SecurityStamp) throw Expired();
         Ensure(await users.RemoveAuthenticationTokenAsync(user, SignInProvider, SignInName));
-        return new SignInStep(new("authenticated", clock.GetUtcNow()), VerifiedUser: user, VerifiedAt: verifiedAt, Management: roles.Any(AppRoles.AdministrativeRoles.Contains));
+        return new SignInStep(new("authenticated", clock.GetUtcNow()), VerifiedUser: user, VerifiedAt: verifiedAt, Management: state.Management);
     }
 
     private async Task<SignInStep> FailedCode(User user, Pending state)

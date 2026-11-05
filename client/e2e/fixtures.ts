@@ -1,12 +1,14 @@
 import { test as base, expect } from '@playwright/test';
 
 export const acceptanceApi = 'http://127.0.0.1:5198';
+export const storefrontUrl = process.env.AMAARA_E2E_STOREFRONT_URL || 'http://127.0.0.1:5178/Amaara-Creations/';
+export const managementUrl = process.env.AMAARA_E2E_MANAGEMENT_URL || 'http://127.0.0.1:5179/Amaara-Creations/';
 type BrowserFixture = { products: number[]; category: number; cmsSlug: string; customerEmail: string; adminEmail: string; password: string };
 export async function localManagementNavigation(target: import('@playwright/test').BrowserContext | import('@playwright/test').Page) {
   // Approved HTTPS deployment destination represented by the real local artifact.
   await target.route('https://management.example.test/**', route => {
     const destination = new URL(route.request().url());
-    return route.fulfill({ status: 302, headers: { Location: 'http://127.0.0.1:5179' + destination.pathname + destination.search } });
+    return route.fulfill({ status: 302, headers: { Location: new URL(managementUrl).origin + destination.pathname + destination.search } });
   });
 }
 export const test = base.extend<{ fixture: BrowserFixture }>({

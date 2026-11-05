@@ -1,3 +1,4 @@
+using be.Application.Features.Identity;
 using be.Application.Features.Cart;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -5,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace be.Api.Controllers;
 [ApiController]
 [Route("api/v1/cart")]
-[Authorize]
+[Authorize(Policy = AppPolicies.CustomerAccess)]
 public class CartController(CartService service) : ControllerBase
 {
     [HttpGet]

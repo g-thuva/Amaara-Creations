@@ -1,4 +1,4 @@
-import { test, expect, acceptanceApi } from '../fixtures';
+import { test, expect, acceptanceApi, storefrontUrl, managementUrl } from '../fixtures';
 import { fillAuthenticator } from '../staffAuth';
 
 test('verified management sign-in reaches the dashboard and restores it at login and after refresh', async ({ page, fixture }) => {
@@ -49,13 +49,13 @@ test('customer and management cookies coexist and management logout leaves shopp
   await page.getByLabel('Password', { exact: true }).fill(fixture.password); await fillAuthenticator(page);
   await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
-  const shop = await context.newPage(); await shop.goto('http://127.0.0.1:5178/Amaara-Creations/profile');
+  const shop = await context.newPage(); await shop.goto(storefrontUrl + 'profile');
   await expect(shop.getByRole('heading', { level: 1, name: 'Your profile', exact: true })).toBeVisible();
   await page.getByRole('button', { name: /^Open user menu/ }).click();
   await page.getByRole('menuitem', { name: 'Sign out / reauthenticate', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();
   await shop.reload(); await expect(shop.getByRole('heading', { level: 1, name: 'Your profile', exact: true })).toBeVisible();
-  await page.goto('./admin/dashboard'); await expect(page.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();
+  await page.goto(managementUrl + 'admin/dashboard'); await expect(page.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toHaveCount(0);
   await shop.close();
 });
@@ -66,9 +66,9 @@ test('customer credentials, missing MFA and forged browser roles cannot grant ma
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.customerEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
   await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
-  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.getByRole('heading', { name: 'Your profile', exact: true })).toBeVisible();
   expect((await page.request.get(acceptanceApi + '/api/v1/admin/capabilities')).status()).toBe(401);
-  await page.goto('http://127.0.0.1:5178/Amaara-Creations/login');
+  await page.goto('./login');
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.adminEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
   await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();

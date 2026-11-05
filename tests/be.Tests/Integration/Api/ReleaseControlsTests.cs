@@ -18,7 +18,7 @@ public sealed class ReleaseControlsTests
         await using var paused = original.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
             services.PostConfigure<ReleaseControls>(options => { options.AcceptNewPayments = false; options.AllowAdminChanges = false; })));
         using var client = paused.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Test-User", "admin");
+        client.DefaultRequestHeaders.Add("X-Test-User", path.StartsWith("/api/v1/admin/", StringComparison.Ordinal) ? "admin" : "customer");
         using var response = await client.PostAsJsonAsync(path, new { });
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Equal("300", Assert.Single(response.Headers.GetValues("Retry-After")));

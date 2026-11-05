@@ -58,12 +58,26 @@ public sealed class ManagementAuthenticationTests
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/refresh", new { })).StatusCode);
     }
     [Fact]
-    public async Task StorefrontStaffMfaCannotAuthorizeManagementOrBeReplayedAsAStaffCookie()
+    public async Task LogoutAllRevokesTheAuthenticatedIdentityWithoutClearingAnotherIdentitysCookie()
     {
         await using var factory = new AcceptanceApiFactory(); var fixture = await Fixture(factory); using var client = factory.CreateClient();
-        await Login(client, fixture, true, publicEntry: true);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/auth/staff/session")).StatusCode);
+        await Login(client, fixture, false); await Login(client, fixture, true);
+        (await client.PostAsJsonAsync("/api/v1/auth/logout-all", new { })).EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/staff/refresh", new { })).StatusCode);
+        var customer = await client.PostAsJsonAsync("/api/v1/auth/refresh", new { }); customer.EnsureSuccessStatusCode();
+        Assert.Equal(fixture.GetProperty("customerEmail").GetString(), (await customer.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("user").GetProperty("email").GetString());
+    }
+
+    [Fact]
+    public async Task SharedLoginAcceptsVerifiedStaffButCustomerRefreshCannotBeReplayedAsAStaffCookie()
+    {
+        await using var factory = new AcceptanceApiFactory(); var fixture = await Fixture(factory); using var client = factory.CreateClient();
+        var verified = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = fixture.GetProperty("adminEmail").GetString(), password = fixture.GetProperty("password").GetString(), authenticatorCode = TotpFixture.Code });
+        Assert.Equal(HttpStatusCode.OK, verified.StatusCode);
+        Assert.Contains(verified.Headers.GetValues("Set-Cookie"), value => value.StartsWith("amaara_refresh_staff="));
+        Assert.DoesNotContain(verified.Headers.GetValues("Set-Cookie"), value => value.StartsWith("amaara_refresh="));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
+        await Login(client, fixture, false);
         var refresh = await client.PostAsJsonAsync("/api/v1/auth/refresh", new { }); refresh.EnsureSuccessStatusCode();
         var raw = refresh.Headers.GetValues("Set-Cookie").Single(x => x.StartsWith("amaara_refresh=")).Split(';')[0].Split('=', 2)[1];
         using var attacker = factory.CreateClient(new() { HandleCookies = false });
@@ -119,8 +133,10 @@ public sealed class ManagementAuthenticationTests
         var user = (await scope.ServiceProvider.GetRequiredService<UserManager<User>>().FindByEmailAsync(fixture.GetProperty("adminEmail").GetString()!))!;
         var old = scope.ServiceProvider.GetRequiredService<ITokenService>().GenerateToken(user, [AppRoles.SuperAdmin], jwt.Claims.Single(x => x.Type == "session_family").Value, DateTimeOffset.UtcNow.AddMinutes(-16), management: true);
         client.DefaultRequestHeaders.Authorization = new("Bearer", old);
-        var state = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/staff/session"); Assert.Equal("mfa_required", state.GetProperty("status").GetString()); Assert.Empty(state.GetProperty("permissions").EnumerateArray());
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
+        // A signed token with an MFA timestamp different from its server session
+        // cannot manufacture or downgrade assurance.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/staff/session")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/capabilities")).StatusCode);
         client.DefaultRequestHeaders.Add("Origin", "https://evil.invalid");
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email = fixture.GetProperty("adminEmail").GetString(), password = fixture.GetProperty("password").GetString() })).StatusCode);
     }

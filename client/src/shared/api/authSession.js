@@ -1,5 +1,8 @@
 let accessToken = null;
 let authFailureHandler = null;
+let sessionHandler = null;
+export const setSessionHandler = handler => { sessionHandler = handler; };
+export const acceptSession = response => { setAccessToken(response.token); sessionHandler?.(response); };
 let authGeneration = 0;
 export const beginAuthOperation = () => ++authGeneration;
 export const currentAuthOperation = () => authGeneration;

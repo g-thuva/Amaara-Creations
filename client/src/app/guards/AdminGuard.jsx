@@ -9,7 +9,7 @@ export function AdminGuard({ children }) {
   const allowed =
     can(user, "AdminAccess") && (!permission || can(user, permission));
   return (
-    <ProtectedRoute>
+    <ProtectedRoute management>
       {allowed ? (
         children
       ) : (

@@ -1,10 +1,10 @@
 import { safeReturnDestination } from './returnDestination.js';
+import { acceptsIdentity } from './sessionIdentity.js';
 
-const staffRoles = new Set(['Admin', 'SuperAdmin', 'CatalogManager', 'ProductionStaff', 'CustomerSupport', 'Marketing', 'Analyst']);
 const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
 
-// Navigation uses only the identity returned by a successful sign-in. It grants
-// no management access: that application verifies its own session and MFA.
+// The completed server response chooses navigation. The management app restores
+// its own HttpOnly session and independently checks permissions.
 export function loginDestination(user, from, {
   managementLoginUrl = import.meta.env.VITE_MANAGEMENT_LOGIN_URL,
   development = import.meta.env.DEV,
@@ -12,11 +12,8 @@ export function loginDestination(user, from, {
   basePath = import.meta.env.BASE_URL,
   managementReturn = globalThis.location ? new URLSearchParams(globalThis.location.search).get('returnTo') : null,
 } = {}) {
-  const roles = Array.isArray(user?.roles) ? user.roles : [user?.role];
-  if (!roles.some(role => staffRoles.has(role))) {
-    return { external: false, url: safeReturnDestination(from) };
-  }
-
+  if (acceptsIdentity(user)) return { external: false, url: safeReturnDestination(from) };
+  if (!acceptsIdentity(user, true)) return null;
   try {
     const current = new URL(pageUrl);
     let configured = managementLoginUrl?.trim();
@@ -31,8 +28,8 @@ export function loginDestination(user, from, {
     const localHttp = development && target.protocol === 'http:' && loopbackHosts.has(target.hostname);
     if ((target.protocol !== 'https:' && !localHttp) || target.username || target.password || target.search || target.hash || target.origin === current.origin) return null;
     if (!development && loopbackHosts.has(target.hostname)) return null;
-    const safeReturn = safeReturnDestination(managementReturn, '', true);
-    if (safeReturn) target.searchParams.set('returnTo', safeReturn);
+    const requested = safeReturnDestination(managementReturn || from, '', true);
+    if (requested) target.searchParams.set('returnTo', requested);
     return { external: true, url: target.href };
   } catch {
     return null;

@@ -30,7 +30,7 @@ public sealed class AuthOriginMiddleware(RequestDelegate next, IOptions<CorsOpti
             var policy = cors.Value.GetPolicy("AllowReactApp");
             var ownOrigin = $"{context.Request.Scheme}://{context.Request.Host}";
             if ((origin.Length > 0 && origin != ownOrigin && policy?.IsOriginAllowed(origin) != true) ||
-                (origin.Length == 0 && fetchSite == "cross-site"))
+                (origin.Length == 0 && fetchSite is "cross-site" or "same-site"))
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return;

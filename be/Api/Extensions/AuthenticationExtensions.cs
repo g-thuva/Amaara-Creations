@@ -17,6 +17,7 @@ public static class AuthenticationExtensions
     {
         // Configure JWT Authentication
         var jwtKey = RequireJwtKey(builder);
+        SessionPolicy.Validate(builder.Configuration);
         var jwtIssuer = RequireConfiguration(builder, "Jwt:Issuer");
         var jwtAudience = RequireConfiguration(builder, "Jwt:Audience");
         builder.Services.AddAuthentication(options =>
@@ -76,16 +77,29 @@ public static class AuthenticationExtensions
                             return;
                         }
                         var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
-                        if (!await db.RefreshSessions.AnyAsync(s => s.UserId == user.Id && s.FamilyId == family && s.RevokedAt == null && s.ExpiresAt > DateTime.UtcNow))
+                        var now = DateTime.UtcNow;
+                        var session = await db.RefreshSessions.AsNoTracking().SingleOrDefaultAsync(s => s.UserId == user.Id && s.FamilyId == family && s.RevokedAt == null);
+                        var roles = await manager.GetRolesAsync(user);
+                        if (!AppRoles.CanSignIn(roles, context.Principal!.HasClaim("session_kind", "management")))
+                        {
+                            context.Fail("Session account type changed");
+                            return;
+                        }
+                        if (session == null || !SessionPolicy.Active(session, now) || session.SecurityStampHash != SessionPolicy.Digest(user.SecurityStamp ?? "") || session.RolesHash != SessionPolicy.Roles(roles) || session.Management != context.Principal!.HasClaim("session_kind", "management"))
                         {
                             context.Fail("Session unavailable");
                             return;
                         }
 
+                        if (session.Privileged && (!user.TwoFactorEnabled || !long.TryParse(context.Principal!.FindFirst("mfa_time")?.Value, out var verifiedAt) || session.MfaVerifiedAt?.ToUnixTimeSeconds() != verifiedAt))
+                        {
+                            context.Fail("Session verification changed");
+                            return;
+                        }
                         var identity = (System.Security.Claims.ClaimsIdentity)context.Principal!.Identity!;
                         foreach (var claim in identity.FindAll(identity.RoleClaimType).ToArray())
                             identity.RemoveClaim(claim);
-                        foreach (var role in await manager.GetRolesAsync(user))
+                        foreach (var role in roles)
                             identity.AddClaim(new System.Security.Claims.Claim(identity.RoleClaimType, role));
                     }
                 },
@@ -99,12 +113,18 @@ public static class AuthenticationExtensions
                 {
                     var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
                     logger.LogWarning("JWT challenge: {Error}", context.Error);
+                    // This challenge runs before the endpoint executes, so one retry
+                    // after renewal cannot duplicate a mutation's side effects.
+                    context.Response.Headers["X-Auth-Refresh"] = "required";
                     return Task.CompletedTask;
                 }
             };
         });
         builder.Services.AddAuthorization(options =>
         {
+            options.AddPolicy(AppPolicies.CustomerAccess, policy => policy.RequireAuthenticatedUser()
+                .RequireClaim("session_kind", "storefront").RequireRole(AppRoles.Customer)
+                .RequireAssertion(context => !AppRoles.AdministrativeRoles.Any(context.User.IsInRole)));
             foreach (var entry in AppPolicies.Roles)
                 options.AddPolicy(entry.Key, policy => policy.RequireAuthenticatedUser().RequireRole(entry.Value)
                     .AddRequirements(new StaffAuthorization(entry.Key is AppPolicies.RefundPayments or AppPolicies.ManageStaff or AppPolicies.ManageSettings or AppPolicies.ViewReports)));

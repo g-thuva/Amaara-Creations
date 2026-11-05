@@ -1,3 +1,4 @@
+import SessionUnavailable from '@/features/auth/components/SessionUnavailable.jsx';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider.jsx';
@@ -8,17 +9,19 @@ import { sharedSignInDestination } from '@/features/auth/sharedSignInDestination
 import { AdminSessionActions } from '@/features/admin/layout/AdminSessionActions.js';
 
 const StaffRoutes = lazy(() => import('@/app/routes/AdminRoutes.jsx'));
+function SharedSignInRedirect() {
+  const target = sharedSignInDestination(window.location.href);
+  useEffect(() => { if (target) window.location.replace(target); }, [target]);
+  return <main className="s-staff-signin">{target
+    ? <><p role="status">Opening sign in...</p><a href={target}>Continue to sign in</a></>
+    : <><h1>Sign-in unavailable</h1><p role="alert">The shared account page is unavailable. Contact the operator.</p></>}</main>;
+}
 function hasCurrentAccess(access, userId) {
   return access.phase === 'authorized' && access.user?.id === userId && new Date(access.expiresAt).getTime() > Date.now();
 }
-function SharedSignInEntry() {
-  const destination = sharedSignInDestination(window.location.href);
-  useEffect(() => { if (destination) window.location.replace(destination); }, [destination]);
-  return <main className="s-staff-signin"><h1>Continue to sign in</h1>{destination ? <p role="status">Opening the Amaara sign-in page...</p> : <p role="alert">The sign-in address is unavailable. Contact the operator.</p>}</main>;
-}
 
 export function StaffApp() {
-  const { user, authStatus, logout, updateUser } = useAuth();
+  const { user, authStatus, logout, updateUser, sessionVersion } = useAuth();
   const location = useLocation(); const navigate = useNavigate();
   const [access, setAccess] = useState({ phase: 'initializing' });
   const userId = user?.id;
@@ -38,7 +41,7 @@ export function StaffApp() {
         setAccess({ phase: session.status, user: verifiedUser, expiresAt: session.expiresAt });
         if (session.status === 'authorized') {
           const expires = new Date(session.expiresAt).getTime();
-          const sensitive = expires - 10 * 60000;
+          const sensitive = new Date(session.stepUpExpiresAt).getTime();
           const next = sensitive > Date.now() ? sensitive : expires;
           clearTimeout(timer); timer = setTimeout(verify, Math.max(0, next - Date.now()));
         }
@@ -51,12 +54,14 @@ export function StaffApp() {
     // The verified response supplies profile state; revalidation follows identity,
     // authentication status and route changes rather than profile replacement.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authStatus, userId, location.pathname]);
+  }, [authStatus, userId, location.pathname, sessionVersion]);
 
   const signOut = () => { setAccess({ phase: 'unauthenticated' }); return logout(() => navigate('/login', { replace: true })); };
+  if (['unavailable', 'logout-error'].includes(authStatus)) return <SessionUnavailable />;
   const verifying = access.phase === 'initializing' || (access.phase === 'authorized' && !hasCurrentAccess(access, userId));
-  if (['loading', 'authenticating', 'signing-out'].includes(authStatus) || (authStatus === 'authenticated' && verifying)) return <p role="status">Verifying your session...</p>;
-  if (authStatus !== 'authenticated' || ['mfa_required', 'expired', 'enrollment_required'].includes(access.phase)) return <SharedSignInEntry />;
+  if (['loading', 'signing-out'].includes(authStatus) || (authStatus === 'authenticated' && verifying)) return <p role="status">Verifying your session...</p>;
+  if (authStatus !== 'authenticated') return <SharedSignInRedirect />;
+  if (['mfa_required', 'expired', 'enrollment_required'].includes(access.phase)) return <main className="s-staff-signin"><h1>Sign in again</h1><p>Your management session needs verification.</p><button className="s-button" onClick={signOut}>Sign out / reauthenticate</button></main>;
   if (access.phase !== 'authorized') return <main className="s-staff-signin"><h1>{access.phase === 'denied' ? 'Access denied' : 'Unable to open your workspace'}</h1><p role="alert">{access.phase === 'disabled' ? 'Management is unavailable in this environment.' : 'Your current account cannot open this workspace. Sign in again or contact the operator.'}</p><button className="s-button" onClick={signOut}>Sign out</button></main>;
   const start = adminStart(access.user);
   const requested = safeReturnDestination(location.state?.from || new URLSearchParams(location.search).get('returnTo'), start, true);

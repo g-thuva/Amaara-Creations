@@ -36,6 +36,7 @@ public static class ApiServiceExtensions
                 policy.WithOrigins(allowedOrigins)
                     .AllowAnyHeader()
                     .AllowAnyMethod()
+                    .WithExposedHeaders("X-Auth-Refresh")
                     .AllowCredentials()
                     .WithExposedHeaders("Location", CorrelationIdMiddleware.HeaderName);
             });

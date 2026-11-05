@@ -32,7 +32,9 @@ public sealed class ControlledLoadTests(ITestOutputHelper output)
         await using var factory = new CommerceApiFactory(connection);
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Test-User", "a");
-        client.DefaultRequestHeaders.Add("X-Test-Role", "Admin");
+        client.DefaultRequestHeaders.Add("X-Test-Role", "Customer");
+        using var staff = factory.CreateClient();
+        staff.DefaultRequestHeaders.Add("X-Test-User", "admin");
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var user = new User
@@ -109,7 +111,7 @@ public sealed class ControlledLoadTests(ITestOutputHelper output)
         };
         // Warm up translation and auth before recording the controlled workload.
         foreach (var route in routes)
-            (await client.GetAsync(route)).EnsureSuccessStatusCode();
+            (await (route.StartsWith("/api/v1/admin/", StringComparison.Ordinal) ? staff : client).GetAsync(route)).EnsureSuccessStatusCode();
         var failures = new ConcurrentBag<string>();
         var timings = new ConcurrentBag<double>();
         var watch = Stopwatch.StartNew();
@@ -120,7 +122,7 @@ public sealed class ControlledLoadTests(ITestOutputHelper output)
                 foreach (var route in routes)
                 {
                     var started = Stopwatch.GetTimestamp();
-                    using var response = await client.GetAsync(route);
+                    using var response = await (route.StartsWith("/api/v1/admin/", StringComparison.Ordinal) ? staff : client).GetAsync(route);
                     timings.Add(Stopwatch.GetElapsedTime(started).TotalMilliseconds);
                     if (!response.IsSuccessStatusCode)
                         failures.Add($"GET {route}: {(int)response.StatusCode}");

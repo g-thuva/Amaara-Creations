@@ -1,3 +1,4 @@
+using be.Application.Features.Identity;
 using be.Application.Features.Wishlist;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -5,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace be.Api.Controllers;
 [ApiController]
 [Route("api/v1/wishlist")]
-[Authorize] // All wishlist endpoints require authentication
+[Authorize(Policy = AppPolicies.CustomerAccess)] // All wishlist endpoints require authentication
 public class WishlistController(WishlistService service) : ControllerBase
 {
     // GET: api/wishlist - Get user's wishlist

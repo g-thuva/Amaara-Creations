@@ -1,7 +1,24 @@
-import { test, expect, acceptanceApi } from '../fixtures';
+import { test, expect, acceptanceApi, storefrontUrl, managementUrl } from '../fixtures';
 import { fillAuthenticator } from '../staffAuth';
 
 const managementEntry = 'https://management.example.test/Amaara-Creations/login';
+
+test('anonymous shared login loads without failed authentication probes', async ({ page }) => {
+  const failures: string[] = [];
+  page.on('response', response => {
+    if (response.status() === 401 && /\/auth\/(sign-in|refresh)$/.test(response.url())) failures.push(response.url());
+  });
+  await page.goto('./login');
+  await expect(page.getByLabel('Email Address', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
+  expect(failures).toEqual([]);
+});
+
+test('staff and customers use the same signup page', async ({ page }) => {
+  await page.goto(managementUrl + 'register');
+  await expect(page).toHaveURL(storefrontUrl + 'register');
+  await expect(page.getByRole('heading', { name: /Create/i })).toBeVisible();
+});
 
 test('completed storefront verification opens the management dashboard without repeating credentials', async ({ page, fixture }) => {
   let navigation: { url: string; method: string; body: string | null } | undefined;
@@ -17,19 +34,17 @@ test('completed storefront verification opens the management dashboard without r
   await page.getByLabel('Email Address', { exact: true }).fill(fixture.adminEmail);
   await page.getByLabel('Password', { exact: true }).fill(fixture.password);
   await fillAuthenticator(page);
-  expect(new URL(page.url()).port).toBe('5178');
+  expect(new URL(page.url()).origin).toBe(new URL(storefrontUrl).origin);
   await page.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
   expect(navigation).toEqual({ url: managementEntry, method: 'GET', body: null });
   expect((await page.context().cookies()).some(cookie => cookie.name === 'amaara_refresh_staff' && cookie.httpOnly && cookie.path === '/api/v1/auth/staff')).toBe(true);
   const restored = await page.request.post(acceptanceApi + '/api/v1/auth/refresh');
-  expect(restored.ok()).toBeTruthy();
-  const token = (await restored.json()).token;
-  expect((await page.request.get(acceptanceApi + '/api/v1/admin/capabilities', { headers: { Authorization: 'Bearer ' + token } })).status()).toBe(403);
-  expect((await page.request.get(acceptanceApi + '/api/v1/auth/staff/session', { headers: { Authorization: 'Bearer ' + token } })).status()).toBe(403);
+  expect(restored.status()).toBe(401);
+  expect((await page.context().cookies()).some(cookie => cookie.name === 'amaara_refresh')).toBe(false);
   // Load the real local management app instead of the intercepted deployment
   // host, using the already issued cookie and without entering another factor.
-  await page.goto('http://127.0.0.1:5179/Amaara-Creations/login');
+  await page.goto(managementUrl + 'login');
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
   await expect(page.getByRole('article', { name: 'Total orders', exact: true })).toBeVisible();

@@ -10,18 +10,20 @@ public sealed class RefreshCookie(IConfiguration configuration, IWebHostEnvironm
     private string AssuranceName(bool management) => CookieName(management) + "_assurance";
     private IDataProtector Protector => protection.CreateProtector("Amaara.StaffAssurance.v1");
     private IDataProtector ManagementProtector => protection.CreateProtector("Amaara.ManagementRefresh.v1");
-    private string PendingName => Name + "_signin";
-    public string? ReadPending(HttpRequest request) => request.Cookies[PendingName];
-    public void WritePending(HttpResponse response, string ticket, DateTimeOffset expires) => response.Cookies.Append(PendingName, ticket, Options(expires.UtcDateTime));
-    public void ClearPending(HttpResponse response) => response.Cookies.Delete(PendingName, Options());
+    private string PendingName(bool management) => CookieName(management) + "_signin";
+    public string? ReadPending(HttpRequest request, bool management = false) => request.Cookies[PendingName(management)];
+    public void WritePending(HttpResponse response, string ticket, DateTimeOffset expires, bool management = false) => response.Cookies.Append(PendingName(management), ticket, Options(expires.UtcDateTime, management));
+    public void ClearPending(HttpResponse response, bool management = false) => response.Cookies.Delete(PendingName(management), Options(management: management));
 
+    private SameSiteMode SameSite => Enum.TryParse<SameSiteMode>(configuration["Authentication:CookieSameSite"] ?? "Lax", true, out var mode) && Enum.IsDefined(mode) && mode != SameSiteMode.Unspecified ? mode : throw new InvalidOperationException("Invalid authentication cookie SameSite policy.");
+    private bool Secure => !environment.IsDevelopment() || configuration.GetValue<bool>("Authentication:SecureCookies");
     private CookieOptions Options(DateTime? expires = null, bool management = false) => new()
     {
         HttpOnly = true,
-        Secure = !environment.IsDevelopment(),
-        SameSite = SameSiteMode.Lax,
+        Secure = Secure,
+        SameSite = SameSite == SameSiteMode.None && !Secure ? throw new InvalidOperationException("Cross-site cookies require HTTPS and SecureCookies.") : SameSite,
         Path = management ? "/api/v1/auth/staff" : "/api/v1/auth",
-        Expires = expires
+        Expires = expires.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(expires.Value, DateTimeKind.Utc)) : null
     };
     public string? Read(HttpRequest request, bool management = false)
     {
@@ -40,7 +42,7 @@ public sealed class RefreshCookie(IConfiguration configuration, IWebHostEnvironm
     {
         response.Cookies.Append(CookieName(management), management ? ManagementProtector.Protect(session.RefreshToken) : session.RefreshToken, Options(session.RefreshExpiresAt, management));
         if (session.StaffAssurance is { } grant)
-            response.Cookies.Append(AssuranceName(management), Protector.Protect(JsonSerializer.Serialize(grant)), Options(DateTimeOffset.FromUnixTimeSeconds(grant.VerifiedAt).AddMinutes(15).UtcDateTime, management));
+            response.Cookies.Append(AssuranceName(management), Protector.Protect(JsonSerializer.Serialize(grant)), Options(session.RefreshExpiresAt, management));
         else response.Cookies.Delete(AssuranceName(management), Options(management: management));
     }
     public void Clear(HttpResponse response, bool management = false)
@@ -48,5 +50,5 @@ public sealed class RefreshCookie(IConfiguration configuration, IWebHostEnvironm
         response.Cookies.Delete(CookieName(management), Options(management: management));
         response.Cookies.Delete(AssuranceName(management), Options(management: management));
     }
-    public void ClearAll(HttpResponse response) { Clear(response); Clear(response, true); ClearPending(response); }
+    public void ClearAll(HttpResponse response) { Clear(response); Clear(response, true); ClearPending(response); ClearPending(response, true); }
 }

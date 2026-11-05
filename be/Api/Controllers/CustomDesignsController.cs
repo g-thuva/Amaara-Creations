@@ -1,3 +1,4 @@
+using be.Application.Features.Identity;
 using be.Api.Files;
 using be.Application.Features.CustomDesigns;
 using Microsoft.AspNetCore.Authorization;
@@ -11,18 +12,21 @@ namespace be.Api.Controllers;
 public class CustomDesignsController(CustomDesignService service) : ControllerBase
 {
     [HttpGet]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
         return Ok(await service.List(page, pageSize, cancellationToken));
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult<CustomDesignDto>> Get(int id, CancellationToken cancellationToken)
     {
         return Ok(await service.Get(id, cancellationToken));
     }
 
     [HttpPost]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult<CustomDesignDto>> Create([FromBody] SaveCustomDesignRequest request, CancellationToken cancellationToken)
     {
         var result = await service.Create(request, cancellationToken);
@@ -30,12 +34,14 @@ public class CustomDesignsController(CustomDesignService service) : ControllerBa
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult<CustomDesignDto>> Update(int id, [FromBody] SaveCustomDesignRequest request, CancellationToken cancellationToken)
     {
         return Ok(await service.Update(id, request, cancellationToken));
     }
 
     [HttpPost("{id:int}/duplicate")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult<CustomDesignDto>> Duplicate(int id, CancellationToken cancellationToken)
     {
         var result = await service.Duplicate(id, cancellationToken);
@@ -43,6 +49,7 @@ public class CustomDesignsController(CustomDesignService service) : ControllerBa
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<IActionResult> Archive(int id, CancellationToken cancellationToken)
     {
         await service.Archive(id, cancellationToken);
@@ -50,6 +57,7 @@ public class CustomDesignsController(CustomDesignService service) : ControllerBa
     }
 
     [HttpPost("{id:int}/artwork")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     [EnableRateLimiting("custom-upload")]
     [RequestFormLimits(MultipartBodyLengthLimit = 5_242_880)]
     public async Task<ActionResult<CustomDesignAssetDto>> UploadArtwork(int id, IFormFile file, CancellationToken cancellationToken)
@@ -66,6 +74,7 @@ public class CustomDesignsController(CustomDesignService service) : ControllerBa
     }
 
     [HttpDelete("{id:int}/assets/{assetId:int}")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<IActionResult> DeleteAsset(int id, int assetId, CancellationToken cancellationToken)
     {
         await service.DeleteAsset(id, assetId, cancellationToken);
@@ -73,18 +82,21 @@ public class CustomDesignsController(CustomDesignService service) : ControllerBa
     }
 
     [HttpPost("{id:int}/cart")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult> AddToCart(int id, CancellationToken cancellationToken)
     {
         return Ok(await service.AddToCart(id, cancellationToken));
     }
 
     [HttpPost("{id:int}/proofs/approve")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult<CustomDesignDto>> ApproveProof(int id, [FromBody] ProofResponseRequest request, CancellationToken cancellationToken)
     {
         return Ok(await service.ApproveProof(id, request, cancellationToken));
     }
 
     [HttpPost("{id:int}/proofs/request-changes")]
+    [Authorize(Policy = AppPolicies.CustomerAccess)]
     public async Task<ActionResult<CustomDesignDto>> RequestProofChanges(int id, [FromBody] ProofResponseRequest request, CancellationToken cancellationToken)
     {
         return Ok(await service.RequestProofChanges(id, request, cancellationToken));

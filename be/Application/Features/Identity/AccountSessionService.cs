@@ -15,7 +15,7 @@ public sealed class AccountSessionService(IApplicationDbContext db, IRefreshSess
     {
         var id = UserId;
         var family = actor.User.FindFirstValue("session_family");
-        return await db.RefreshSessions.AsNoTracking().Where(s => s.UserId == id && s.RevokedAt == null && s.ExpiresAt > DateTime.UtcNow)
+        return await db.RefreshSessions.AsNoTracking().Where(s => s.UserId == id && s.RevokedAt == null && s.ExpiresAt > DateTime.UtcNow && s.IdleExpiresAt > DateTime.UtcNow && s.AbsoluteExpiresAt > DateTime.UtcNow)
             .OrderByDescending(s => s.CreatedAt).Take(50)
             .Select(s => new AccountSession(s.FamilyId, s.UserAgent ?? "Browser session", s.LastUsedAt ?? s.CreatedAt, s.ExpiresAt, s.FamilyId == family)).ToListAsync(ct);
     }

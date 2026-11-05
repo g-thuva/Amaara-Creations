@@ -2,6 +2,7 @@ import { PasswordField } from '@/shared/components/ui/PasswordField.jsx';
 import { Link } from 'react-router-dom';
 import { useLogin } from '@/features/auth/hooks/useLogin.js';
 import MfaFlow from './MfaFlow.jsx';
+import { AUTH_BASE_PATH } from '@/shared/api/requestConfig.js';
 
 export default function LoginForm() {
   const flow = useLogin();
@@ -54,17 +55,18 @@ export default function LoginForm() {
           </div>
 
 
+          <p className="auth-subtitle">This browser remembers your secure session. It stays signed in until the server session expires or is signed out. Staff sessions use shorter limits.</p>
           <button type="submit" className="btn-auth" disabled={isLoading}>
             {isLoading ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
-        <div className="auth-footer">
+        {AUTH_BASE_PATH !== '/auth/staff' && <div className="auth-footer">
           Don't have an account?{' '}
           <Link to="/register" className="auth-link">
             Sign up
           </Link>
-        </div>
+        </div>}
       </div>
     </>
   );

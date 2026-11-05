@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 namespace be.Application.Features.Identity;
 public static class AppPolicies
 {
+    public const string CustomerAccess = "CustomerAccess";
     public const string AdminAccess = "AdminAccess";
     public const string ManageCustomers = "ManageCustomers";
     public const string ManageOrders = "ManageOrders";

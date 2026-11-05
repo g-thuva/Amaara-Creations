@@ -1,5 +1,6 @@
 using System.Data.Common;
 using be.Application.Abstractions.Identity;
+using be.Domain.Common;
 using be.Domain.Identity;
 using be.Infrastructure.Identity;
 using be.Infrastructure.Persistence;
@@ -41,7 +42,8 @@ public sealed class RefreshSessionConcurrencyTests
         async Task<RefreshTokenRotationResult?> Rotate()
         {
             using var scope = provider.CreateScope();
-            return await scope.ServiceProvider.GetRequiredService<RefreshSessionService>().RotateAsync(raw, new("fixture", null));
+            try { return await scope.ServiceProvider.GetRequiredService<RefreshSessionService>().RotateAsync(raw, new("fixture", null)); }
+            catch (CommerceException error) when (error.Code == "SESSION_REFRESH_CONFLICT") { return null; }
         }
         var results = await Task.WhenAll(Rotate(), Rotate());
         Assert.Equal(1, results.Count(result => result != null));
@@ -49,7 +51,15 @@ public sealed class RefreshSessionConcurrencyTests
         var context = verify.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var family = await context.RefreshSessions.AsNoTracking().Where(session => session.UserId == userId).ToListAsync();
         Assert.Equal(2, family.Count);
-        Assert.All(family, session => Assert.NotNull(session.RevokedAt));
+        Assert.Single(family, session => session.RevokedAt == null);
+        // The benign overlap returns no credential and preserves the winning session.
+        // A replay outside the bounded conflict interval still revokes the family.
+        var predecessor = await context.RefreshSessions.SingleAsync(session => session.UserId == userId && session.RevokedAt != null);
+        predecessor.RevokedAt = DateTime.UtcNow.AddSeconds(-11);
+        await context.SaveChangesAsync();
+        Assert.Null(await verify.ServiceProvider.GetRequiredService<RefreshSessionService>().RotateAsync(raw, new("fixture", null)));
+        context.ChangeTracker.Clear();
+        Assert.All(await context.RefreshSessions.Where(session => session.UserId == userId).ToListAsync(), session => Assert.NotNull(session.RevokedAt));
         var sessions = verify.ServiceProvider.GetRequiredService<RefreshSessionService>();
         var userManager = verify.ServiceProvider.GetRequiredService<UserManager<User>>();
         var login = await sessions.CreateSessionAsync((await userManager.FindByIdAsync(userId))!, new("fixture", null));
