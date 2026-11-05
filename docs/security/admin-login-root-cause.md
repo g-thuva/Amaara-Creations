@@ -1,5 +1,6 @@
 # Administrator sign-in diagnosis
 
+Historical record: the current [shared login and staff MFA implementation](SHARED_LOGIN_AND_STAFF_MFA.md) restores a common credential page while issuing exactly one session with the correct application scope. Use that report and the staff setup instructions for current account entry and verification.
 The original `/profile` redirect came from `useLogin`: it ignored the authenticated user's roles and always chose a customer destination. A read-only inspection of the configured local SQL identity confirmed both `Admin` and `SuperAdmin` memberships, a confirmed email and no completed MFA. Missing roles were not the cause. No existing password, role, enrollment or business record was changed to correct navigation.
 
 The first redirect fix required another staff login. The next single-form version exposed an optional authenticator field to everyone and still sent first-time staff through manual setup, repeated password entry, logout and another code. The current implementation consolidates these into the shared progressive flow requested in the latest specification.

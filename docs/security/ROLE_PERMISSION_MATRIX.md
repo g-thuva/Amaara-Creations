@@ -2,6 +2,8 @@
 
 Source of truth: `be/Application/Features/Identity/AppPolicies.cs`, not this prose or frontend role flags. Existing vocabulary is preserved rather than introducing overlapping Staff/Owner strings. SuperAdmin is the owner's elevated role.
 
+CustomerAccess requires a storefront session with Customer membership and no privileged membership. Any administrative role takes precedence over Customer when choosing session scope. All accounts use the shared login page; privileged accounts additionally complete mandatory MFA and receive only management access. They cannot use customer-only account APIs. Their public browsing remains anonymous unless a separate eligible customer identity is explicitly signed in. See [shared login implementation](SHARED_LOGIN_AND_STAFF_MFA.md).
+
 | Role | Scope |
 | --- | --- |
 | Anonymous | Deliberately public published catalogue/configuration/content; no customer records or staff policy |
@@ -14,7 +16,7 @@ Source of truth: `be/Application/Features/Identity/AppPolicies.cs`, not this pro
 | Admin | Operational scopes including customers, catalogue, content, inventory, payments/refunds, audit, reports; no owner-only settings or staff management |
 | SuperAdmin | All configured administrative scopes, including settings and staff management |
 
-Every staff policy additionally requires `Administration:Enabled=true`, authenticated current roles, verified MFA no older than 15 minutes, and an active session. Refunds, staff changes, settings and report/export policies require assurance less than 5 minutes old. Denial is 401 when authentication is absent/revoked and 403 when an authenticated principal lacks permission/assurance. Public shop staff-looking paths are ordinary 404 content.
+Every staff policy additionally requires `Administration:Enabled=true`, authenticated current roles, server-bound verified MFA and an active privileged session (default thirty-minute meaningful idle limit and twelve-hour absolute limit). Refunds, staff changes, settings and report/export policies require assurance less than 5 minutes old. Denial is 401 when authentication is absent/revoked and 403 when an authenticated principal lacks permission/assurance. Public shop staff-looking paths are ordinary 404 content.
 
 Quote requests/replies use ManageOrders. Privacy-request review uses the sensitive ManageStaff policy (SuperAdmin); ordinary operational staff cannot read those requests. Both API and UI enforce these scopes. Replies are customer-visible and do not create an order, take payment or erase records.
 

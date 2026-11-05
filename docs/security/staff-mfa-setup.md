@@ -1,8 +1,8 @@
 # Staff authenticator setup
 
-Open the usual Amaara Creations sign-in page. Enter your existing email and password once. Complete authenticator verification or first-time QR setup on the same page. The browser opens admin only after authentication completes. The server checks your assigned permissions; there is no customer/staff selector.
+Open the shared Amaara sign-in page used by customers, administrators and staff. Enter your existing email and password once. Your assigned staff role adds authenticator verification or first-time QR setup on that same page. The browser opens your staff workspace only after authentication completes. The server checks your assigned permissions; there is no customer/staff selector.
 
-- Customers normally go straight to their account.
+- Customers use the separate storefront sign-in and normally go straight to their account.
 - Returning staff enter the current six-digit code from their authenticator and reach their permitted workspace.
 - New staff see **Secure your Amaara account** and complete the setup below.
 
@@ -21,8 +21,8 @@ If you already enrolled this account but cannot find its authenticator entry, us
 
 ## Local development
 
-Use Node 22+, the repository's .NET 8 SDK and existing private backend configuration. Start the API with `dotnet run --project be` (configured HTTP port 5192), the storefront with `npm --prefix client run dev` (5179), and management with `npm --prefix client run dev:admin` (5173), each in its own terminal. Open `http://localhost:5179/Amaara-Creations/login`. Password entry, verification, QR setup and recovery-code acknowledgment stay on 5179. A completed sign-in redirects to the permitted admin workspace on 5173. Refreshing an unfinished sign-in keeps verification on 5179. Keep the same loopback hostname for all three.
+Use Node 22+, the repository's .NET 8 SDK and existing private backend configuration. Start the API with `dotnet run --project be` (configured HTTP port 5192), the storefront with `npm --prefix client run dev` (5179), and management with `npm --prefix client run dev:admin` (5173), each in its own terminal. Customers use `http://localhost:5179/Amaara-Creations/login`; staff use `http://localhost:5173/Amaara-Creations/login`. Staff credentials, verification, QR setup and recovery-code acknowledgment remain on the management application. Completion opens the existing permitted workspace there. An unfinished sign-in restores its limited challenge there; a completed valid session restores the workspace. Keep the same loopback hostname for frontend/API cookies.
 
-Administration must be deliberately enabled in private Development configuration. No account is promoted or enrolled by starting the applications. The configured local administrative identity was read-only verified as email-confirmed with `Admin` and `SuperAdmin` membership and no enrolled MFA; its owner must perform the real phone setup privately. No real account credentials were submitted during automated verification.
+Administration must be deliberately enabled in private Development configuration. Starting applications does not promote accounts or reset MFA. Read-only verification for this fix confirmed the configured identity has Admin and SuperAdmin membership, verified email and MFA enabled. Existing enrollment is preserved; no real account credentials or codes were submitted during automated verification.
 
-Authentication reuses existing tables. The owner requested leaving the database unchanged, so the two pending commerce/request migrations remain unapplied. These are separate from MFA; do not run database updates or the previously prepared backup helper as an authentication fix. Full commerce readiness still requires the separately reviewed migration process.
+This shared-login fix adds no migration and preserves existing accounts and authenticator enrollment. Automated verification uses disposable test identities. See [shared login and staff MFA](SHARED_LOGIN_AND_STAFF_MFA.md).
