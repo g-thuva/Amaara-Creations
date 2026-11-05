@@ -185,7 +185,7 @@
 }
 :where(.storefront) .s-menu-button { display: none; }
 :where(.storefront) .s-account-menu { position: relative; }
-:where(.storefront) .s-account-popover { position: absolute; top: calc(100% + 0.65rem); right: 0; display: none; width: 15rem; padding: 0.65rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-3); }
+:where(.storefront) .s-account-popover { position: absolute; z-index: calc(var(--z-header) + 2); top: calc(100% + 0.65rem); right: 0; display: none; width: 15rem; padding: 0.65rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-3); }
 :where(.storefront) .s-account-menu[open] .s-account-popover { display: grid; }
 :where(.storefront) .s-account-popover a,
 :where(.storefront) .s-account-popover button,

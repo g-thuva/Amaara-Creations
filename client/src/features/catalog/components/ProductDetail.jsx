@@ -4,7 +4,6 @@ import { useSiteContent } from '@/features/content/SiteContentProvider.jsx';
 import { useAuthenticatedMutation } from '@/features/auth/hooks/useAuthenticatedMutation.js';
 import ProductGallery from '@/features/catalog/components/ProductGallery.jsx';
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { cartApi } from '@/features/cart/cartApi.js';
 import { Button } from '@/shared/components/ui/Button.jsx';
 import Icon from '@/shared/components/ui/Icon.jsx';
@@ -51,12 +50,6 @@ export default function ProductDetail({ product }) {
 
   return (
     <>
-      <nav className="s-breadcrumb" aria-label="Breadcrumb">
-        <Link to="/">Home</Link><Icon name="chevronRight" />
-        <Link to="/products">Shop</Link><Icon name="chevronRight" />
-        <span aria-current="page">{product.name}</span>
-      </nav>
-
       <div className="s-pdp">
         <ProductGallery product={product} gallery={gallery} image={image} setImage={setImage} moveImage={moveImage} />
 

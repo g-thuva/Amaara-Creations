@@ -1228,13 +1228,13 @@
   top: auto !important;
   right: auto !important;
   display: inline-grid;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   place-items: center;
-  background: transparent !important;
-  border: 0 !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(14, 27, 46, 0.1) !important;
   border-radius: 50%;
-  box-shadow: none !important;
+  box-shadow: 0 3px 10px rgba(14, 27, 46, 0.16) !important;
   color: #0e1b2e;
   cursor: pointer;
   padding: 0;
@@ -1246,14 +1246,14 @@
 .storefront .s-save:hover {
   transform: scale(1.14);
   color: #2d559a;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
+  background: #ffffff !important;
+  border-color: #2d559a !important;
+  box-shadow: 0 5px 14px rgba(14, 27, 46, 0.2) !important;
 }
 
 .storefront .s-product-actions .s-action-cart.is-added {
   color: #2d559a;
-  background: transparent !important;
+  background: #eef4fb !important;
 }
 
 .storefront .s-product-actions button:disabled {
@@ -1264,10 +1264,10 @@
 
 .storefront .s-product-actions svg,
 .storefront .s-save svg {
-  width: 20px;
-  height: 20px;
-  stroke-width: 2.1;
-  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.9)) drop-shadow(0 1px 3px rgba(14, 27, 46, 0.25));
+  width: 21px;
+  height: 21px;
+  stroke-width: 2.25;
+  filter: none;
 }
 
 .storefront .s-product-info {
@@ -1315,58 +1315,38 @@
 
 .storefront .s-price-row {
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  margin-bottom: 0.65rem;
-  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.1rem;
+  margin: 0.15rem 0 0.85rem;
 }
+.storefront .s-price-current { display: grid; gap: 0.08rem; }
+.storefront .s-price-caption { color: #718096; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .storefront .s-price-row .s-price {
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--brand-navy-900, #0e1b2e);
 }
-.storefront .s-original-price {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #8896a6;
-  text-decoration: line-through;
-}
-.storefront .s-comp-value {
-  font-size: 0.74rem;
-  font-weight: 500;
-  color: #6b7b8d;
-}
+.storefront .s-sale-note { display: inline-flex; align-items: center; min-height: 28px; padding: 0.25rem 0.55rem; color: #285b47; background: #e9f5ee; border-radius: 999px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
 
 .storefront .s-product-footer {
+  position: relative;
+  z-index: 4;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.5rem;
   margin-top: auto;
   padding-top: 0.65rem;
   border-top: 1px solid #f0eae1;
   font-size: 0.78rem;
-}
-.storefront .s-collection-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: #526275;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.storefront .s-collection-tag svg {
-  width: 13px;
-  height: 13px;
-  color: #8896a6;
-  flex: 0 0 auto;
+  pointer-events: auto;
 }
 .storefront .s-more-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.4rem;
   color: #2d559a;
   font-weight: 700;
   text-decoration: none;
@@ -1377,6 +1357,8 @@
   color: #1b3560;
   transform: translateX(2px);
 }
+.storefront .s-more-link span { font-size: 1.05rem; transition: transform 160ms ease; }
+.storefront .s-more-link:hover span { transform: translateX(3px); }
 
 .storefront .s-footer-actions {
   display: inline-flex;

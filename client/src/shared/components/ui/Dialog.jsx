@@ -40,6 +40,20 @@ export function Dialog({ open, onClose, title, description, children, drawer = f
     }
   };
 
+  const handleBackdropClick = (event) => {
+    if (event.target !== ref.current) return;
+    if (event.clientX === 0 && event.clientY === 0) return;
+    const rect = ref.current.getBoundingClientRect();
+    const clickedInside =
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom;
+    if (!clickedInside) {
+      closeRef.current?.();
+    }
+  };
+
   return (
     <dialog
       id={id}
@@ -48,6 +62,7 @@ export function Dialog({ open, onClose, title, description, children, drawer = f
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       onKeyDown={trapFocus}
+      onClick={handleBackdropClick}
       onCancel={(event) => {
         event.preventDefault();
         closeRef.current();
