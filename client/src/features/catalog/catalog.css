@@ -15,6 +15,7 @@
 :where(.storefront) .s-catalog-layout { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: var(--space-12); margin-top: var(--space-8); align-items: start; }
 :where(.storefront) .s-catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 :where(.storefront) .s-pdp { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(20rem, 0.92fr); gap: clamp(2rem, 6vw, 5rem); align-items: start; }
+:where(.storefront) .s-product-back { margin-bottom: clamp(1.5rem, 3vw, 2.5rem); }
 :where(.storefront) .s-pdp-gallery { position: sticky; top: 6rem; min-width: 0; }
 :where(.storefront) .s-pdp-gallery > .s-media { aspect-ratio: 1 / 1; background: var(--surface); border-radius: var(--radius-md); box-shadow: var(--shadow-1); }
 :where(.storefront) .s-pdp-gallery > .s-media img { object-fit: contain; }
@@ -35,7 +36,7 @@
 :where(.storefront) .s-delivery-note { display: flex; align-items: flex-start; gap: 0.65rem; margin-top: 1.5rem; padding: 1rem; background: var(--brand-tint); border-radius: var(--radius-sm); font-size: var(--text-sm); }
 :where(.storefront) .s-delivery-note svg { flex: 0 0 auto; margin-top: 0.2rem; color: var(--brand-sky-700); }
 :where(.storefront) .s-product-accordions { margin-top: 1.5rem; border-top: 1px solid var(--border); }
-:where(.storefront) .s-mobile-purchase { position: fixed; z-index: calc(var(--z-header) - 1); right: 0; bottom: 0; left: 0; display: none; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.75rem max(1rem, env(safe-area-inset-right)) calc(0.75rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -6px 24px rgb(15 45 74 / 0.12); }
+:where(.storefront) .s-mobile-purchase { position: fixed; z-index: calc(var(--z-header) - 1); right: 0; bottom: calc(62px + env(safe-area-inset-bottom, 0px)); left: 0; display: none; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.75rem max(1rem, env(safe-area-inset-right)) 0.75rem max(1rem, env(safe-area-inset-left)); background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -6px 24px rgb(15 45 74 / 0.12); }
 :where(.storefront) .s-mobile-purchase > div { display: grid; min-width: 0; }
 :where(.storefront) .s-mobile-purchase strong { overflow: hidden; font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
 

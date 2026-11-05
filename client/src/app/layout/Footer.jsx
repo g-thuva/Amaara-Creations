@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { BrandLogo } from '@/shared/components/ui/BrandLogo.jsx';
 import Icon from '@/shared/components/ui/Icon.jsx';
 import { safeLink } from '@/shared/utils/safeLink.ts';
+import { CONTACT_DETAILS } from '@/app/config/contactDetails.js';
 
-const DEFAULT_INSTAGRAM = 'https://www.instagram.com/amaara.creations?exln=Mmg0Mm8wbWN0M3B5';
+const DEFAULT_INSTAGRAM = CONTACT_DETAILS.instagram;
 const DEFAULT_TIKTOK = 'https://www.tiktok.com/@amaaracreations?_t=8qef4xfEYoz&_r=1';
-const DEFAULT_PHONE = '+41 79 377 91 31';
-const DEFAULT_EMAIL = 'info@amaaracreations.ch';
-const DEFAULT_LOCATION = 'BE, SH & ZH • Switzerland 🇨🇭';
+const DEFAULT_PHONE = CONTACT_DETAILS.phone;
+const DEFAULT_EMAIL = CONTACT_DETAILS.email;
+const DEFAULT_LOCATION = CONTACT_DETAILS.address;
 
 export default function Footer() {
   const { values = {} } = useSiteContent() || {};
@@ -83,7 +84,10 @@ export default function Footer() {
                 <div className="s-contact-text">
                   <span className="s-contact-label">Location</span>
                   <span className="s-contact-value">{address}</span>
-                  <small className="s-contact-sub">Bern • Schaffhausen • Zürich</small>
+                  <a href={CONTACT_DETAILS.mapUrl} target="_blank" rel="noopener noreferrer" className="s-contact-sub s-contact-link">
+                    {CONTACT_DETAILS.plusCode}
+                  </a>
+                  <small className="s-contact-sub">{CONTACT_DETAILS.hours} · See more hours</small>
                 </div>
               </li>
               <li>
@@ -191,7 +195,7 @@ export default function Footer() {
             Husband &amp; wife creating magic 🪄✨
           </span>
           <span className="s-footer-location">
-            Bern • Schaffhausen • Zürich, Switzerland 🇨🇭
+            {CONTACT_DETAILS.address}
           </span>
         </div>
       </div>

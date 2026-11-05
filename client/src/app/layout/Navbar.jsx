@@ -50,6 +50,13 @@ export default function Navbar() {
   const location = useLocation();
   const sentinelRef = useRef(null);
   const searchRef = useRef(null);
+  const searchFormRef = useRef(null);
+  const searchToggleRef = useRef(null);
+  const accountMenuRef = useRef(null);
+
+  const closeAccountMenu = () => {
+    accountMenuRef.current?.removeAttribute('open');
+  };
 
   const isHome =
     location.pathname === '/' ||
@@ -76,7 +83,47 @@ export default function Navbar() {
     if (searchOpen) searchRef.current?.focus();
   }, [searchOpen]);
 
+  useEffect(() => {
+    setSearchOpen(false);
+    setOpen(false);
+    setCartOpen(false);
+    closeAccountMenu();
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    const handlePointerDownOutside = (event) => {
+      const target = event.target;
+      if (accountMenuRef.current?.hasAttribute('open') && !accountMenuRef.current.contains(target)) {
+        closeAccountMenu();
+      }
+      if (
+        searchFormRef.current &&
+        !searchFormRef.current.contains(target) &&
+        !searchToggleRef.current?.contains(target)
+      ) {
+        setSearchOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeAccountMenu();
+        setSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDownOutside);
+    document.addEventListener('touchstart', handlePointerDownOutside, { passive: true });
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDownOutside);
+      document.removeEventListener('touchstart', handlePointerDownOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const signOut = async () => {
+    closeAccountMenu();
     setOpen(false);
     await logout(() => navigate('/'));
   };
@@ -133,11 +180,15 @@ export default function Navbar() {
 
           <div className="s-header-actions">
             <button
+              ref={searchToggleRef}
               type="button"
               className="s-icon-link s-search-toggle"
               aria-label={searchOpen ? 'Close product search' : 'Search products'}
               aria-expanded={searchOpen}
-              onClick={() => setSearchOpen((value) => !value)}
+              onClick={() => {
+                closeAccountMenu();
+                setSearchOpen((value) => !value);
+              }}
             >
               <Icon name={searchOpen ? 'x' : 'search'} />
             </button>
@@ -149,7 +200,15 @@ export default function Navbar() {
               <Icon name="heart" />
               {wishlist.data?.totalItems > 0 && <span className="s-count">{wishlist.data.totalItems}</span>}
             </Link>
-            <details className="s-account-menu">
+            <details
+              ref={accountMenuRef}
+              className="s-account-menu"
+              onToggle={(event) => {
+                if (event.currentTarget.open) {
+                  setSearchOpen(false);
+                }
+              }}
+            >
               <summary className="s-icon-link" aria-label={isAuthenticated ? 'Open account menu' : 'Open sign-in menu'}>
                 <Icon name="user" />
               </summary>
@@ -158,13 +217,13 @@ export default function Navbar() {
                   <span>Restoring session…</span>
                 ) : isAuthenticated ? (
                   <AccountLinks
-                    close={() => document.querySelector('.s-account-menu')?.removeAttribute('open')}
+                    close={closeAccountMenu}
                     signOut={signOut}
                   />
                 ) : (
                   <>
-                    <Link to="/login">Sign in</Link>
-                    <Link to="/register">Create an account</Link>
+                    <Link to="/login" onClick={closeAccountMenu}>Sign in</Link>
+                    <Link to="/register" onClick={closeAccountMenu}>Create an account</Link>
                   </>
                 )}
               </div>
@@ -178,6 +237,8 @@ export default function Navbar() {
               onClick={(event) => {
                 if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
                 event.preventDefault();
+                closeAccountMenu();
+                setSearchOpen(false);
                 setCartUsed(true);
                 setCartOpen(true);
               }}
@@ -194,7 +255,11 @@ export default function Navbar() {
             <button
               className="s-icon-link s-menu-button"
               type="button"
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                closeAccountMenu();
+                setSearchOpen(false);
+                setOpen(true);
+              }}
               aria-label="Open navigation"
               aria-expanded={open}
             >
@@ -204,7 +269,7 @@ export default function Navbar() {
         </div>
 
         {searchOpen && (
-          <form className="s-header-search s-container" role="search" onSubmit={submitSearch}>
+          <form ref={searchFormRef} className="s-header-search s-container" role="search" onSubmit={submitSearch}>
             <label className="sr-only" htmlFor="header-product-search">Search products</label>
             <Icon name="search" />
             <input

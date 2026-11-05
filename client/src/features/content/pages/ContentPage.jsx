@@ -10,6 +10,8 @@ import { PageHeader } from '@/shared/components/ui/PageHeader.jsx';
 import { Skeleton } from '@/shared/components/feedback/Skeleton.jsx';
 import { safeLink } from '@/shared/utils/safeLink.ts';
 import ContentSeo from '@/features/content/components/ContentSeo.jsx';
+import { CONTACT_DETAILS } from '@/app/config/contactDetails.js';
+import AboutFallback from '@/features/content/pages/AboutFallback.jsx';
 
 export default function ContentPage({ page }) {
   const { slug } = useParams();
@@ -19,11 +21,17 @@ export default function ContentPage({ page }) {
   const about = current === 'about';
   const contact = current === 'contact';
   const missing = !page && !resource.loading && !resource.error && !resource.data;
+  const contactEmail = values['contact.email'] || CONTACT_DETAILS.email;
+  const contactPhone = values['contact.phone'] || CONTACT_DETAILS.phone;
+  const contactInstagram = values['social.instagram'] || CONTACT_DETAILS.instagram;
+  const contactAddress = values['contact.address'] || CONTACT_DETAILS.address;
+  const contactHours = values['contact.hours'] || CONTACT_DETAILS.hours;
   const channels = [
-    values['contact.email'] && { href: `mailto:${values['contact.email']}`, text: values['contact.email'], label: 'Email', icon: 'mail' },
-    values['contact.phone'] && { href: `tel:${values['contact.phone'].replace(/\s/g, '')}`, text: values['contact.phone'], label: 'Phone', icon: 'phone' },
+    { href: `mailto:${contactEmail}`, text: contactEmail, label: 'Email', icon: 'mail' },
+    { href: `tel:${contactPhone.replace(/\s/g, '')}`, text: contactPhone, label: 'Phone', icon: 'phone' },
     (values['contact.whatsapp'] || values['social.whatsapp']) && { href: values['contact.whatsapp'] || values['social.whatsapp'], text: 'Message on WhatsApp', label: 'WhatsApp', icon: 'arrow' },
-    ...['instagram', 'facebook', 'tiktok'].map((name) => ({ href: values[`social.${name}`], text: name, label: 'Social', icon: name })),
+    { href: contactInstagram, text: 'instagram', label: 'Social', icon: 'instagram' },
+    ...['facebook', 'tiktok'].map((name) => ({ href: values[`social.${name}`], text: name, label: 'Social', icon: name })),
   ].filter((item) => item && safeLink(item.href));
 
   return (
@@ -43,6 +51,8 @@ export default function ContentPage({ page }) {
           <ErrorState error={resource.error} retry={resource.reload} />
         ) : resource.data ? (
           <CmsSections sections={resource.data.sections} />
+        ) : about ? (
+          <AboutFallback />
         ) : !contact && (
           <EmptyState to="/custom" label="Explore custom design" title={missing ? 'This page is not available' : 'A personal touch, in print'}>
             <p>{missing ? 'The link may be old, or the page may no longer be published.' : 'Explore custom stickers and printed details through the designer and the currently published shop. For help with files and ordering, visit Help.'}</p>
@@ -67,10 +77,11 @@ export default function ContentPage({ page }) {
                     })}
                   </div>
                 ) : <p className="s-alert">Contact details have not been published yet.</p>}
-                {(values['contact.address'] || values['contact.hours']) && (
+                {(contactAddress || contactHours) && (
                   <div className="s-contact-details">
-                    {values['contact.address'] && <address><Icon name="mapPin" />{values['contact.address']}</address>}
-                    {values['contact.hours'] && <p><Icon name="check" />{values['contact.hours']}</p>}
+                    <address><Icon name="mapPin" />{contactAddress}</address>
+                    <p><Icon name="mapPin" /><a href={CONTACT_DETAILS.mapUrl} target="_blank" rel="noopener noreferrer">{CONTACT_DETAILS.plusCode}</a></p>
+                    <p><Icon name="check" />{contactHours} · <a href={CONTACT_DETAILS.mapUrl} target="_blank" rel="noopener noreferrer">See more hours</a></p>
                   </div>
                 )}
               </>

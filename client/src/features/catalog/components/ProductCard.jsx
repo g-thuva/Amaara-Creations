@@ -24,11 +24,9 @@ export default function ProductCard({ product, eager = false }) {
 
   const saved = !!wishlist?.data?.items?.some((item) => item.productId === product.id);
   const outOfStock = product.isOutOfStock || product.stock <= 0;
-  const lowStock = !outOfStock && product.stock <= 5;
   const media = product.media?.find((item) => item.isPrimary) || product.media?.[0];
-  const originalPrice = product.originalPrice || (product.price ? Math.round(product.price * 1.18) : null);
   const swatches = product.swatches || defaultSwatches;
-  const categoryLabel = product.category || 'Wedding Collection';
+  const discountPercent = 15;
 
   const handleAddToCart = (e) => {
     e.preventDefault();
@@ -62,16 +60,6 @@ export default function ProductCard({ product, eager = false }) {
             height={800}
           />
         </Link>
-        <div className="s-product-badges">
-          {outOfStock ? (
-            <span className="s-stock-label is-out">Out of stock</span>
-          ) : lowStock ? (
-            <span className="s-stock-label is-low">Low stock</span>
-          ) : (
-            <span className="s-discount-badge">Save 15%</span>
-          )}
-        </div>
-
         <div className="s-product-actions">
           <button
             type="button"
@@ -114,24 +102,20 @@ export default function ProductCard({ product, eager = false }) {
           <Link to={`/products/${product.id}`}>{product.name}</Link>
         </h3>
 
-        <div className="s-price-row">
-          <Price value={product.price} currency={product.currency} />
-          {originalPrice && !outOfStock && (
-            <span className="s-original-price">
-              <Price value={originalPrice} currency={product.currency} />
-            </span>
-          )}
-          <span className="s-comp-value">Comp. value <span aria-hidden="true">ⓘ</span></span>
+        <div className="s-price-row" aria-label={`Price ${product.currency} ${product.price}`}>
+          <div className="s-price-current">
+            <span className="s-price-caption">Price</span>
+            <Price value={product.price} currency={product.currency} />
+          </div>
+          {!outOfStock && <span className="s-sale-note">{discountPercent}% off</span>}
         </div>
 
-        <div className="s-product-footer">
-          <span className="s-collection-tag">
-            <Icon name="layers" /> {categoryLabel}
-          </span>
-          <Link className="s-more-link" to={`/products/${product.id}`}>
-            Customise <span>›</span>
-          </Link>
-        </div>
+      </div>
+
+      <div className="s-product-footer">
+        <Link className="s-more-link" to={`/products/${product.id}`}>
+          View details <span aria-hidden="true">→</span>
+        </Link>
       </div>
     </article>
   );
