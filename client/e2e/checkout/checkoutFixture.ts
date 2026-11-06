@@ -13,9 +13,11 @@ export async function checkoutFixture(page: Page, { mixed = false, admin = false
   const order = () => ({ id: 1, orderNumber: 'FIXTURE-ONLY-1', orderDate: '2026-10-11T12:00:00Z', status: state.orderStatus, paymentStatus: state.status, fulfilmentStatus: 'NotReady', currency: 'CHF', total: subtotal + 25, subtotal, shippingTotal: 25, taxTotal: 0, discountTotal: 0, paymentFee: 0, shippingMethodName: method.name, userName: 'Fixture customer', orderItems: items.map((i, n) => ({ ...i, id: n + 1, productName: i.name, price: i.unitPrice })), payments: [{ id: 1 }], shipments: [], history: [{ newStatus: 'PendingPayment', reason: 'Test fixture only' }] });
   await page.route('**/api/v1/**', async route => {
     const request = route.request(); const path = new URL(request.url()).pathname.replace('/api/v1', '');
-    const headers = { 'Access-Control-Allow-Origin': new URL(frontend).origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'authorization,content-type', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' };
+    const headers = { 'Access-Control-Allow-Origin': request.headers()['origin'] || new URL(frontend).origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'authorization,content-type', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' };
     const reply = (body: unknown, status = 200) => route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify(body) });
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    if (request.method() === 'GET' && (path === '/auth/sign-in' || path === '/auth/staff/sign-in'))
+      return reply({ status: path === '/auth/staff/sign-in' && !admin ? 'credentials' : 'session' });
     if (path === '/admin/capabilities') return reply({}, admin ? 200 : 403);
     if (path === '/auth/staff/refresh') return reply({ token: 'fixture-only-token', user: { id: 'fixture', name: 'Fixture staff', email: 'fixture@example.test', roles: ['Admin'] } }, admin ? 200 : 401);
     if (path === '/auth/staff/session') return reply({ status: 'authorized', user: { id: 'fixture', name: 'Fixture staff', email: 'fixture@example.test', roles: ['Admin'] }, permissions: ['AdminAccess', 'ViewOrders', 'ManageOrders', 'ManagePayments', 'RefundPayments'], expiresAt: new Date(Date.now() + 900000).toISOString() }, admin ? 200 : 403);

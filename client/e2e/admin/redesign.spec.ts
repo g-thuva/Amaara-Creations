@@ -15,6 +15,25 @@ for (const width of [1920, 1440, 1024, 768, 390]) {
     page.on('console', message => { if (message.type() === 'error' || message.type() === 'warning') errors.push(message.text()); });
     for (const route of [...destinations, `orders/${fixture.basic.orderId}`, `customers/${fixture.customerId}`, `custom-designs/${fixture.designId}`]) {
       await page.goto('./admin/' + route); await expect(page.locator('.admin-content h1')).toBeVisible();
+      await expect(page.locator('.admin-skeleton-group, .admin-skeleton')).toHaveCount(0);
+      if (route === 'dashboard') {
+        for (const card of await page.locator('.sales-stat').all()) {
+          const value = await card.locator('.sales-stat-value').boundingBox();
+          const icon = await card.locator('.sales-stat-icon').boundingBox();
+          expect(value!.y).toBeGreaterThanOrEqual(icon!.y + icon!.height);
+        }
+      }
+      for (const state of await page.locator('.admin-table-shell > .admin-empty-state, .admin-table-shell > .admin-error-state').all()) {
+        const bounds = await state.boundingBox();
+        expect(bounds!.x).toBeGreaterThanOrEqual(0);
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+      }
+      for (const caption of await page.locator('caption:not(.admin-sr-only)').all()) {
+        const bounds = await caption.boundingBox();
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+      }
+      await expect(page.getByRole('button', { name: 'Toggle admin navigation', exact: true })).toBeInViewport();
+      if (width === 1440 || width === 390) await page.screenshot({ path: '../.runtime/admin-panel-evidence/' + width + '-' + route.replaceAll('/', '-') + '.png', fullPage: true });
       await expect(page.getByText('Loading details…', { exact: true })).toHaveCount(0);
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), { message: route + ' at ' + width }).toBe(true);
       await page.keyboard.press('Tab'); await expect(page.getByRole('link', { name: 'Skip to main content', exact: true })).toBeFocused();

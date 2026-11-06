@@ -16,6 +16,12 @@ export const test = base.extend<{ fixture: BrowserFixture }>({
     // HTTPS deployment navigation is a local test stand-in. Operational pages
     // still run the actual management artifact/API on the isolated loopback host.
     await localManagementNavigation(context);
+    // Production staff builds correctly reject an HTTP shared-login destination.
+    // Represent the approved HTTPS store host with the real local storefront artifact.
+    await context.route('https://store.example.test/**', route => {
+      const destination = new URL(route.request().url());
+      return route.fulfill({ status: 302, headers: { Location: new URL(storefrontUrl).origin + destination.pathname + destination.search } });
+    });
     await use(context);
   },
   fixture: async ({ request }, use) => {

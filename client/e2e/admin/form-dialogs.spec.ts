@@ -192,14 +192,15 @@ test('a long catalogue stays stationary and opening or typing never reloads its 
   await page.goto('./admin/products');
   await expect(page.getByRole('table', { name: 'Product catalog', exact: true }).getByRole('row')).toHaveCount(21);
   const catalogue = page.locator('.table-responsive').first();
-  await catalogue.evaluate(element => { element.scrollTop = element.scrollHeight; });
-  const catalogueScroll = await catalogue.evaluate(element => element.scrollTop);
-  expect(catalogueScroll).toBeGreaterThan(300);
+  // Long tables use page scrolling rather than a second vertical scroll area.
+  await expect(catalogue).toHaveCSS('max-height', 'none');
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const trigger = page.getByRole('button', { name: 'New Product', exact: true });
+  await trigger.scrollIntoViewIfNeeded();
   const scroll = await page.evaluate(() => scrollY);
+  const catalogueScroll = await catalogue.evaluate(element => element.scrollTop);
   let reads = 0;
   page.on('request', request => { if (request.method() === 'GET' && new URL(request.url()).pathname.endsWith('/admin/products')) reads++; });
-  const trigger = page.getByRole('button', { name: 'New Product', exact: true });
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: 'New Product', exact: true });
   await expect(dialog).toBeVisible();
@@ -281,6 +282,9 @@ test('content sections and promotion rules save in their dialogs; media and buil
   await expect(page.getByLabel('Section content 2', { exact: true })).toHaveValue('Second content section');
   await dismiss(page, 'cancel');
   await page.goto('./admin/promotions');
+  await expect(page.getByRole('heading', { name: 'Promotions', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Promotions', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Create promotion', exact: true }).click();
   const code = 'DIALOG-' + Date.now();
   await page.getByLabel('Code', { exact: true }).fill(code);

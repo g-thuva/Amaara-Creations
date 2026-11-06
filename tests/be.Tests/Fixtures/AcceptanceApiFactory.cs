@@ -236,7 +236,7 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
 
         return new
         {
-            products = await db.Products.OrderBy(p => p.Id).Select(p => p.Id).ToArrayAsync(),
+            products = await db.Products.Where(p => p.Slug.StartsWith("qa-print-")).OrderBy(p => p.Slug).Select(p => p.Id).ToArrayAsync(),
             category = await db.Categories.Where(c => c.Slug == "acceptance-fixtures").Select(c => c.Id).SingleAsync(),
             cmsSlug = "acceptance-cms",
             customerEmail,

@@ -33,25 +33,28 @@ test('an admin-created delivery method appears at checkout and test rates stay h
     await expect(customer.getByRole('button', { name: 'Pay securely', exact: true })).toBeDisabled();
 
     await page.goto('./admin/shipping');
-    const zoneForm = page.locator('form').filter({ has: page.getByRole('button', { name: 'Save zone', exact: true }) });
-    await zoneForm.getByLabel('name', { exact: true }).fill(`Shipping regression ${runId}`);
-    await zoneForm.getByLabel('country', { exact: true }).fill(country);
+    await page.getByRole('button', { name: 'New zone', exact: true }).click();
+    const zoneForm = page.getByRole('dialog', { name: 'New delivery zone', exact: true });
+    await zoneForm.getByLabel('Name', { exact: true }).fill(`Shipping regression ${runId}`);
+    await zoneForm.getByLabel('Country', { exact: true }).fill(country);
     const zoneResponse = page.waitForResponse(response => response.url().endsWith('/admin/shipping/zones') && response.request().method() === 'POST');
     await zoneForm.getByRole('button', { name: 'Save zone', exact: true }).click();
     const zone = await (await zoneResponse).json();
-    const methodForm = page.locator('form').filter({ has: page.getByRole('button', { name: 'Save delivery method', exact: true }) });
-    await expect(methodForm.getByRole('combobox', { name: 'Zone', exact: true })).toHaveValue(String(zone.id));
+    await expect(zoneForm).not.toBeVisible();
+    await page.getByRole('button', { name: 'New method', exact: true }).click();
+    const methodForm = page.getByRole('dialog', { name: /delivery method$/, exact: false });
+    await methodForm.getByRole('combobox', { name: 'Delivery zone', exact: true }).selectOption(String(zone.id));
     const testRate = methodForm.getByRole('checkbox', { name: 'Test rate (excluded from regular checkout)', exact: true });
     await expect(testRate).not.toBeChecked();
-    await methodForm.getByLabel('name', { exact: true }).fill('Browser fixture delivery');
+    await methodForm.getByLabel('Name', { exact: true }).fill('Browser fixture delivery');
     const methodCode = `SHIPPING_TEST_${runId}`;
-    await methodForm.getByLabel('code', { exact: true }).fill(methodCode);
-    await methodForm.getByLabel('base Price', { exact: true }).fill('3.50');
+    await methodForm.getByLabel('Code', { exact: true }).fill(methodCode);
+    await methodForm.getByLabel('Base price', { exact: true }).fill('3.50');
     const createdResponse = page.waitForResponse(response => response.url().endsWith('/admin/shipping/methods') && response.request().method() === 'POST');
     await methodForm.getByRole('button', { name: 'Save delivery method', exact: true }).click();
     const created = await (await createdResponse).json();
     await expect(page.getByRole('status').filter({ hasText: 'Delivery method saved.' })).toContainText('available at checkout');
-    await expect(page.getByRole('combobox', { name: 'Edit delivery method', exact: true })).toHaveValue(String(created.id));
+    await expect(methodForm).not.toBeVisible();
 
     await customer.getByRole('button', { name: 'Reload delivery options', exact: true }).click();
     await expect(shipping).toBeEnabled();
@@ -59,6 +62,7 @@ test('an admin-created delivery method appears at checkout and test rates stay h
     await shipping.selectOption(String(created.id));
     await expect(customer.getByRole('button', { name: 'Pay securely', exact: true })).toBeEnabled();
 
+    await page.getByRole('row').filter({ hasText: methodCode }).getByRole('button', { name: 'Edit method', exact: true }).click();
     await testRate.check();
     const updatedResponse = page.waitForResponse(response => response.url().endsWith(`/admin/shipping/methods/${created.id}`) && response.request().method() === 'PUT');
     await methodForm.getByRole('button', { name: 'Save delivery method', exact: true }).click();

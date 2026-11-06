@@ -104,8 +104,8 @@ async function harness(page: Page, code: string) {
       contentType: "text/html",
       body: `
     <div id="root"></div><script type="module">
-    import React from '/Amaara-Creations/node_modules/.vite/deps/react.js';
-    import ReactDOM from '/Amaara-Creations/node_modules/.vite/deps/react-dom_client.js';
+    import React from '/Amaara-Creations/node_modules/.vite-admin/deps/react.js';
+    import ReactDOM from '/Amaara-Creations/node_modules/.vite-admin/deps/react-dom_client.js';
     const h = React.createElement;
     ${code}
     ReactDOM.createRoot(document.getElementById('root')).render(h(Harness));
@@ -239,7 +239,7 @@ test("every permitted admin navigation target survives direct entry and reload",
     collections: "Collections",
     media: "Media Library",
     content: "Content",
-    settings: "Site Settings",
+    settings: "Store settings",
     "custom-builder": "Custom builder configuration",
     "custom-designs": "Custom design production",
     orders: "Order management",

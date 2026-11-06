@@ -250,63 +250,22 @@ test("analyst exports reports while Super Admin can review audit and staff", asy
   ).toBeVisible();
 });
 
-test("review moderation publishes and hides a pending review with a recorded reason", async ({
-  page,
-  request,
-}) => {
+test("review moderation restores and hides a legacy pending review with a recorded reason", async ({ page, request }) => {
   const f = await fixture(request);
   await login(page, f.basic.adminEmail, f.basic.password);
   await page.goto("./admin/reviews");
   const comment = "TEST pending moderation " + f.basic.orderId;
-  const row = page
-    .getByRole("row")
-    .filter({ has: page.getByRole("cell", { name: comment, exact: true }) });
-  await row
-    .getByRole("combobox", { name: "New state", exact: true })
-    .selectOption("Published");
-  await row
-    .getByLabel("Reason", { exact: true })
-    .fill("TEST publication review");
-  await row
-    .getByRole("button", {
-      name: `Review moderation for ${f.reviewId}`,
-      exact: true,
-    })
-    .click();
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Confirm", exact: true })
-    .click();
-  await expect(
-    row.getByRole("cell", { name: "Published", exact: true }),
-  ).toBeVisible();
-  expect(
-    await (
-      await request.get(api + `/api/v1/products/${f.basic.products[0]}/reviews`)
-    ).text(),
-  ).toContain(comment);
-  await row
-    .getByRole("combobox", { name: "New state", exact: true })
-    .selectOption("Hidden");
-  await row
-    .getByLabel("Reason", { exact: true })
-    .fill("TEST support follow-up");
-  await row
-    .getByRole("button", {
-      name: `Review moderation for ${f.reviewId}`,
-      exact: true,
-    })
-    .click();
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Confirm", exact: true })
-    .click();
-  await expect(
-    row.getByRole("cell", { name: "TEST support follow-up", exact: true }),
-  ).toBeVisible();
-  expect(
-    await (
-      await request.get(api + `/api/v1/products/${f.basic.products[0]}/reviews`)
-    ).text(),
-  ).not.toContain(comment);
+  const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: comment, exact: true }) });
+  await row.getByRole("button", { name: "Restore review", exact: true }).click();
+  let dialog = page.getByRole("dialog", { name: "Restore review", exact: true });
+  await dialog.getByLabel("Moderation reason", { exact: true }).fill("TEST publication review");
+  await dialog.getByRole("button", { name: "Restore review", exact: true }).click();
+  await expect(row.getByRole("cell", { name: "Published", exact: true })).toBeVisible();
+  expect(await (await request.get(api + '/api/v1/products/' + f.basic.products[0] + '/reviews')).text()).toContain(comment);
+  await row.getByRole("button", { name: "Hide review", exact: true }).click();
+  dialog = page.getByRole("dialog", { name: "Hide review", exact: true });
+  await dialog.getByLabel("Moderation reason", { exact: true }).fill("TEST support follow-up");
+  await dialog.getByRole("button", { name: "Hide review", exact: true }).click();
+  await expect(row.getByRole("cell", { name: "TEST support follow-up", exact: true })).toBeVisible();
+  expect(await (await request.get(api + '/api/v1/products/' + f.basic.products[0] + '/reviews')).text()).not.toContain(comment);
 });
