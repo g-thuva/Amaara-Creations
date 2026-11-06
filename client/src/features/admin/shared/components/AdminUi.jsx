@@ -32,7 +32,10 @@ export function Select(props) { return <Control as="select" {...props} />; }
 export function Textarea(props) { return <Control as="textarea" {...props} />; }
 export function DateInput(props) { return <Input type="date" {...props} />; }
 export function SearchInput(props) { return <Input type="search" {...props} />; }
-export function Checkbox({ label, description, ...props }) { return <label className="admin-check"><input type="checkbox" {...props} /><span><strong>{label}</strong>{description && <small>{description}</small>}</span></label>; }
+export function Checkbox({ label, description, ...props }) {
+  const id = useId();
+  return <label className="admin-check"><input type="checkbox" aria-labelledby={id + '-label'} aria-describedby={description ? id + '-description' : undefined} {...props} /><span><strong id={id + '-label'}>{label}</strong>{description && <small id={id + '-description'}>{description}</small>}</span></label>;
+}
 export function Switch(props) { return <Checkbox {...props} role="switch" />; }
 export function Callout({ tone = 'info', children, title }) { return <div className={`admin-callout admin-callout-${tone}`}><AppIcon name={tone === 'danger' ? 'x' : tone === 'warning' ? 'pause' : 'file'} /><div>{title && <strong>{title}</strong>}{children}</div></div>; }
 export function Disclosure({ title = 'View safe metadata', children }) { return <details className="admin-disclosure"><summary>{title}</summary><div>{children}</div></details>; }

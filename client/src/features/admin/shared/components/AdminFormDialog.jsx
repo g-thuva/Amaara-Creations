@@ -3,7 +3,7 @@ import { Dialog } from '@/shared/components/ui/Dialog.jsx';
 import './adminFormDialog.css';
 
 // Mount for one editing session. Forms keep their own fields and API operations.
-export function AdminFormDialog({ title, description, onClose, children, dirty, pending = false, submitDisabled = false, error, submitLabel = 'Save changes', width = 'medium' }) {
+export function AdminFormDialog({ title, description, onClose, children, dirty, pending = false, submitDisabled = false, error, submitLabel = 'Save changes', submitVariant = 'primary', width = 'medium' }) {
   const formId = useId();
   const [changed, setChanged] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -28,7 +28,7 @@ export function AdminFormDialog({ title, description, onClose, children, dirty, 
         <span className="admin-form-dialog-note">{pending ? 'Saving your changes…' : 'Required fields are marked with *.'}</span>
         <div className="admin-form-dialog-actions">
           <button type="button" className="btn btn-outline-primary" onClick={requestClose} disabled={pending}>Cancel</button>
-          {submitLabel && <button type="submit" className="btn btn-primary" form={formId} disabled={pending || submitDisabled} aria-busy={pending || undefined}>
+          {submitLabel && <button type="submit" className={`btn btn-${submitVariant}`} form={formId} disabled={pending || submitDisabled} aria-busy={pending || undefined}>
             {pending && <span className="admin-spinner" aria-hidden="true" />}{pending ? 'Saving…' : submitLabel}
           </button>}
         </div>

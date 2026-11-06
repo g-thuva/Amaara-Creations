@@ -8,7 +8,7 @@
 .admin-app .admin-form-dialog--compact { width: min(640px, calc(100vw - 48px)); }
 .admin-app .admin-form-dialog .s-dialog-head { flex: none; padding: 24px 28px 8px; margin: 0; gap: 16px; align-items: center; }
 .admin-app .admin-form-dialog .s-dialog-head h2 { margin: 0; font-size: 22px; letter-spacing: -.025em; }
-.admin-app .admin-form-dialog .s-dialog-description { flex: none; padding: 0 28px 22px; margin: 0; color: var(--text-muted); border-bottom: 1px solid var(--border); font-size: 14px; }
+.admin-app .admin-form-dialog .s-dialog-description { flex: none; padding: 0 28px 22px; margin: 0; color: var(--text-muted); border-bottom: 1px solid var(--border); font-size: 14px; overflow-wrap: anywhere; }
 .admin-app .admin-form-dialog-body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 24px 28px; }
 .admin-app .admin-form-dialog-footer { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 28px; border-top: 1px solid var(--border); background: var(--bg-page); }
 .admin-app .admin-form-dialog-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
