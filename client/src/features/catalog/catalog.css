@@ -29,7 +29,7 @@
 :where(.storefront) .s-pdp-info > .s-price { display: block; margin-bottom: 1.2rem; font-size: 1.6rem; }
 :where(.storefront) .s-pdp-info .s-lead { font-size: 1rem; white-space: pre-line; }
 :where(.storefront) .s-availability { display: inline-flex; align-items: center; gap: 0.45rem; margin-bottom: 1.2rem !important; padding: 0.35rem 0.7rem; border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: 700; }
-:where(.storefront) .s-availability.available { color: var(--success); background: #e7f5ed; }
+:where(.storefront) .s-availability.available { color: #356a52; background: #e7f5ed; }
 :where(.storefront) .s-availability.unavailable { color: var(--danger); background: #fff0ef; }
 :where(.storefront) .s-purchase { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-block: 1.5rem 0.75rem; }
 :where(.storefront) .s-purchase > .s-button { flex: 1 1 12rem; }

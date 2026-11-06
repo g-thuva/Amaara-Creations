@@ -1279,7 +1279,7 @@
   margin: 0.15rem 0 0.85rem;
 }
 .storefront .s-price-current { display: grid; gap: 0.08rem; }
-.storefront .s-price-caption { color: #718096; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.storefront .s-price-caption { color: var(--text-muted); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .storefront .s-price-row .s-price {
   font-size: 1.25rem;
   font-weight: 700;
@@ -1808,7 +1808,7 @@
 .storefront .s-price-sublabel {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #7a889b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1830,7 +1830,7 @@
   left: 0.65rem;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #7a889b;
+  color: var(--text-muted);
   pointer-events: none;
   letter-spacing: 0.02em;
 }

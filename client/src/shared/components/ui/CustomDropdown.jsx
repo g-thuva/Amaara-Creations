@@ -123,7 +123,7 @@ export function CustomDropdown({
         className={`s-dropdown-trigger ${triggerClassName}`.trim()}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-label={ariaLabel || selectedOption?.label || placeholder}
+        aria-label={ariaLabel ? `${ariaLabel}: ${selectedOption?.label || placeholder}` : selectedOption?.label || placeholder}
         onClick={toggleDropdown}
       >
         <span className="s-dropdown-value">
