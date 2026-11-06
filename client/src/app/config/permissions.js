@@ -10,6 +10,8 @@ export const permissionRoles = {
     "Analyst",
   ],
   ManageCustomers: [...all, "CustomerSupport"],
+  ManageCustomerAccess: all,
+  RequestCustomerRemoval: ["SuperAdmin"],
   ViewOrders: [...all, "ProductionStaff", "CustomerSupport"],
   ManageOrders: [...all, "ProductionStaff"],
   ManageCatalog: [...all, "CatalogManager"],

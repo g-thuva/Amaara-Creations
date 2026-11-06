@@ -1,5 +1,6 @@
 import { formatLocalDate as formatDate } from "@/features/admin/shared/utils/format.js";
 import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
+import { StatusChip } from '@/features/admin/shared/components/StatusChip.jsx';
 export function CustomerSummary({ data }) {
   return (
     <section className="card card-body">
@@ -9,8 +10,10 @@ export function CustomerSummary({ data }) {
       </p>
       <p>
         Email: {data.customer.emailConfirmed ? "Verified" : "Unverified"} ·
-        Account: {data.customer.locked ? "Locked" : "Active"}
+        Account: <StatusChip status={data.customer.accountStatus || 'Active'} />
       </p>
+      {data.customer.locked && <p>Temporary sign-in lockout is active.</p>}
+      {data.customer.accountStatusReason && <p>Last access decision: {data.customer.accountStatusReason}</p>}
       <p>
         Joined: {formatDate(data.customer.createdAt)} · {data.orderCount} orders
       </p>

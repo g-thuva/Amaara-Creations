@@ -18,7 +18,7 @@ export function useProductReviews(productId) {
     const form = e.currentTarget;
     const fields = new FormData(form);
     const payload = { rating: Number(fields.get('rating')), comment: fields.get('comment') };
-    if (await mutate(() => editing ? reviewsApi.updateReview(editing.id, payload) : reviewsApi.createReview(productId, payload), refresh, 'Your review is saved and awaiting moderation.')) { setEditing(null); form.reset(); }
+    if (await mutate(() => editing ? reviewsApi.updateReview(editing.id, payload) : reviewsApi.createReview(productId, payload), refresh, editing?.moderationStatus === 'Hidden' ? 'Your changes are saved. This review remains hidden by moderation.' : 'Your review is published.')) { setEditing(null); form.reset(); }
   };
   const remove = async () => { if (await mutate(() => reviewsApi.deleteReview(deleting), refresh, 'Review deleted.')) setDeleting(null); };
   return { data, mine, user, isAuthenticated, own, pending, editing, setEditing, deleting, setDeleting, submit, remove };

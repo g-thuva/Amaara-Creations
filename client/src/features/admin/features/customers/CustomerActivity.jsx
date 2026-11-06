@@ -2,9 +2,16 @@ import { formatLocalDate as formatDate } from "@/features/admin/shared/utils/for
 import { Link } from "react-router-dom";
 import { formatIsoCurrency as checkoutMoney } from '@/features/admin/shared/utils/format.js';
 import { DataTable } from "@/features/admin/shared/components/DataTable.jsx";
+import { AuditDecision } from '@/features/admin/shared/components/AuditDecision.jsx';
 export function CustomerActivity({ data }) {
   return (
     <>
+      <DataTable caption="Recent account access history (up to 30)" rows={data.activity || []} columns={[
+        { key: 'createdAt', label: 'Date', render: row => formatDate(row.createdAt) }, { key: 'actorName', label: 'Operator' },
+        { key: 'oldValuesJson', label: 'Previous state', render: row => <AuditDecision value={row.oldValuesJson} /> },
+        { key: 'newValuesJson', label: 'Decision and reason', render: row => <AuditDecision value={row.newValuesJson} /> },
+      ]} />
+      {(data.removalRequests || []).length > 0 && <DataTable caption="Account-removal review requests" rows={data.removalRequests} columns={[{ key: 'createdAt', label: 'Requested', render: row => formatDate(row.createdAt) }, { key: 'status', label: 'Review status' }]} />}
       <DataTable
         caption="Recent customer orders (up to 50)"
         rows={data.orders}
