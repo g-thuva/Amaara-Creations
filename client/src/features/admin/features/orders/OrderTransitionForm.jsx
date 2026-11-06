@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ordersApi } from "@/features/admin/features/orders/ordersApi.js";
 import { ConfirmDialog } from "@/features/admin/shared/components/ConfirmDialog.jsx";
 export function OrderTransitionForm({ order, changed, stale = false }) {
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState(null);
   const [transition, setTransition] = useState(null);
+  const locked = useRef(false);
   return (
     <>
       {notice && (
@@ -46,8 +47,10 @@ export function OrderTransitionForm({ order, changed, stale = false }) {
         onClose={() => setTransition(null)}
         title="Confirm order transition"
         pending={pending}
+        destructive={transition?.status === 'Cancelled'}
         onConfirm={async () => {
-          if (pending || stale) return;
+          if (locked.current || stale) return;
+          locked.current = true;
           setPending(true);
           try {
             await ordersApi.updateStatus(order.id, transition);
@@ -62,6 +65,7 @@ export function OrderTransitionForm({ order, changed, stale = false }) {
           } finally {
             setTransition(null);
             setPending(false);
+            locked.current = false;
           }
         }}
       >

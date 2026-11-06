@@ -1,14 +1,16 @@
 import { formatDateTime } from "@/features/admin/shared/utils/format.js";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { shippingApi } from "@/features/admin/features/shipping/shippingApi.js";
 import { ShipmentForm } from "@/features/admin/features/shipping/ShipmentForm.jsx";
 import { StatusChip } from '@/features/admin/shared/components/StatusChip.jsx';
 export function OrderShipments({ order, changed, canManage, stale = false }) {
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState(null);
+  const locked = useRef(false);
   const updateShipment = async (event) => {
     event.preventDefault();
-    if (pending) return;
+    if (locked.current || stale) return;
+    locked.current = true;
     const form = Object.fromEntries(new FormData(event.currentTarget));
     setPending(true);
     setNotice(null);
@@ -27,6 +29,7 @@ export function OrderShipments({ order, changed, canManage, stale = false }) {
       });
     } finally {
       setPending(false);
+      locked.current = false;
     }
   };
   const shipment = order.shipments?.[0];

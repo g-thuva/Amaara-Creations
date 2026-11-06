@@ -1,142 +1,38 @@
-import { newMethod, numeric } from "@/features/admin/features/shipping/shippingForm.js";
-export function ShippingMethodForm({
-  resource,
-  method,
-  setMethod,
-  pending,
-  save,
-}) {
-  return (
-    <section className="card">
-      <div className="card-header">
-        <h2>Delivery methods</h2>
-        <button
-          className="btn btn-outline-primary"
-          onClick={() => setMethod(newMethod())}
-        >
-          New method
-        </button>
-      </div>
-      <div className="card-body">
-        {!resource.data?.zones.length && <p>Create a delivery zone before adding a method.</p>}
-        <label>
-          Edit delivery method
-          <select
-            className="form-control"
-            value={method.id || ""}
-            onChange={(e) =>
-              setMethod(
-                resource.data?.methods.find(
-                  (m) => m.id === Number(e.target.value),
-                ) || newMethod(),
-              )
-            }
-          >
-            <option value="">New method</option>
-            {resource.data?.methods.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <form onSubmit={(e) => save(e, "method")} className="add-product-form">
-          <fieldset disabled={pending || !resource.data?.zones.length}>
-            <legend>Delivery method details</legend>
-            <div className="form-row">
-              <label>
-                Zone
-                <select
-                  className="form-control"
-                  required
-                  value={method.shippingZoneId || ""}
-                  onChange={(e) =>
-                    setMethod({ ...method, shippingZoneId: e.target.value })
-                  }
-                >
-                  <option value="">Choose zone</option>
-                  {resource.data?.zones.map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {["name", "code", "currency"].map((field) => (
-                <label key={field}>
-                  {field}
-                  <input
-                    className="form-control"
-                    required
-                    value={method[field]}
-                    maxLength={
-                      field === "currency" ? 3 : field === "code" ? 50 : 120
-                    }
-                    pattern={field === "code" ? "[A-Z0-9_-]+" : undefined}
-                    onChange={(e) =>
-                      setMethod({ ...method, [field]: e.target.value })
-                    }
-                  />
-                </label>
-              ))}
-            </div>
-            <div className="form-row">
-              {numeric.map((field) => (
-                <label key={field}>
-                  {field.replace(/([A-Z])/g, " $1")}
-                  <input
-                    className="form-control"
-                    type="number"
-                    min="0"
-                    step={
-                      field.includes("Days") || field === "displayOrder"
-                        ? 1
-                        : 0.01
-                    }
-                    value={method[field] ?? ""}
-                    onChange={(e) =>
-                      setMethod({
-                        ...method,
-                        [field]:
-                          e.target.value === "" ? null : Number(e.target.value),
-                      })
-                    }
-                  />
-                </label>
-              ))}
-            </div>
-            <div className="form-row">
-              {["isActive", "isPickup", "isDevelopmentValue"].map((field) => (
-                <label key={field}>
-                  <input
-                    type="checkbox"
-                    checked={method[field]}
-                    onChange={(e) =>
-                      setMethod({ ...method, [field]: e.target.checked })
-                    }
-                  />
-                  {{ isActive: 'Active', isPickup: 'Customer pickup', isDevelopmentValue: 'Test rate (excluded from regular checkout)' }[field]}
-                </label>
-              ))}
-            </div>
-            <label>
-              Pickup location
-              <input
-                className="form-control"
-                required={method.isPickup}
-                value={method.pickupLocation || ""}
-                maxLength="500"
-                onChange={(e) =>
-                  setMethod({ ...method, pickupLocation: e.target.value })
-                }
-              />
-            </label>
-            <button className="btn btn-primary" disabled={pending}>
-              Save delivery method
-            </button>
-          </fieldset>
-        </form>
-      </div>
-    </section>
-  );
+import { Checkbox } from '@/features/admin/shared/components/AdminUi.jsx';
+
+export function ShippingMethodForm({ value: method, setValue, resource, formId, pending, save }) {
+  const update = (field, value) => setValue({ ...method, [field]: value });
+  const numberField = (field, label, integer = false) => <label key={field}>{label}{field === 'basePrice' && <span className="admin-required" aria-hidden="true" />}<input className="form-control" type="number" min="0" max={integer ? field === 'displayOrder' ? 2147483647 : 365 : undefined} step={integer ? 1 : 0.01} required={field === 'basePrice'} value={method[field] ?? ''} onChange={e => update(field, e.target.value === '' ? null : Number(e.target.value))} /></label>;
+  return <form id={formId} onSubmit={save} className="add-product-form">
+    <fieldset className="admin-form-fields" disabled={pending}>
+      <section className="admin-form-section" aria-labelledby="method-basic">
+        <h3 id="method-basic">Basic details</h3>
+        <div className="form-row">
+          <label>Delivery zone <span className="admin-required" aria-hidden="true" /><select className="form-control" required data-dialog-autofocus value={method.shippingZoneId || ''} onChange={e => update('shippingZoneId', e.target.value)}><option value="">Choose a zone</option>{resource.data?.zones.map(zone => <option key={zone.id} value={zone.id}>{zone.name}{!zone.isActive && ' (inactive)'}</option>)}</select></label>
+          <label>Name <span className="admin-required" aria-hidden="true" /><input className="form-control" required maxLength={120} value={method.name} onChange={e => update('name', e.target.value)} /></label>
+          <label>Code <span className="admin-required" aria-hidden="true" /><input className="form-control" required maxLength={50} pattern="[A-Z0-9_-]+" title="Use uppercase letters, numbers, underscores or hyphens." value={method.code} onChange={e => update('code', e.target.value)} /></label>
+          <label>Currency <span className="admin-required" aria-hidden="true" /><input className="form-control" required maxLength={3} pattern="[A-Z]{3}" value={method.currency} onChange={e => update('currency', e.target.value)} /><small className="admin-helper">Use the currency approved for this delivery method.</small></label>
+        </div>
+      </section>
+      <section className="admin-form-section" aria-labelledby="method-pricing">
+        <h3 id="method-pricing">Pricing</h3>
+        <p className="admin-helper">Enter approved rates only. Leave optional thresholds blank when they do not apply.</p>
+        <div className="form-row">{numberField('basePrice', 'Base price')}{numberField('freeShippingThreshold', 'Free-shipping threshold')}{numberField('minimumOrderValue', 'Minimum order value')}{numberField('maximumOrderValue', 'Maximum order value')}</div>
+      </section>
+      <section className="admin-form-section" aria-labelledby="method-estimates">
+        <h3 id="method-estimates">Estimated delivery</h3>
+        <div className="form-row">{numberField('estimatedMinimumDays', 'Minimum delivery days', true)}{numberField('estimatedMaximumDays', 'Maximum delivery days', true)}</div>
+      </section>
+      <section className="admin-form-section" aria-labelledby="method-availability">
+        <h3 id="method-availability">Availability</h3>
+        {numberField('displayOrder', 'Display order', true)}
+        <div className="admin-check-grid">
+          <Checkbox label="Active method" checked={method.isActive} onChange={e => update('isActive', e.target.checked)} />
+          <Checkbox label="Customer pickup" checked={method.isPickup} onChange={e => update('isPickup', e.target.checked)} />
+          <Checkbox label="Test rate (excluded from regular checkout)" description="Production checkout continues to exclude development rates." checked={method.isDevelopmentValue} onChange={e => update('isDevelopmentValue', e.target.checked)} />
+        </div>
+      </section>
+      {method.isPickup && <section className="admin-form-section" aria-labelledby="method-pickup"><h3 id="method-pickup">Pickup configuration</h3><label>Pickup location <span className="admin-required" aria-hidden="true" /><input className="form-control" required maxLength={500} value={method.pickupLocation || ''} onChange={e => update('pickupLocation', e.target.value)} /></label></section>}
+    </fieldset>
+  </form>;
 }

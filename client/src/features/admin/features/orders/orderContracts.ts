@@ -4,6 +4,9 @@ export interface OrderFilters {
   pageSize?: number;
   search?: string;
   status?: string;
+  from?: string;
+  to?: string;
+  sort?: string;
 }
 export interface OrderList {
   orders: Array<

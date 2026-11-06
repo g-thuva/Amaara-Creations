@@ -1,9 +1,10 @@
-import AppIcon from '@/shared/components/ui/Icon.jsx';
-import { DataTable } from '@/features/admin/shared/components/DataTable.jsx';
-export function SettingsList({ items, setForm }) {
-  return <DataTable caption="Site settings" rows={items} empty="No settings yet" emptyDescription="Configured store settings will appear here." columns={[
-    { key: 'key', label: 'Key' }, { key: 'value', label: 'Value', truncate: true }, { key: 'valueType', label: 'Type' },
-    { key: 'isPublic', label: 'Public', render: item => item.isPublic ? 'Yes' : 'No' },
-    { key: 'actions', label: 'Actions', render: item => <button className="btn-edit" aria-label={`Edit ${item.key}`} onClick={() => setForm(item)}><AppIcon name="edit" /></button> },
+import { DataTable, Button, StatusChip } from '@/features/admin/shared/components/AdminUi.jsx';
+export function SettingsList({ items, open, disabled }) {
+  return <DataTable caption="Supported store settings" rows={items} empty="No settings match" emptyDescription="Try another search or settings group." columns={[
+    { key: 'label', label: 'Setting' }, { key: 'group', label: 'Group' },
+    { key: 'value', label: 'Value', truncate: true, render: item => item.configured ? item.value : 'Using store default' },
+    { key: 'isPublic', label: 'Visibility', render: item => <StatusChip status={!item.configured ? 'Default' : item.isPublic ? 'Active' : 'Disabled'} /> },
+    { key: 'description', label: 'Used by' },
+    { key: 'actions', label: 'Actions', render: item => <Button variant="secondary" size="small" disabled={disabled} aria-label={(item.configured ? 'Edit ' : 'Configure ') + item.label} onClick={() => open(item)}>{item.configured ? 'Edit' : 'Configure'}</Button> },
   ]} />;
 }

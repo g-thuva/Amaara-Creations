@@ -5,16 +5,13 @@ import { ResourceState } from "@/features/admin/shared/components/ResourceState.
 import { Pagination } from "@/features/admin/shared/components/Pagination.jsx";
 import { PageHeader } from '@/features/admin/shared/components/PageHeader.jsx';
 export default function OrdersPage() {
-  const { page, setPage, search, setSearch, status, setStatus, resource } =
-    useOrders();
+  const feature = useOrders();
+  const { page, setPage, resource } = feature;
   return (
     <div className="admin-page">
       <PageHeader title="Order management" description="Find orders, review verified payments and manage fulfilment." />
       <OrderFilters
-        search={search}
-        setSearch={setSearch}
-        status={status}
-        setStatus={setStatus}
+        {...feature}
       />
       <ResourceState resource={resource}>
         <OrdersTable resource={resource} />
