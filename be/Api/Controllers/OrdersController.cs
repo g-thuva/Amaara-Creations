@@ -30,9 +30,9 @@ public sealed class OrdersController(OrderService service) : ControllerBase
 
     [HttpGet("/api/v1/admin/orders")]
     [Authorize(Policy = AppPolicies.ViewOrders)]
-    public async Task<IActionResult> GetAllOrders(string? status = null, string? search = null, int pageNumber = 1, int pageSize = 20, CancellationToken ct = default)
+    public async Task<IActionResult> GetAllOrders(string? status = null, string? search = null, int pageNumber = 1, int pageSize = 20, CancellationToken ct = default, DateTime? from = null, DateTime? to = null, string? sort = null)
     {
-        return Ok(await service.GetAllOrders(status, search, pageNumber, pageSize, ct));
+        return Ok(await service.GetAllOrders(status, search, pageNumber, pageSize, ct, from, to, sort));
     }
 
     [HttpGet("/api/v1/admin/orders/{id:int}")]

@@ -1,7 +1,7 @@
 using be.Domain.Common;
 using be.Application.Features.Checkout;
 using be.Application.Features.Orders;
-using be.Domain.Audit;
+using be.Application.Abstractions.Audit;
 using be.Domain.Shipping;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +9,7 @@ using be.Application.Abstractions.Persistence;
 using be.Application.Abstractions.Identity;
 
 namespace be.Application.Features.Shipping;
-public sealed class ShippingManagementService(IApplicationDbContext db, OrderLifecycleService lifecycle, IRequestActor _actor)
+public sealed class ShippingManagementService(IApplicationDbContext db, OrderLifecycleService lifecycle, IRequestActor _actor, IAuditService audit)
 {
     public async Task<object?> Get(CancellationToken ct) => new
     {
@@ -26,6 +26,7 @@ public sealed class ShippingManagementService(IApplicationDbContext db, OrderLif
     {
         await using var tx = await db.BeginCommerceTransactionAsync(ct);
         var zone = id.HasValue ? await db.ShippingZones.SingleOrDefaultAsync(z => z.Id == id, ct) ?? throw new CommerceException("SHIPPING_ZONE_NOT_FOUND", "Shipping zone not found.", 404) : new ShippingZone();
+        var previous = id.HasValue ? ZoneSnapshot(zone) : null;
         if (await db.ShippingZones.AnyAsync(z => z.Name == r.Name.Trim() && z.Id != zone.Id, ct))
             throw new CommerceException("SHIPPING_ZONE_DUPLICATE", "A zone with this name already exists.", 409);
         zone.Name = r.Name.Trim();
@@ -38,8 +39,8 @@ public sealed class ShippingManagementService(IApplicationDbContext db, OrderLif
         zone.RequiresPostalCode = r.RequiresPostalCode;
         if (!id.HasValue)
             db.ShippingZones.Add(zone);
-        Audit("ShippingZoneChanged", id?.ToString());
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync("ShippingZoneChanged", nameof(ShippingZone), zone.Id.ToString(), previous, ZoneSnapshot(zone), _actor.Audit, ct);
         if (tx != null)
             await tx.CommitAsync(ct);
         return new
@@ -59,6 +60,7 @@ public sealed class ShippingManagementService(IApplicationDbContext db, OrderLif
         if (!await db.ShippingZones.AnyAsync(z => z.Id == r.ShippingZoneId, ct))
             throw new CommerceException("SHIPPING_ZONE_NOT_FOUND", "Shipping zone not found.", 404);
         var m = id.HasValue ? await db.ShippingMethods.SingleOrDefaultAsync(m => m.Id == id, ct) ?? throw new CommerceException("SHIPPING_METHOD_NOT_FOUND", "Shipping method not found.", 404) : new ShippingMethod();
+        var previous = id.HasValue ? MethodSnapshot(m) : null;
         if (await db.ShippingMethods.AnyAsync(m => m.Code == r.Code && m.Id != (id ?? 0), ct))
             throw new CommerceException("SHIPPING_CODE_DUPLICATE", "This delivery code already exists.", 409);
         m.ShippingZoneId = r.ShippingZoneId;
@@ -78,8 +80,8 @@ public sealed class ShippingManagementService(IApplicationDbContext db, OrderLif
         m.DisplayOrder = r.DisplayOrder;
         if (!id.HasValue)
             db.ShippingMethods.Add(m);
-        Audit("ShippingMethodChanged", id?.ToString());
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync("ShippingMethodChanged", nameof(ShippingMethod), m.Id.ToString(), previous, MethodSnapshot(m), _actor.Audit, ct);
         if (tx != null)
             await tx.CommitAsync(ct);
         return new
@@ -103,5 +105,6 @@ public sealed class ShippingManagementService(IApplicationDbContext db, OrderLif
         };
     }
 
-    private void Audit(string action, string? id) => db.AuditLogs.Add(new AuditLog { ActorUserId = _actor.User.FindFirstValue(ClaimTypes.NameIdentifier), Action = action, EntityType = "Shipping", EntityId = id });
+    private static object ZoneSnapshot(ShippingZone z) => new { z.Name, z.Country, z.Region, z.PostalCodePrefix, z.IsActive, z.RequiresPhone, z.RequiresRegion, z.RequiresPostalCode };
+    private static object MethodSnapshot(ShippingMethod m) => new { m.Name, m.Code, m.ShippingZoneId, m.Currency, m.BasePrice, m.FreeShippingThreshold, m.MinimumOrderValue, m.MaximumOrderValue, m.EstimatedMinimumDays, m.EstimatedMaximumDays, m.IsActive, m.IsPickup, m.PickupLocation, m.IsDevelopmentValue, m.DisplayOrder };
 }

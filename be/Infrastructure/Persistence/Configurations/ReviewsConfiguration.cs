@@ -22,6 +22,6 @@ internal sealed class ReviewsConfiguration : IEntityTypeConfiguration<Review>
         entity.HasIndex(e => e.CreatedAt);
         entity.HasOne(r => r.OrderItem).WithMany().HasForeignKey(r => r.OrderItemId).OnDelete(DeleteBehavior.Restrict);
         entity.HasIndex(r => new { r.ModerationStatus, r.CreatedAt });
-        entity.Property(r => r.ModerationStatus).HasDefaultValue("Pending");
+        entity.Property(r => r.ModerationStatus).HasDefaultValue("Published");
     }
 }

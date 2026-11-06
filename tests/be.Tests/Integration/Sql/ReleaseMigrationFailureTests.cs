@@ -28,7 +28,8 @@ public sealed class ReleaseMigrationFailureTests
         var user = new User { Name = "Failure rehearsal", UserName = "failure@example.test" };
         var lkr = new Product { Name = "Historical LKR", Slug = "failure-lkr", Currency = "LKR", Price = 125.50m, BasePrice = 125.50m, Stock = 7 };
         var chf = new Product { Name = "Explicit CHF", Slug = "failure-chf", Currency = "CHF", Price = 25.25m, BasePrice = 25.25m, Stock = 3 };
-        seed.AddRange(user, lkr, chf);
+        await LegacyIdentityFixture.Insert(seed, user);
+        seed.AddRange(lkr, chf);
         await seed.SaveChangesAsync();
         foreach (var product in new[] { lkr, chf })
             seed.Orders.Add(new Order { UserId = user.Id, OrderNumber = "FAILURE-" + product.Currency, Currency = product.Currency, Subtotal = product.Price, Total = product.Price,

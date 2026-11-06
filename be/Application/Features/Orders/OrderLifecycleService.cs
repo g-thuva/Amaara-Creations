@@ -24,8 +24,9 @@ public sealed class OrderLifecycleService(IApplicationDbContext db, InventoryRes
             throw new CommerceException("PAYMENT_CANCELLATION_REQUIRED", "Resolve the payment before cancelling this order.", 409);
         if (target == OrderStatus.Cancelled)
             await inventory.ReleaseAsync(id, ct);
+        var previous = order.Status.ToString();
         History(order, target, actor, reason ?? "Administrator transition.");
-        db.AuditLogs.Add(new AuditLog { ActorUserId = actor, Action = "OrderStatusChanged", EntityType = "Order", EntityId = id.ToString(), NewValuesJson = System.Text.Json.JsonSerializer.Serialize(new { Status = target.ToString(), Reason = reason }) });
+        db.AuditLogs.Add(new AuditLog { ActorUserId = actor, Action = "OrderStatusChanged", EntityType = "Order", EntityId = id.ToString(), OldValuesJson = System.Text.Json.JsonSerializer.Serialize(new { Status = previous }), NewValuesJson = System.Text.Json.JsonSerializer.Serialize(new { Status = target.ToString(), Reason = reason }) });
         await db.SaveChangesAsync(ct);
         if (tx != null)
             await tx.CommitAsync(ct);

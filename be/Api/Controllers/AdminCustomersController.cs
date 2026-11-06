@@ -5,14 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace be.Api.Controllers;
 [ApiController, Route("api/v1/admin"), Authorize(Policy = AppPolicies.AdminAccess)]
-public sealed class AdminCustomersController(CustomerQueries customerQueries, CustomerOperationsQueries customerOperationsQueries) : ControllerBase
+public sealed class AdminCustomersController(CustomerQueries customerQueries, CustomerOperationsQueries customerOperationsQueries, CustomerAccountService accounts) : ControllerBase
 {
     // GET: api/admin/customers - Get all customers
     [HttpGet("customers")]
     [Authorize(Policy = AppPolicies.ManageCustomers)]
-    public async Task<ActionResult> GetAllCustomers([FromQuery] string? search = null, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
+    public async Task<ActionResult> GetAllCustomers([FromQuery] string? search = null, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, [FromQuery] string? status = null, [FromQuery] string? sort = null)
     {
-        return Ok(await customerQueries.GetAllCustomers(search, pageNumber, pageSize));
+        return Ok(await customerQueries.GetAllCustomers(search, pageNumber, pageSize, status, sort));
     }
 
     // GET: api/admin/customers/{id} - Get customer details
@@ -43,5 +43,12 @@ public sealed class AdminCustomersController(CustomerQueries customerQueries, Cu
     public async Task<IActionResult> Customer(string id, CancellationToken ct)
     {
         return Ok(await customerOperationsQueries.Customer(id, ct));
+    }
+
+    [HttpPut("customers/{id}/status"), Authorize(Policy = AppPolicies.ManageCustomerAccess)]
+    public async Task<IActionResult> ChangeStatus(string id, CustomerAccountRequest request, CancellationToken ct)
+    {
+        await accounts.Change(id, request, ct);
+        return NoContent();
     }
 }

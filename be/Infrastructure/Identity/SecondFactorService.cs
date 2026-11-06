@@ -97,7 +97,7 @@ public sealed partial class SecondFactorService(UserManager<User> users, IUserSt
 
     private async Task<bool> Password(User user, string password)
     {
-        if (await users.IsLockedOutAsync(user)) return false;
+        if (user.AccountStatus != CustomerAccountStatus.Active || await users.IsLockedOutAsync(user)) return false;
         if (await users.CheckPasswordAsync(user, password)) return true;
         await users.AccessFailedAsync(user);
         return false;
@@ -105,7 +105,7 @@ public sealed partial class SecondFactorService(UserManager<User> users, IUserSt
 
     private async Task<bool> VerifyCore(User user, string? code, string? recoveryCode)
     {
-        if (!user.TwoFactorEnabled || await users.IsLockedOutAsync(user)) return false;
+        if (!user.TwoFactorEnabled || user.AccountStatus != CustomerAccountStatus.Active || await users.IsLockedOutAsync(user)) return false;
         var valid = false;
         if (!string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(recoveryCode))
         {

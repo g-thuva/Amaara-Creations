@@ -8,13 +8,13 @@ public sealed class CustomerOperationsQueries(IApplicationDbContext db)
 {
     public async Task<object?> Customer(string id, CancellationToken ct)
     {
+        var customerRole = await db.Roles.Where(r => r.Name == AppRoles.Customer).Select(r => r.Id).SingleOrDefaultAsync(ct);
         var customer = await db.Users.AsNoTracking()
             .Where(u => u.Id == id)
-            .Select(u => new { u.Id, u.Name, u.Email, u.Phone, u.CreatedAt, u.EmailConfirmed, Locked = u.LockoutEnabled && u.LockoutEnd > DateTimeOffset.UtcNow })
+            .Select(u => new { u.Id, u.Name, u.Email, u.Phone, u.CreatedAt, u.EmailConfirmed, AccountStatus = u.AccountStatus.ToString(), u.AccountStatusReason, u.AccountStatusChangedAt, Version = u.ConcurrencyStamp, CanManageAccess = !db.UserRoles.Any(assignment => assignment.UserId == u.Id && assignment.RoleId != customerRole), Locked = u.LockoutEnabled && u.LockoutEnd > DateTimeOffset.UtcNow })
             .SingleOrDefaultAsync(ct);
         if (customer == null)
             throw new CommerceException("REPORTING_NOT_FOUND", "Resource not found.", 404);
-        var customerRole = await db.Roles.Where(r => r.Name == AppRoles.Customer).Select(r => r.Id).SingleOrDefaultAsync(ct);
         if (!await db.UserRoles.AnyAsync(r => r.UserId == id && r.RoleId == customerRole, ct))
             throw new CommerceException("REPORTING_NOT_FOUND", "Resource not found.", 404);
         return new
@@ -42,6 +42,12 @@ public sealed class CustomerOperationsQueries(IApplicationDbContext db)
             .Take(50)
             .Select(d => new { d.Id, d.Name, Status = d.Status.ToString(), ProductionStatus = d.ProductionStatus.ToString(), ProofStatus = d.ProofStatus.ToString() })
             .ToListAsync(ct),
+            activity = await db.AuditLogs.AsNoTracking().Where(a => a.EntityType == "User" && a.EntityId == id && a.Action == "CustomerAccountStatusChanged")
+                .OrderByDescending(a => a.Id).Take(30)
+                .Select(a => new { a.Action, a.CreatedAt, ActorName = a.ActorUser != null ? a.ActorUser.Name : "System", a.OldValuesJson, a.NewValuesJson }).ToListAsync(ct),
+            removalRequests = await db.CustomerRequests.AsNoTracking().Where(r => r.UserId == id && r.Kind == CustomerRequestKind.PrivacyDeletion)
+                .OrderByDescending(r => r.CreatedAt).Take(10)
+                .Select(r => new { r.Id, Status = r.Status.ToString(), r.CreatedAt }).ToListAsync(ct),
             reviews = await db.Reviews.AsNoTracking()
             .Where(r => r.UserId == id)
             .OrderByDescending(r => r.Id)

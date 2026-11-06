@@ -19,7 +19,7 @@ public sealed class ReviewModerationTests
     [InlineData(OrderStatus.Confirmed, 100, 0, false)]
     [InlineData(OrderStatus.PendingPayment, 0, 0, false)]
     [InlineData(OrderStatus.Completed, 100, 100, false)]
-    public async Task VerificationUsesFulfilledPaidOrderItemsAndPublicationRequiresModeration(OrderStatus status, int settled, int refunded, bool verified)
+    public async Task ReviewsPublishDirectlyAndVerificationUsesFulfilledPaidOrderItems(OrderStatus status, int settled, int refunded, bool verified)
     {
         await using var factory = new CommerceApiFactory();
         using var client = factory.CreateClient();
@@ -74,12 +74,16 @@ public sealed class ReviewModerationTests
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(verified, created.GetProperty("verifiedPurchase").GetBoolean());
-        Assert.Equal("Pending", created.GetProperty("moderationStatus").GetString());
+        Assert.Equal("Published", created.GetProperty("moderationStatus").GetString());
         var publicBefore = await client.GetFromJsonAsync<JsonElement>($"/api/v1/products/{product.Id}/reviews");
-        Assert.Equal(0, publicBefore.GetProperty("totalCount").GetInt32());
+        Assert.Equal(1, publicBefore.GetProperty("totalCount").GetInt32());
         client.DefaultRequestHeaders.Remove("X-Test-User");
         client.DefaultRequestHeaders.Add("X-Test-User", "admin");
         var id = created.GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsJsonAsync($"/api/v1/admin/reviews/{id}/moderation", new { status = "Hidden", reason = "Test hide decision", rowVersion = "" })).StatusCode);
+        var hidden = await client.GetFromJsonAsync<JsonElement>($"/api/v1/products/{product.Id}/reviews");
+        Assert.Equal(0, hidden.GetProperty("totalCount").GetInt32());
+        Assert.Equal(0, hidden.GetProperty("averageRating").GetDouble());
         Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsJsonAsync($"/api/v1/admin/reviews/{id}/moderation", new { status = "Published", reason = "Test moderation", rowVersion = "" })).StatusCode);
         var publicJson = await client.GetStringAsync($"/api/v1/products/{product.Id}/reviews");
         Assert.Contains("Test review", publicJson);
@@ -93,7 +97,7 @@ public sealed class ReviewModerationTests
     }
 
     [Fact]
-    public async Task OwnerEditReturnsReviewToModerationAndOtherCustomersCannotEditOrDelete()
+    public async Task PublishedOwnerEditsStayPublishedAndOtherCustomersCannotEditOrDelete()
     {
         await using var factory = new CommerceApiFactory();
         using var client = factory.CreateClient();
@@ -126,10 +130,34 @@ public sealed class ReviewModerationTests
         client.DefaultRequestHeaders.Remove("X-Test-User");
         client.DefaultRequestHeaders.Add("X-Test-User", "a");
         Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/v1/reviews/{review.Id}", new { rating = 4, comment = "Edited text" })).StatusCode);
-        Assert.DoesNotContain("Edited text", await client.GetStringAsync($"/api/v1/products/{product.Id}/reviews"));
+        Assert.Contains("Edited text", await client.GetStringAsync($"/api/v1/products/{product.Id}/reviews"));
         Assert.Contains("Edited text", await client.GetStringAsync("/api/v1/reviews/mine"));
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/v1/reviews/{review.Id}")).StatusCode);
         Assert.Equal("[]", await client.GetStringAsync("/api/v1/reviews/mine"));
         Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync($"/api/v1/products/{product.Id}/reviews", new { rating = 5, comment = "Replacement text" })).StatusCode);
+    }
+
+    [Fact]
+    public async Task HiddenAndRemovedReviewsCannotBeRepublishedByTheirOwnerAndHistoryIsRestricted()
+    {
+        await using var factory = new CommerceApiFactory(); using var client = factory.CreateClient();
+        using var scope = factory.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var review = new Review { User = new User { Id = "a", Name = "Owner", UserName = "owner@example.test" }, Product = new Product { Name = "Fixture", Slug = "moderation-fixture" }, Rating = 5, Comment = "Original feedback", ModerationStatus = "Hidden", ModerationReason = "Investigating documented abuse" };
+        db.Reviews.Add(review); await db.SaveChangesAsync();
+        client.DefaultRequestHeaders.Add("X-Test-User", "a");
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/v1/reviews/{review.Id}", new { rating = 4, comment = "Edited while hidden" })).StatusCode);
+        Assert.DoesNotContain("Edited while hidden", await client.GetStringAsync($"/api/v1/products/{review.ProductId}/reviews"));
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/v1/admin/reviews/{review.Id}/history")).StatusCode);
+        client.DefaultRequestHeaders.Remove("X-Test-User"); client.DefaultRequestHeaders.Add("X-Test-User", "admin");
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PutAsJsonAsync($"/api/v1/admin/reviews/{review.Id}/moderation", new { status = "Removed", reason = "Remove after review", rowVersion = "stale-version" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsJsonAsync($"/api/v1/admin/reviews/{review.Id}/moderation", new { status = "Removed", reason = "Remove after review", rowVersion = "" })).StatusCode);
+        var history = await client.GetFromJsonAsync<JsonElement>($"/api/v1/admin/reviews/{review.Id}/history");
+        Assert.Equal(2, history.GetProperty("totalCount").GetInt32());
+        Assert.Contains("Remove after review", history.ToString());
+        client.DefaultRequestHeaders.Remove("X-Test-User"); client.DefaultRequestHeaders.Add("X-Test-User", "a");
+        Assert.Equal(HttpStatusCode.NotFound, (await client.PutAsJsonAsync($"/api/v1/reviews/{review.Id}", new { rating = 5, comment = "Try editing removed feedback" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync($"/api/v1/reviews/{review.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync($"/api/v1/products/{review.ProductId}/reviews", new { rating = 5, comment = "Try replacing removed feedback" })).StatusCode);
+        Assert.DoesNotContain("Edited while hidden", await client.GetStringAsync($"/api/v1/products/{review.ProductId}/reviews"));
     }
 }

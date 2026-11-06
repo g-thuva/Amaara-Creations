@@ -88,7 +88,7 @@ namespace be.Infrastructure.Identity
             }
 
             var user = await _userManager.FindByIdAsync(session.UserId);
-            if (user == null || !user.EmailConfirmed || await _userManager.IsLockedOutAsync(user))
+            if (user == null || user.AccountStatus != CustomerAccountStatus.Active || !user.EmailConfirmed || await _userManager.IsLockedOutAsync(user))
             {
                 session.RevokedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync(cancellationToken);

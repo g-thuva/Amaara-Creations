@@ -23,7 +23,7 @@ public sealed partial class SecondFactorService
         var verifiedStamp = user.SecurityStamp;
         return Locked(user, async () =>
         {
-            if (user.SecurityStamp != verifiedStamp || !user.EmailConfirmed || await users.IsLockedOutAsync(user)) throw Expired();
+            if (user.SecurityStamp != verifiedStamp || !user.EmailConfirmed || user.AccountStatus != CustomerAccountStatus.Active || await users.IsLockedOutAsync(user)) throw Expired();
             var roles = await users.GetRolesAsync(user);
             if (RoleSet(roles) != RoleSet(verifiedRoles) || !AppRoles.CanBeginSignIn(roles, management)) throw Expired();
             var recoveryRequired = await RecoveryRequiredAsync(user, ct);
@@ -60,7 +60,7 @@ public sealed partial class SecondFactorService
             var roles = await users.GetRolesAsync(user);
             if (state == null || state.Management != management || !AppRoles.CanBeginSignIn(roles, management) || state.Expires <= clock.GetUtcNow().ToUnixTimeSeconds() || state.Stamp != user.SecurityStamp || state.Roles != RoleSet(roles) ||
                 !CryptographicOperations.FixedTimeEquals(Convert.FromHexString(state.NonceHash), Convert.FromHexString(Hash(ticket.Nonce))) ||
-                !user.EmailConfirmed || await users.IsLockedOutAsync(user)) throw Expired();
+                !user.EmailConfirmed || user.AccountStatus != CustomerAccountStatus.Active || await users.IsLockedOutAsync(user)) throw Expired();
             if (!roles.Any(AppRoles.AdministrativeRoles.Contains) && !roles.Contains(AppRoles.Customer)) throw Expired();
 
             if (operation == "cancel")

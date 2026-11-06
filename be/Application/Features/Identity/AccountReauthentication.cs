@@ -12,7 +12,7 @@ public sealed class AccountReauthentication(UserManager<User> users, ISecondFact
         var id = actor.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var user = id == null ? null : await users.FindByIdAsync(id);
         if (user == null) throw new CommerceException("AUTHENTICATION_REQUIRED", "Please sign in.", 401);
-        if (await users.IsLockedOutAsync(user)) throw Invalid();
+        if (user.AccountStatus != CustomerAccountStatus.Active || await users.IsLockedOutAsync(user)) throw Invalid();
         if (!await users.CheckPasswordAsync(user, request.Password)) { await users.AccessFailedAsync(user); throw Invalid(); }
         if (user.TwoFactorEnabled && !await factors.VerifyAsync(user, request.AuthenticatorCode, request.RecoveryCode, ct)) throw Invalid();
         await users.ResetAccessFailedCountAsync(user);

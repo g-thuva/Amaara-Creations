@@ -31,7 +31,8 @@ public sealed class VariantMigrationAndRaceTests
         await migrator.MigrateAsync(previous);
         var user = new User { Name = "Upgrade", UserName = "upgrade@example.test", Email = "upgrade@example.test" };
         var product = new Product { Name = "Upgrade", Slug = "upgrade", Price = 100, BasePrice = 100, Stock = 100 };
-        db.AddRange(user, product); await db.SaveChangesAsync();
+        await LegacyIdentityFixture.Insert(db, user);
+        db.Add(product); await db.SaveChangesAsync();
         // Create a cart line using only columns present in the old schema.
         await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [CartItems] ([UserId],[ProductId],[ItemType],[Quantity],[UnitPriceSnapshot],[CreatedAt],[UpdatedAt]) VALUES ({user.Id},{product.Id},0,2,100,GETUTCDATE(),GETUTCDATE());");
         await migrator.MigrateAsync();

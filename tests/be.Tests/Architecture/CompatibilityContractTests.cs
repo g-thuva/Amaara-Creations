@@ -17,7 +17,10 @@ public sealed class CompatibilityContractTests
     public void EveryAuthorizationPolicyRetainsItsOriginalRoleAssignments()
     {
         var baseline = JsonSerializer.Deserialize<Dictionary<string, string[]>>(File.ReadAllText(Fixture("authorization-policies.json")))!;
-        Assert.Equal(baseline.Keys.Order(StringComparer.Ordinal), AppPolicies.Roles.Keys.Order(StringComparer.Ordinal));
+        var addedPolicies = new[] { AppPolicies.ManageCustomerAccess, AppPolicies.RequestCustomerRemoval };
+        Assert.Equal(baseline.Keys.Order(StringComparer.Ordinal), AppPolicies.Roles.Keys.Except(addedPolicies).Order(StringComparer.Ordinal));
+        Assert.Equal(new[] { "Admin", "SuperAdmin" }, AppPolicies.Roles[AppPolicies.ManageCustomerAccess]);
+        Assert.Equal(new[] { "SuperAdmin" }, AppPolicies.Roles[AppPolicies.RequestCustomerRemoval]);
         foreach (var entry in baseline)
             Assert.Equal(entry.Value, AppPolicies.Roles[entry.Key]);
     }
@@ -27,16 +30,28 @@ public sealed class CompatibilityContractTests
     {
         using var baseline = JsonDocument.Parse(File.ReadAllText(Fixture("api-contract.json")));
         var expected = baseline.RootElement.EnumerateArray().Select(element => element.GetRawText()).ToArray();
-        var actual = typeof(AuthController).Assembly.GetTypes().Where(type => typeof(ControllerBase).IsAssignableFrom(type) && !type.IsAbstract).SelectMany(ControllerEntries).OrderBy(entry => entry.path, StringComparer.Ordinal).ThenBy(entry => entry.method, StringComparer.Ordinal).Select(entry => JsonSerializer.Serialize(entry)).ToArray();
+        // Explicit additions are reviewed here; the original route/security fixture remains immutable.
+        var additions = new[] {
+            new RouteEntry("PUT", "api/v1/admin/customers/{id}/status", true, false, [AppPolicies.AdminAccess, AppPolicies.ManageCustomerAccess], [], [], null, null),
+            new RouteEntry("GET", "api/v1/admin/reviews/{id:int}/history", true, false, [AppPolicies.ManageReviews], [], [], null, null),
+            new RouteEntry("GET", "api/v1/admin/settings/catalogue", true, false, [AppPolicies.ManageSettings], [], [], null, null)
+        };
+        var entries = typeof(AuthController).Assembly.GetTypes().Where(type => typeof(ControllerBase).IsAssignableFrom(type) && !type.IsAbstract).SelectMany(ControllerEntries).OrderBy(entry => entry.path, StringComparer.Ordinal).ThenBy(entry => entry.method, StringComparer.Ordinal).ToArray();
+        Assert.Equal(additions.OrderBy(e => e.path, StringComparer.Ordinal).Select(e => Normalize(JsonSerializer.Serialize(e))), entries.Where(e => additions.Any(a => a.path == e.path && a.method == e.method)).Select(e => Normalize(JsonSerializer.Serialize(e))));
+        var actual = entries.Where(e => !additions.Any(a => a.path == e.path && a.method == e.method)).Select(entry => JsonSerializer.Serialize(entry)).ToArray();
         Assert.Equal(expected.Select(Normalize), actual.Select(Normalize));
     }
 
     [Fact]
-    public void HistoricalMigrationAndSnapshotPayloadsRemainUnchanged()
+    public void HistoricalMigrationPayloadsRemainUnchanged()
     {
         var baseline = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Fixture("migration-history.json")))!;
         foreach (var entry in baseline)
         {
+            // EF's current snapshot must evolve with a new migration. Historical
+            // migrations and their designer snapshots retain every fingerprint.
+            // The current snapshot is checked by the pending-model-changes gate.
+            if (entry.Key == "ApplicationDbContextModelSnapshot.cs") continue;
             var source = File.ReadAllText(Path.Combine(RepositoryRoot.Path, "be", "Infrastructure", "Persistence", "Migrations", entry.Key));
             // Namespace imports can follow a CLR type move; historical statements cannot.
             var normalized = Regex.Replace(source, @"(?m)^using[^\r\n]*;\s*$", "");

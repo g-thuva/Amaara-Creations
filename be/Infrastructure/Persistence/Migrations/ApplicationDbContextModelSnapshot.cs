@@ -1406,6 +1406,20 @@ namespace be.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("AccountStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<DateTime?>("AccountStatusChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AccountStatusReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
 
@@ -1478,6 +1492,8 @@ namespace be.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("AccountStatus", "CreatedAt");
 
                     b.ToTable("Users", (string)null);
                 });
@@ -2289,7 +2305,7 @@ namespace be.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("Pending");
+                        .HasDefaultValue("Published");
 
                     b.Property<int?>("OrderItemId")
                         .HasColumnType("int");

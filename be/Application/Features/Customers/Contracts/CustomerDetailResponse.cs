@@ -2,6 +2,7 @@ namespace be.Application.Features.Customers
 {
     public class CustomerDetailResponse
     {
+        public string AccountStatus { get; set; } = "Active";
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;

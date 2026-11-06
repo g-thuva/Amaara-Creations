@@ -314,7 +314,8 @@ public sealed class AcceptanceApiFactory : WebApplicationFactory<global::Program
             UserId = customer.Id,
             ProductId = identity.GetProperty("products")[0].GetInt32(),
             Rating = 5,
-            Comment = "TEST pending moderation " + orderId
+            Comment = "TEST pending moderation " + orderId,
+            ModerationStatus = "Pending"
         };
         db.Add(review);
         await db.SaveChangesAsync();

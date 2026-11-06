@@ -58,7 +58,7 @@ public static class AuthenticationExtensions
                         var manager = context.HttpContext.RequestServices.GetRequiredService<UserManager<User>>();
                         var id = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                         var user = id == null ? null : await manager.FindByIdAsync(id);
-                        if (user == null || !user.EmailConfirmed || await manager.IsLockedOutAsync(user))
+                        if (user == null || user.AccountStatus != CustomerAccountStatus.Active || !user.EmailConfirmed || await manager.IsLockedOutAsync(user))
                         {
                             context.Fail("Account unavailable");
                             return;
@@ -127,7 +127,7 @@ public static class AuthenticationExtensions
                 .RequireAssertion(context => !AppRoles.AdministrativeRoles.Any(context.User.IsInRole)));
             foreach (var entry in AppPolicies.Roles)
                 options.AddPolicy(entry.Key, policy => policy.RequireAuthenticatedUser().RequireRole(entry.Value)
-                    .AddRequirements(new StaffAuthorization(entry.Key is AppPolicies.RefundPayments or AppPolicies.ManageStaff or AppPolicies.ManageSettings or AppPolicies.ViewReports)));
+                    .AddRequirements(new StaffAuthorization(entry.Key is AppPolicies.ManageCustomerAccess or AppPolicies.RequestCustomerRemoval or AppPolicies.RefundPayments or AppPolicies.ManageStaff or AppPolicies.ManageSettings or AppPolicies.ViewReports)));
         });
         builder.Services.AddSingleton<IAuthorizationHandler, StaffAuthorizationHandler>();
     }

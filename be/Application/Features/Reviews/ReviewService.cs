@@ -41,7 +41,7 @@ public sealed class ReviewService(IApplicationDbContext db, IAuditService audit,
             throw new CommerceException("REVIEWS_NOT_FOUND", "Resource not found.", 404);
         await using var tx = await db.BeginCommerceTransactionAsync(ct);
         var existing = await db.Reviews.SingleOrDefaultAsync(r => r.UserId == userId && r.ProductId == productId, ct);
-        if (existing != null && existing.ModerationStatus != "Deleted")
+        if (existing != null && (existing.ModerationStatus != "Deleted" || existing.ModerationReason != null))
             throw new CommerceException("REVIEWS_CONFLICT", "You have already reviewed this product. Edit your existing review.", 409);
         var itemId = await db.OrderItems.Where(i => i.ProductId == productId && i.Order!.UserId == userId && (i.Order.Status == OrderStatus.Completed || i.Order.Status == OrderStatus.Delivered) && i.Order.Payments.Any(p => p.SettledAmount > p.RefundedAmount))
             .OrderByDescending(i => i.Id)
@@ -55,12 +55,13 @@ public sealed class ReviewService(IApplicationDbContext db, IAuditService audit,
         review.Rating = request.Rating;
         review.Comment = request.Comment?.Trim();
         review.OrderItemId = itemId;
-        review.ModerationStatus = "Pending";
+        review.ModerationStatus = "Published";
         review.ModerationReason = null;
         review.UpdatedAt = DateTime.UtcNow;
         if (existing == null)
             db.Reviews.Add(review);
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync("ReviewPublishedByOwner", "Review", review.Id.ToString(), null, new { Status = "Published" }, _actor.Audit, ct);
         if (tx != null)
             await tx.CommitAsync(ct);
         return new
@@ -74,7 +75,7 @@ public sealed class ReviewService(IApplicationDbContext db, IAuditService audit,
     }
 
     public async Task<object?> Mine(int? productId, CancellationToken ct) => await db.Reviews.AsNoTracking()
-        .Where(r => r.UserId == _actor.User.FindFirstValue(ClaimTypes.NameIdentifier) && r.ModerationStatus != "Deleted" && (!productId.HasValue || r.ProductId == productId))
+        .Where(r => r.UserId == _actor.User.FindFirstValue(ClaimTypes.NameIdentifier) && r.ModerationStatus != "Deleted" && r.ModerationStatus != "Removed" && (!productId.HasValue || r.ProductId == productId))
         .OrderByDescending(r => r.Id)
         .Take(100)
         .Select(r => new { r.Id, r.ProductId, r.Rating, r.Comment, r.ModerationStatus, VerifiedPurchase = r.OrderItemId != null })
@@ -82,14 +83,15 @@ public sealed class ReviewService(IApplicationDbContext db, IAuditService audit,
     public async Task<object?> Edit(int id, UpdateReviewRequest request, CancellationToken ct)
     {
         var r = await db.Reviews.SingleOrDefaultAsync(r => r.Id == id && r.UserId == _actor.User.FindFirstValue(ClaimTypes.NameIdentifier), ct);
-        if (r == null)
+        if (r == null || r.ModerationStatus is "Deleted" or "Removed")
             throw new CommerceException("REVIEWS_NOT_FOUND", "Resource not found.", 404);
+        var previous = r.ModerationStatus;
         r.Rating = request.Rating;
         r.Comment = request.Comment?.Trim();
-        r.ModerationStatus = "Pending";
-        r.ModerationReason = null;
+        // Editing cannot bypass an administrator's decision to hide a review.
+        if (r.ModerationStatus != "Hidden") r.ModerationStatus = "Published";
         r.UpdatedAt = DateTime.UtcNow;
-        await audit.RecordAsync("ReviewEditedByOwner", "Review", id.ToString(), null, new { r.ModerationStatus }, _actor.Audit, ct);
+        await audit.RecordAsync("ReviewEditedByOwner", "Review", id.ToString(), new { Status = previous }, new { Status = r.ModerationStatus }, _actor.Audit, ct);
         return new
         {
             r.Id,
@@ -102,7 +104,7 @@ public sealed class ReviewService(IApplicationDbContext db, IAuditService audit,
     public async Task DeleteOwn(int id, CancellationToken ct)
     {
         var r = await db.Reviews.SingleOrDefaultAsync(r => r.Id == id && r.UserId == _actor.User.FindFirstValue(ClaimTypes.NameIdentifier), ct);
-        if (r == null)
+        if (r == null || r.ModerationStatus == "Removed")
             throw new CommerceException("REVIEWS_NOT_FOUND", "Resource not found.", 404);
         r.ModerationStatus = "Deleted";
         r.Comment = null;
@@ -120,18 +122,18 @@ public sealed class ReviewService(IApplicationDbContext db, IAuditService audit,
         int pageSize = 20,
         CancellationToken ct = default)
     {
-        pageNumber = Math.Max(1, pageNumber);
+        pageNumber = Math.Clamp(pageNumber, 1, 1_000_000);
         pageSize = Math.Clamp(pageSize, 1, 100);
         var query = db.Reviews.AsNoTracking()
             .Where(r => (status == null || r.ModerationStatus == status) && (!productId.HasValue || r.ProductId == productId) && (!rating.HasValue || r.Rating == rating));
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(r => r.User!.Name.Contains(search) || r.Comment != null && r.Comment.Contains(search));
+            query = query.Where(r => r.User!.Name.Contains(search) || r.User.Email!.Contains(search) || r.Product!.Name.Contains(search) || r.Comment != null && r.Comment.Contains(search));
         return new
         {
             reviews = await query.OrderByDescending(r => r.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(r => new { r.Id, r.ProductId, ProductName = r.Product!.Name, UserName = r.User!.Name, r.Rating, r.Comment, r.ModerationStatus, r.ModerationReason, r.CreatedAt, r.UpdatedAt, VerifiedPurchase = r.OrderItemId != null, r.RowVersion })
+            .Select(r => new { r.Id, r.ProductId, r.UserId, ProductName = r.Product!.Name, UserName = r.User!.Name, r.Rating, r.Comment, r.ModerationStatus, r.ModerationReason, r.CreatedAt, r.UpdatedAt, VerifiedPurchase = r.OrderItemId != null, r.RowVersion })
             .ToListAsync(ct),
             totalCount = await query.CountAsync(ct),
             pageNumber,
@@ -141,7 +143,7 @@ public sealed class ReviewService(IApplicationDbContext db, IAuditService audit,
 
     public async Task Moderate(int id, ModerationRequest request, CancellationToken ct)
     {
-        if (request.Status is not ("Published" or "Hidden" or "Deleted") || string.IsNullOrWhiteSpace(request.Reason))
+        if (request.Status is not ("Published" or "Hidden" or "Deleted" or "Removed") || string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
             throw new CommerceException("MODERATION_INVALID", "Choose a moderation state and provide a reason.");
         var r = await db.Reviews.SingleOrDefaultAsync(r => r.Id == id, ct);
         if (r == null)
@@ -149,14 +151,26 @@ public sealed class ReviewService(IApplicationDbContext db, IAuditService audit,
         if (request.RowVersion != Convert.ToBase64String(r.RowVersion))
             throw new CommerceException("REVIEW_CHANGED", "Refresh this review before moderating.", 409);
         var previous = r.ModerationStatus;
-        r.ModerationStatus = request.Status;
+        // Deleted remains the owner-deletion state. Staff removals are tombstones.
+        r.ModerationStatus = request.Status == "Deleted" ? "Removed" : request.Status;
         r.ModerationReason = request.Reason.Trim();
         r.UpdatedAt = DateTime.UtcNow;
-        await audit.RecordAsync("ReviewModerated", "Review", id.ToString(), new { Status = previous }, new { request.Status, request.Reason }, _actor.Audit, ct);
+        await audit.RecordAsync("ReviewModerated", "Review", id.ToString(), new { Status = previous }, new { Status = r.ModerationStatus, Reason = r.ModerationReason }, _actor.Audit, ct);
         return;
     }
 
     public Task DeleteAdmin(int id, ModerationRequest request, CancellationToken ct) => Moderate(id, request with { Status = "Deleted" }, ct);
+    public async Task<object> History(int id, int page, CancellationToken ct)
+    {
+        if (!await db.Reviews.AnyAsync(r => r.Id == id, ct)) throw new CommerceException("REVIEWS_NOT_FOUND", "Review not found.", 404);
+        page = Math.Clamp(page, 1, 1_000_000);
+        var query = db.AuditLogs.AsNoTracking().Where(a => a.EntityType == "Review" && a.EntityId == id.ToString());
+        return new {
+            items = await query.OrderByDescending(a => a.Id).Skip((page - 1) * 20).Take(20)
+                .Select(a => new { a.Id, a.Action, a.CreatedAt, ActorName = a.ActorUser != null ? a.ActorUser.Name : "System", a.OldValuesJson, a.NewValuesJson }).ToListAsync(ct),
+            totalCount = await query.CountAsync(ct), pageNumber = page, pageSize = 20
+        };
+    }
     public async Task<object?> Stats(CancellationToken ct) => new
     {
         totalReviews = await db.Reviews.CountAsync(ct),

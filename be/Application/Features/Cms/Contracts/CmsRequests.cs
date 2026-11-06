@@ -35,6 +35,7 @@ public class CmsSectionRequest
 
 public class SiteSettingRequest
 {
+    public DateTime? ExpectedUpdatedAt { get; set; }
     [Required]
     [StringLength(120)]
     public string Key { get; set; } = string.Empty;

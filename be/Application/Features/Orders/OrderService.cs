@@ -17,17 +17,26 @@ public sealed class OrderService(IApplicationDbContext db, OrderLifecycleService
         return order == null ? throw new CommerceException("ORDERS_NOT_FOUND", "Resource not found.", 404) : Map(order);
     }
 
-    public async Task<object?> GetAllOrders(string? status = null, string? search = null, int pageNumber = 1, int pageSize = 20, CancellationToken ct = default)
+    public async Task<object?> GetAllOrders(string? status = null, string? search = null, int pageNumber = 1, int pageSize = 20, CancellationToken ct = default, DateTime? from = null, DateTime? to = null, string? sort = null)
     {
         var query = Query();
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<OrderStatus>(status, out var parsed))
             query = query.Where(o => o.Status == parsed);
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(o => o.OrderNumber.Contains(search) || o.User!.Name.Contains(search) || o.User.Email!.Contains(search));
+        if (from.HasValue && to.HasValue && from.Value.Date > to.Value.Date)
+            throw new CommerceException("ORDER_DATE_RANGE_INVALID", "The start date must be on or before the end date.");
+        if (from.HasValue) query = query.Where(o => o.CreatedAt >= from.Value.Date);
+        if (to.HasValue)
+        {
+            var end = to.Value.Date == DateTime.MaxValue.Date ? DateTime.MaxValue : to.Value.Date.AddDays(1);
+            query = query.Where(o => o.CreatedAt < end);
+        }
         pageNumber = Math.Clamp(pageNumber, 1, 1_000_000);
         pageSize = Math.Clamp(pageSize, 1, 100);
         var count = await query.CountAsync(ct);
-        var orders = (await query.OrderByDescending(o => o.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct)).Select(Map).ToList();
+        var ordered = sort switch { "oldest" => query.OrderBy(o => o.CreatedAt).ThenBy(o => o.Id), "number" => query.OrderBy(o => o.OrderNumber).ThenBy(o => o.Id), _ => query.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id) };
+        var orders = (await ordered.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct)).Select(Map).ToList();
         return new
         {
             Orders = orders,

@@ -8,7 +8,7 @@ using be.Domain.Common;
 namespace be.Application.Features.Customers;
 public sealed class CustomerQueries(IApplicationDbContext _context, UserManager<User> _userManager, RoleManager<IdentityRole> _roleManager)
 {
-    public async Task<object?> GetAllCustomers(string? search = null, int pageNumber = 1, int pageSize = 20)
+    public async Task<object?> GetAllCustomers(string? search = null, int pageNumber = 1, int pageSize = 20, string? status = null, string? sort = null)
     {
         pageNumber = Math.Clamp(pageNumber, 1, 1_000_000);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -33,13 +33,27 @@ public sealed class CustomerQueries(IApplicationDbContext _context, UserManager<
             query = query.Where(u => u.Name.Contains(search) || u.Email!.Contains(search) || (u.Phone != null && u.Phone.Contains(search)));
         }
 
+        if (string.IsNullOrWhiteSpace(status))
+            query = query.Where(u => u.AccountStatus != CustomerAccountStatus.Removed);
+        else if (status != "all")
+        {
+            if (!Enum.TryParse<CustomerAccountStatus>(status, out var parsed) || !Enum.IsDefined(parsed))
+                throw new CommerceException("CUSTOMER_FILTER_INVALID", "Choose a supported customer status.");
+            query = query.Where(u => u.AccountStatus == parsed);
+        }
         // Get total count before pagination
         var totalCount = await query.CountAsync();
         // Apply pagination
-        var customers = await query.OrderByDescending(u => u.CreatedAt)
+        var ordered = sort switch
+        {
+            "name" => query.OrderBy(u => u.Name).ThenBy(u => u.Id),
+            "oldest" => query.OrderBy(u => u.CreatedAt).ThenBy(u => u.Id),
+            _ => query.OrderByDescending(u => u.CreatedAt).ThenBy(u => u.Id)
+        };
+        var customers = await ordered
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(u => new CustomerResponse { Id = u.Id, Name = u.Name, Email = u.Email ?? string.Empty, Phone = u.Phone, Address = u.Address, AvatarUrl = u.AvatarUrl, CreatedAt = u.CreatedAt, UpdatedAt = u.UpdatedAt })
+            .Select(u => new CustomerResponse { Id = u.Id, Name = u.Name, Email = u.Email ?? string.Empty, Phone = u.Phone, Address = u.Address, AvatarUrl = u.AvatarUrl, CreatedAt = u.CreatedAt, UpdatedAt = u.UpdatedAt, AccountStatus = u.AccountStatus.ToString(), Version = u.ConcurrencyStamp ?? string.Empty, CanManageAccess = !_context.UserRoles.Any(assignment => assignment.UserId == u.Id && assignment.RoleId != roleId), OrderCount = _context.Orders.Count(o => o.UserId == u.Id) })
             .ToListAsync();
         return new
         {
@@ -78,6 +92,7 @@ public sealed class CustomerQueries(IApplicationDbContext _context, UserManager<
             AvatarUrl = user.AvatarUrl,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
+            AccountStatus = user.AccountStatus.ToString(),
             Stats = stats
         };
         return response;

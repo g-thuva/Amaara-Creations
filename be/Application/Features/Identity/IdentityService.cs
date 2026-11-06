@@ -112,7 +112,7 @@ public sealed class IdentityService(
         var current = await users.FindByIdAsync(step.VerifiedUser.Id) ?? throw InvalidLogin();
         var roles = await users.GetRolesAsync(current);
         if (step.Management != management || !AppRoles.CanBeginSignIn(roles, management)) throw InvalidLogin();
-        if (!current.EmailConfirmed || await users.IsLockedOutAsync(current) || !current.TwoFactorEnabled || current.SecurityStamp != step.VerifiedUser.SecurityStamp) throw InvalidLogin();
+        if (!current.EmailConfirmed || current.AccountStatus != CustomerAccountStatus.Active || await users.IsLockedOutAsync(current) || !current.TwoFactorEnabled || current.SecurityStamp != step.VerifiedUser.SecurityStamp) throw InvalidLogin();
         if (roles.Any(AppRoles.AdministrativeRoles.Contains) && !configuration.GetValue<bool>("Administration:Enabled")) throw new CommerceException("MANAGEMENT_DISABLED", "Staff sign-in is unavailable in this environment.", 503);
         if (!roles.Any(AppRoles.AdministrativeRoles.Contains) && !roles.Contains(AppRoles.Customer)) throw InvalidLogin();
         return new(Sessions: await IssueSignInAsync(new(current, roles, step.VerifiedAt, current.SecurityStamp), ct, management));
@@ -120,7 +120,7 @@ public sealed class IdentityService(
 
     private async Task<RoutedSignIn> IssueSignInAsync(VerifiedLogin verified, CancellationToken ct, bool managementOnly = false)
     {
-        if (verified.Stamp != verified.User.SecurityStamp || !verified.Roles.Order(StringComparer.Ordinal).SequenceEqual((await users.GetRolesAsync(verified.User)).Order(StringComparer.Ordinal))) throw InvalidLogin();
+        if (verified.User.AccountStatus != CustomerAccountStatus.Active || verified.Stamp != verified.User.SecurityStamp || !verified.Roles.Order(StringComparer.Ordinal).SequenceEqual((await users.GetRolesAsync(verified.User)).Order(StringComparer.Ordinal))) throw InvalidLogin();
         var staff = verified.Roles.Any(AppRoles.AdministrativeRoles.Contains);
         if (!AppRoles.CanBeginSignIn(verified.Roles, managementOnly) || (staff && (!verified.User.TwoFactorEnabled || !verified.SecondFactorAt.HasValue))) throw InvalidLogin();
         var storefront = staff ? null : await CreateSessionAsync(verified, ct, management: false);
@@ -149,7 +149,7 @@ public sealed class IdentityService(
         var user = await users.FindByEmailAsync(request.Email.Trim());
         if (user == null)
             throw InvalidLogin();
-        if (await users.IsLockedOutAsync(user))
+        if (user.AccountStatus != CustomerAccountStatus.Active || await users.IsLockedOutAsync(user))
             throw InvalidLogin();
         if (!await users.CheckPasswordAsync(user, request.Password))
         {

@@ -9,6 +9,8 @@ namespace be.Api.Controllers;
 [Authorize(Policy = AppPolicies.ManageSettings)]
 public class AdminSettingsController(SettingsService service) : ControllerBase
 {
+    [HttpGet("catalogue")]
+    public IActionResult Catalogue() => Ok(StoreSettingCatalog.All);
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<SiteSettingResponse>>> GetSettings()
     {

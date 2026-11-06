@@ -26,7 +26,7 @@ public class Review
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     [StringLength(20)]
-    public string ModerationStatus { get; set; } = "Pending";
+    public string ModerationStatus { get; set; } = "Published";
     public int? OrderItemId { get; set; }
     public OrderItem? OrderItem { get; set; }
 

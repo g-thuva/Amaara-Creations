@@ -74,4 +74,8 @@ public sealed class ReviewsController(ReviewService service) : ControllerBase
     {
         return Ok(await service.Stats(ct));
     }
+
+    [HttpGet("/api/v1/admin/reviews/{id:int}/history"), Authorize(Policy = AppPolicies.ManageReviews)]
+    public async Task<IActionResult> History(int id, int page = 1, CancellationToken ct = default)
+        => Ok(await service.History(id, page, ct));
 }

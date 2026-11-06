@@ -12,6 +12,7 @@ public static class DependencyInjection
     {
         services.AddScoped<be.Application.Features.Reporting.DashboardQueries>();
         services.AddScoped<be.Application.Features.Customers.CustomerQueries>();
+        services.AddScoped<be.Application.Features.Customers.CustomerAccountService>();
         services.AddScoped<be.Application.Features.Identity.CapabilityQueries>();
         services.AddScoped<be.Application.Features.Payments.PaymentQueries>();
         services.AddScoped<be.Application.Features.Customers.CustomerOperationsQueries>();

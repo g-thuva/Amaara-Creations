@@ -9,6 +9,9 @@ internal sealed class IdentityConfiguration : IEntityTypeConfiguration<User>, IE
     public void Configure(EntityTypeBuilder<User> entity)
     {
         entity.ToTable("Users");
+        entity.Property(u => u.AccountStatus).HasConversion<string>().HasMaxLength(24).HasDefaultValue(CustomerAccountStatus.Active);
+        entity.Property(u => u.AccountStatusReason).HasMaxLength(500);
+        entity.HasIndex(u => new { u.AccountStatus, u.CreatedAt });
     }
 
     public void Configure(EntityTypeBuilder<IdentityRole> entity)
