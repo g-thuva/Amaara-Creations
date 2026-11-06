@@ -57,12 +57,16 @@ public static class RehearsalRunner
         var admin = User("release-admin@example.test", password);
         admin.TwoFactorEnabled = true;
         var role = new IdentityRole("SuperAdmin") { NormalizedName = "SUPERADMIN" };
+        var customerRole = new IdentityRole(AppRoles.Customer) { NormalizedName = "CUSTOMER" };
         await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection.ConnectionString).Options);
         await db.Database.MigrateAsync();
         var product = new Product { Name = "REHEARSAL CHF print", Slug = "rehearsal-chf-print", Currency = "CHF", Price = 25.25m, BasePrice = 25.25m, Stock = 2, ImageUrl = "/uploads/rehearsal.png" };
         var design = new CustomDesign { UserId = user.Id, Name = "REHEARSAL private design" };
         var asset = new CustomDesignAsset { CustomDesign = design, StorageKey = "private/rehearsal/artwork.png", AssetType = "artwork", ContentType = "image/png", OriginalFileName = "fixture.png" };
-        db.AddRange(user, other, admin, role, product, design, asset, new IdentityUserRole<string> { UserId = admin.Id, RoleId = role.Id },
+        db.AddRange(user, other, admin, role, customerRole, product, design, asset,
+            new IdentityUserRole<string> { UserId = user.Id, RoleId = customerRole.Id },
+            new IdentityUserRole<string> { UserId = other.Id, RoleId = customerRole.Id },
+            new IdentityUserRole<string> { UserId = admin.Id, RoleId = role.Id },
             new IdentityUserToken<string> { UserId = admin.Id, LoginProvider = "[AspNetUserStore]", Name = "AuthenticatorKey", Value = be.Tests.TotpFixture.Secret },
             new CmsPage { Slug = "release-information", Title = "REHEARSAL public information", IsPublished = true });
         await db.SaveChangesAsync();
@@ -115,7 +119,9 @@ public static class RehearsalRunner
             ["Checkout__Currency"] = "CHF", ["Email__Enabled"] = "false", ["Zahls__Enabled"] = "false", ["Datatrans__Enabled"] = "false",
             ["AdminBootstrap__Enabled"] = "false", ["ReleaseControls__AcceptNewPayments"] = "false", ["ReleaseControls__AcceptUploads"] = "false", ["ReleaseControls__AllowAdminChanges"] = "false",
             ["Administration__Enabled"] = "true", // Disposable rehearsal only; packaged defaults remain closed.
-            ["Administration__AllowedOrigins__0"] = origin
+            ["Administration__AllowedOrigins__0"] = origin,
+            // The rehearsal uses fresh local public/private directories, never production buckets.
+            ["Storage__Provider"] = "Local", ["Storage__AllowLocalInProduction"] = "true"
         };
         foreach (var entry in settings) start.Environment[entry.Key] = entry.Value;
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Published API did not start.");
@@ -159,14 +165,22 @@ public static class RehearsalRunner
             await Login(user);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.OK);
             await Status(client, "/api/v1/admin/reports", HttpStatusCode.Forbidden);
+            using var paused = await client.PostAsJsonAsync("/api/v1/checkout/session", new { });
+            if (paused.StatusCode != HttpStatusCode.ServiceUnavailable) throw new InvalidOperationException("New-payment pause was not enforced for a customer session.");
             using (var missingFactor = await client.PostAsJsonAsync("/api/v1/auth/staff/login", new { email = admin.Email, password }))
-                if (missingFactor.StatusCode != HttpStatusCode.Unauthorized) throw new InvalidOperationException("Staff login without its enrolled factor was accepted.");
+            {
+                var pending = await missingFactor.Content.ReadFromJsonAsync<JsonElement>();
+                if (missingFactor.StatusCode != HttpStatusCode.Accepted || pending.GetProperty("status").GetString() != "verify" ||
+                    !pending.GetProperty("mandatory").GetBoolean() || pending.TryGetProperty("token", out _))
+                    throw new InvalidOperationException("Staff login without its enrolled factor did not remain in the restricted verification step.");
+                if (await db.RefreshSessions.AnyAsync(session => session.UserId == admin.Id))
+                    throw new InvalidOperationException("Staff login created a session before second-factor verification.");
+            }
+            await Status(client, "/api/v1/admin/reports", HttpStatusCode.Forbidden);
             await Login(admin, secondFactor: true);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.OK);
             foreach (var path in new[] { "dashboard", "orders", "customers", "inventory", "custom-designs", "reports", "operational-health" })
                 await Status(client, "/api/v1/admin/" + path, HttpStatusCode.OK);
-            using var paused = await client.PostAsJsonAsync("/api/v1/checkout/session", new { });
-            if (paused.StatusCode != HttpStatusCode.ServiceUnavailable) throw new InvalidOperationException("New-payment pause was not enforced.");
             await Login(other);
             await Status(client, $"/api/v1/custom-designs/{design.Id}/assets/{asset.Id}", HttpStatusCode.NotFound);
             await Status(client, "/api/v1/admin/reports", HttpStatusCode.Forbidden);
