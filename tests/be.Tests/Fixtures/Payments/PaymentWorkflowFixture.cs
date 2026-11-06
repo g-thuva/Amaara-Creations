@@ -58,9 +58,9 @@ public sealed class PaymentWorkflowFixture : IAsyncDisposable
         };
     }
 
-    public static async Task<PaymentWorkflowFixture> CreateAsync(string server, string currency, string stateRoot, CancellationToken ct = default)
+    public static async Task<PaymentWorkflowFixture> CreateAsync(string server, string currency, string stateRoot, CancellationToken ct = default, string? connectionTemplate = null)
     {
-        var connection = PaymentFixtureSafety.NewConnection(server, currency);
+        var connection = PaymentFixtureSafety.NewConnection(server, currency, connectionTemplate);
         var master = new SqlConnectionStringBuilder(connection) { InitialCatalog = "master" };
         await using (var sql = new SqlConnection(master.ConnectionString))
         {
@@ -83,7 +83,8 @@ public sealed class PaymentWorkflowFixture : IAsyncDisposable
             var products = await db.Products.Include(p => p.Variants).OrderBy(p => p.Id).ToListAsync(ct);
             foreach (var item in products) item.Name = "FIXTURE " + currency + " sticker " + item.Id;
             // The first sample is deliberately simple; other samples retain variants.
-            db.ProductVariants.RemoveRange(products[0].Variants);
+            var sample = products.Single(product => product.Slug == "qa-print-01" && product.Currency == currency);
+            db.ProductVariants.RemoveRange(sample.Variants);
             db.Addresses.Add(new() { UserId = customer.Id, Label = "FIXTURE delivery", RecipientName = "Synthetic test buyer", AddressLine1 = "1 Fictional Test Road", City = "Test City", Country = "Testland", IsDefault = true });
             var zone = new ShippingZone { Name = "FIXTURE test zone", Country = "Testland", RequiresPhone = false };
             db.ShippingZones.Add(zone);

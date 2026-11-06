@@ -18,10 +18,11 @@ public sealed class PaymentWorkflowSqlTests
     [SqlCommerceFact]
     public async Task BothCurrenciesUseRealSqlCheckoutReplayRetryReconciliationInventoryAndRefundWorkflows()
     {
-        var server = new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable("AMAARA_TEST_SQL_CONNECTION")!).DataSource;
+        var connectionTemplate = Environment.GetEnvironmentVariable("AMAARA_TEST_SQL_CONNECTION")!;
+        var server = new SqlConnectionStringBuilder(connectionTemplate).DataSource;
         foreach (var currency in new[] { "LKR", "CHF" })
         {
-            var lab = await PaymentWorkflowFixture.CreateAsync(server, currency, Path.Combine(Path.GetTempPath(), "AmaaraPaymentContractVerification"));
+            var lab = await PaymentWorkflowFixture.CreateAsync(server, currency, Path.Combine(Path.GetTempPath(), "AmaaraPaymentContractVerification"), connectionTemplate: connectionTemplate);
             try { await Journey(lab, currency); }
             finally
             {
@@ -46,11 +47,15 @@ public sealed class PaymentWorkflowSqlTests
         using (var scope = lab.Factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            productId = await db.Products.MinAsync(p => p.Id); addressId = await db.Addresses.Where(a => a.UserId == lab.CustomerId).Select(a => a.Id).SingleAsync();
+            // Development startup may also seed CHF products. Select this lab's
+            // explicitly priced sample rather than the first product globally.
+            productId = await db.Products.Where(p => p.Slug == "qa-print-01" && p.Currency == currency).Select(p => p.Id).SingleAsync(); addressId = await db.Addresses.Where(a => a.UserId == lab.CustomerId).Select(a => a.Id).SingleAsync();
             shippingId = await db.ShippingMethods.Where(m => m.Code == "FIXTURE").Select(m => m.Id).SingleAsync();
         }
-        (await client.PostAsJsonAsync("/api/v1/cart", new { productId, quantity = 2 })).EnsureSuccessStatusCode();
-        var quoteResponse = await client.PostAsJsonAsync("/api/v1/checkout/quote", new { addressId, shippingMethodId = shippingId }); quoteResponse.EnsureSuccessStatusCode();
+        var cartResponse = await client.PostAsJsonAsync("/api/v1/cart", new { productId, quantity = 2 });
+        Assert.True(cartResponse.IsSuccessStatusCode, await cartResponse.Content.ReadAsStringAsync());
+        var quoteResponse = await client.PostAsJsonAsync("/api/v1/checkout/quote", new { addressId, shippingMethodId = shippingId });
+        Assert.True(quoteResponse.IsSuccessStatusCode, await quoteResponse.Content.ReadAsStringAsync());
         var quote = await quoteResponse.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal(227m, quote.GetProperty("total").GetDecimal()); Assert.True(quote.GetProperty("canPay").GetBoolean());
         var request = new { addressId, shippingMethodId = shippingId, quoteVersion = quote.GetProperty("quoteVersion").GetString(), idempotencyKey = Guid.NewGuid(), amount = 1, total = 1 };
         var started = await client.PostAsJsonAsync("/api/v1/checkout/session", request); started.EnsureSuccessStatusCode(); var first = await started.Content.ReadFromJsonAsync<JsonElement>();
@@ -106,13 +111,13 @@ public sealed class PaymentWorkflowSqlTests
         using var remaining = await lab.AdminActionAsync($"/api/v1/admin/payments/{paymentId}/refunds", new RefundRequest(127, "FIXTURE remaining credit", Guid.NewGuid()), default);
         remaining.EnsureSuccessStatusCode(); database.ChangeTracker.Clear(); final = await database.Payments.SingleAsync(p => p.Id == paymentId);
         Assert.Equal(PaymentStatus.Refunded, final.Status); Assert.Equal(227, final.RefundedAmount);
-        Assert.Equal(98, await database.Products.OrderBy(p => p.Id).Select(p => p.Stock).FirstAsync());
+        Assert.Equal(98, await database.Products.Where(p => p.Id == productId).Select(p => p.Stock).SingleAsync());
     }
 
     private static async Task AssertSql(PaymentWorkflowFixture lab, long id, PaymentStatus expected, int stock, string reservation)
     {
         using var scope = lab.Factory.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>(); var payment = await db.Payments.SingleAsync(p => p.Id == id);
-        Assert.Equal(expected, payment.Status); Assert.Equal(stock, await db.Products.OrderBy(p => p.Id).Select(p => p.Stock).FirstAsync());
+        Assert.Equal(expected, payment.Status); Assert.Equal(stock, await db.OrderItems.Where(item => item.OrderId == payment.OrderId).Select(item => item.Product!.Stock).SingleAsync());
         Assert.Contains(await db.InventoryReservations.Where(r => r.OrderId == payment.OrderId).ToListAsync(), row => row.Status == reservation);
     }
 }
