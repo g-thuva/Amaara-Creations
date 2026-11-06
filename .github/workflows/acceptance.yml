@@ -12,7 +12,7 @@ concurrency:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,6 +36,8 @@ jobs:
       - run: npm run build && npm run build:admin && npm run check:isolation
         working-directory: client
       - run: npm run test:e2e
+        working-directory: client
+      - run: npm run test:e2e:dev
         working-directory: client
       - run: npm run test:e2e:production && npm run check:performance
         working-directory: client

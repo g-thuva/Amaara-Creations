@@ -17,7 +17,7 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByLabel('Confirm Password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Create Account', exact: true }).click();
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/verify-email\?email=/);
     const unconfirmed = await request.post(`${api}/auth/login`, { data: { email, password } });
     expect(unconfirmed.status()).toBe(401);
     const captured = await request.post(`${acceptanceApi}/__fixture/confirmation`, { data: { email } });
@@ -25,8 +25,12 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
     const { url } = await captured.json();
     const hash = new URL(url).hash;
     await page.goto(`./${hash}`);
-    await expect(page.getByRole('heading', { name: 'Email Verified' })).toBeVisible();
-    expect(confirmationResponses, 'Strict Mode must confirm once without a racing failure').toEqual([200]);
+    const code = new URLSearchParams(hash.split('?')[1]).get('code');
+    expect(code).toMatch(/^\d{6}$/);
+    await page.getByLabel('6-Digit Verification Code', { exact: true }).fill(code!);
+    await page.getByRole('button', { name: 'Verify Email', exact: true }).click();
+    await expect(page.getByRole('heading', { name: /^Email Verified!?$/ })).toBeVisible();
+    expect(confirmationResponses, 'The actual emailed code must confirm once').toEqual([200]);
   }
   await page.goto(`./products/${productId}`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Storefront QA print 01');
@@ -63,9 +67,10 @@ test('real customer lifecycle, catalogue, cart, wishlist, reviews, account and C
   await expect(page.locator('.s-product-card')).toHaveCount(12);
   await page.getByRole('button', { name: 'Next product page', exact: true }).click();
   await expect(page).toHaveURL(/page=2/); await expect(page.locator('.s-product-card')).toHaveCount(1);
-  await page.getByLabel('Sort by').selectOption('price-desc');
+  await page.getByRole('button', { name: /^Sort products:/ }).click();
+  await page.getByRole('option', { name: 'Price: high to low', exact: true }).click();
   await expect(page).not.toHaveURL(/page=2/); await expect(page.locator('.s-product-card').first()).toContainText('Storefront QA print 13');
-  await page.getByRole('searchbox', { name: 'Search products', exact: true }).fill('no-such-qa-result');
+  await page.getByRole('main').getByRole('searchbox').fill('no-such-qa-result');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'No products match those filters', exact: true })).toBeVisible();
   await page.goBack(); await expect(page.locator('.s-product-card')).toHaveCount(12);

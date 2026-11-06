@@ -10,12 +10,12 @@ test('photo crop cancels safely, retries a failed upload and persists a normaliz
   let releaseUpload!: () => void;
   const uploadGate = new Promise<void>(resolve => { releaseUpload = resolve; });
   await page.route('**/api/v1/upload/avatar', async route => { uploads++; if (uploads === 1) return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'Temporary test rejection' }) }); const response = await route.fetch(); await uploadGate; return route.fulfill({ response }); });
-  await page.getByLabel('Profile photo', { exact: true }).setInputFiles(file);
+  await page.getByLabel('Choose a photo', { exact: true }).setInputFiles(file);
   await expect(page.getByRole('dialog', { name: 'Crop profile photo' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   expect(uploads).toBe(0);
-  await page.getByLabel('Profile photo', { exact: true }).setInputFiles(file);
+  await page.getByLabel('Choose a photo', { exact: true }).setInputFiles(file);
   await page.getByRole('slider', { name: 'Photo zoom', exact: true }).fill('2');
   await page.getByRole('button', { name: 'Save cropped photo', exact: true }).click();
   await expect(page.getByText('The photo was not saved. Your previous photo remains in place. Try again.', { exact: true })).toBeVisible();

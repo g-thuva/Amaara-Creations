@@ -1,9 +1,10 @@
 import { defineConfig } from '@playwright/test';
+const ignoredTests = ['**/staff-workspace-availability.spec.ts', ...(process.env.AMAARA_E2E_PRODUCTION === '1' ? [] : ['**/release-production.spec.ts'])];
 export default defineConfig({
-  testIgnore: ['**/staff-workspace-availability.spec.ts', ...(process.env.AMAARA_E2E_PRODUCTION === '1' ? [] : ['**/release-production.spec.ts'])],
+  testIgnore: ignoredTests,
   testDir: './e2e', workers: 1, fullyParallel: false, timeout: 60000,
   projects: [
-    { name: 'storefront', testIgnore: ['**/admin/**', ...(process.env.AMAARA_E2E_PRODUCTION === '1' ? [] : ['**/release-production.spec.ts'])], use: { baseURL: 'http://127.0.0.1:5178/Amaara-Creations/' } },
+    { name: 'storefront', testIgnore: ['**/admin/**', ...ignoredTests], use: { baseURL: 'http://127.0.0.1:5178/Amaara-Creations/' } },
     { name: 'staff', testMatch: '**/admin/**/*.spec.ts', use: { baseURL: 'http://127.0.0.1:5179/Amaara-Creations/' } },
   ],
   use: { baseURL: 'http://127.0.0.1:5178/Amaara-Creations/', channel: process.platform === 'win32' ? 'chrome' : undefined, actionTimeout: 15000, navigationTimeout: 30000, trace: 'off', screenshot: 'off', video: 'off' },
