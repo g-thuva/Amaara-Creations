@@ -1,3 +1,4 @@
+import '../home.css';
 import { readCmsObject } from '@/features/content/contentModel.js';
 import { useSiteContent } from '@/features/content/SiteContentProvider.jsx';
 import { Link } from 'react-router-dom';

@@ -1,3 +1,4 @@
+import '../wishlist.css';
 import { useWishlistPage } from '@/features/wishlist/hooks/useWishlistPage.js';
 import WishlistItem from '@/features/wishlist/components/WishlistItem.jsx';
 import { EmptyState } from '@/shared/components/feedback/EmptyState.jsx';

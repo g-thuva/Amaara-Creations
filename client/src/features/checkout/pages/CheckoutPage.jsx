@@ -1,3 +1,4 @@
+import '../checkout.css';
 import CheckoutForm from '@/features/checkout/components/CheckoutForm.jsx';
 import CheckoutReview from '@/features/checkout/components/CheckoutReview.jsx';
 import { useCart } from '@/features/cart/CartProvider.jsx';

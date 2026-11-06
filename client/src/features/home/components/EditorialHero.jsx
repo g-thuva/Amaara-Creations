@@ -17,6 +17,7 @@ export default function EditorialHero() {
         width="1376"
         height="768"
         loading="eager"
+        fetchPriority="high"
         decoding="async"
       />
       <span className="s-editorial-scrim" aria-hidden="true" />

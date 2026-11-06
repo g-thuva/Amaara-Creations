@@ -1,3 +1,4 @@
+import '../catalog.css';
 import CatalogToolbar from '@/features/catalog/components/CatalogToolbar.jsx';
 import CatalogResults from '@/features/catalog/components/CatalogResults.jsx';
 import { Link } from 'react-router-dom';

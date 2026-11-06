@@ -1,3 +1,4 @@
+import '../customDesign.css';
 import { useSavedDesigns } from '@/features/custom-design/hooks/useSavedDesigns.js';
 import SavedDesignCard from '@/features/custom-design/components/SavedDesignCard.jsx';
 import { Link } from 'react-router-dom';

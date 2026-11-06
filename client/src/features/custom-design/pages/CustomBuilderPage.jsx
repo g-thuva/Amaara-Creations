@@ -1,3 +1,4 @@
+import '../customDesign.css';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button.jsx';
 import { PageHeader } from '@/shared/components/ui/PageHeader.jsx';

@@ -1,3 +1,4 @@
+import '../account.css';
 import { accountNavigation } from '@/app/config/navigation.js';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider.jsx';
@@ -14,7 +15,7 @@ export default function AccountLayout() {
       <div className="s-account-heading">
         <div className="s-account-heading-copy">
           <p className="s-eyebrow">Your Amaara account</p>
-          <h1>Welcome, {user?.name || 'back'}.</h1>
+          <h2>Welcome, {user?.name || 'back'}.</h2>
           <p>Manage your details, orders and saved creations in one place.</p>
         </div>
         <Link className="s-button s-button-secondary s-account-shop-link" to="/products">

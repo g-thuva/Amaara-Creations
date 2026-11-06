@@ -1,3 +1,4 @@
+import '../cart.css';
 import CartItem from '@/features/cart/components/CartItem.jsx';
 import CartSummary from '@/features/cart/components/CartSummary.jsx';
 import { useCartPage } from '@/features/cart/hooks/useCartPage.js';

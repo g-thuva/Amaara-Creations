@@ -1,3 +1,4 @@
+import '../content.css';
 import { Link } from 'react-router-dom';
 import Icon from '@/shared/components/ui/Icon.jsx';
 

@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 import AuthGuard from '@/app/guards/AuthGuard.jsx';
-import AccountLayout from '@/features/account/components/AccountLayout.jsx';
+const AccountLayout = lazy(() => import('@/features/account/components/AccountLayout.jsx'));
 
 const WishlistPage = lazy(() => import('@/features/wishlist/pages/WishlistPage.jsx'));
 const CartPage = lazy(() => import('@/features/cart/pages/CartPage.jsx'));

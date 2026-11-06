@@ -1,3 +1,4 @@
+import '../cart.css';
 import { Link } from 'react-router-dom';
 import { Dialog } from '@/shared/components/ui/Dialog.jsx';
 import { Price } from '@/shared/components/ui/Price.jsx';

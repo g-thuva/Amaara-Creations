@@ -1,3 +1,4 @@
+import '../orders.css';
 import { Link } from 'react-router-dom';
 import { useResource } from '@/shared/hooks/useResource.js';
 import { ordersApi } from '@/features/orders/ordersApi.js';

@@ -1,3 +1,4 @@
+import '../customDesign.css';
 import { useProofReview } from '@/features/custom-design/hooks/useProofReview.js';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button.jsx';

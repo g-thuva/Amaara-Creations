@@ -1,3 +1,4 @@
+import '../content.css';
 import { useSiteContent } from '@/features/content/SiteContentProvider.jsx';
 import { Link, useParams } from 'react-router-dom';
 import { contentApi } from '@/features/content/contentApi.js';

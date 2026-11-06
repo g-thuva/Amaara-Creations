@@ -1,3 +1,4 @@
+import '../reviews.css';
 import { useProductReviews } from '@/features/reviews/hooks/useProductReviews.js';
 import ReviewForm from './ReviewForm.jsx';
 import ReviewCard from './ReviewCard.jsx';

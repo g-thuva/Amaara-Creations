@@ -1,3 +1,4 @@
+import '../catalog.css';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useResource } from '@/shared/hooks/useResource.js';
 import { catalogApi } from '@/features/catalog/catalogApi.js';

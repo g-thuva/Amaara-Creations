@@ -1,3 +1,4 @@
+import '../orders.css';
 import OrderItems from '@/features/orders/components/OrderItems.jsx';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useResource } from '@/shared/hooks/useResource.js';

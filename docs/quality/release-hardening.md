@@ -49,11 +49,13 @@ The public API returns actual 404 responses for missing resources. The static SP
 
 ## Performance budgets and query review
 
+Feature styles load with lazy pages or their owning components. The CSS guard reads the Vite manifest and measures the entry plus each route's shared stylesheet dependencies, deduplicating shared files and reporting aggregate output separately.
+
 | Measure | Local engineering guard |
 | --- | --- |
 | Initial storefront JavaScript gzip | At most 128000 bytes. |
 | Largest route JavaScript gzip | At most 40000 bytes. |
-| Total built CSS | At most 100000 bytes. |
+| CSS required by an entry or route, including shared imports | At most 100000 bytes per page; aggregate emitted CSS is reported separately. |
 | Desktop built-app LCP / CLS | Less than 4000 ms / 0.1 in the local browser lab. |
 | Controlled HTTP workload p95 | Less than 5000 ms under eight local workers; a regression ceiling, not a production SLO. |
 | Admin list sizes | Default feature sizes; hard maxima normally 100. Customer/order legacy paging is bounded before offset arithmetic. |

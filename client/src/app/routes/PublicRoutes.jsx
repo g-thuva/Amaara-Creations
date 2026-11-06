@@ -1,6 +1,6 @@
 import { lazy } from 'react';
-import HomePage from '@/features/home/pages/HomePage.jsx';
-import ContentPage from '@/features/content/pages/ContentPage.jsx';
+const HomePage = lazy(() => import('@/features/home/pages/HomePage.jsx'));
+const ContentPage = lazy(() => import('@/features/content/pages/ContentPage.jsx'));
 
 const ProductsPage = lazy(() => import('@/features/catalog/pages/ProductsPage.jsx'));
 const ProductDetailsPage = lazy(() => import('@/features/catalog/pages/ProductDetailsPage.jsx'));

@@ -23,7 +23,7 @@
     "preview": "vite preview",
     "deploy": "gh-pages -d dist",
     "predeploy": "npm run build",
-    "check:performance": "node scripts/check-performance.mjs",
+    "check:performance": "node --test scripts/check-performance.test.mjs && node scripts/check-performance.mjs",
     "test:e2e:production": "node scripts/run-production-browser.mjs"
   },
   "dependencies": {
@@ -48,7 +48,7 @@
     "globals": "^16.3.0",
     "jsqr": "1.4.0",
     "typescript": "^5.9.2",
-    "vite": "^6.4.4",
+    "vite": "^6.4.5",
     "vitest": "^4.1.12"
   }
 }

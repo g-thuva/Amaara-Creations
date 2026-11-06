@@ -75,23 +75,9 @@
   transform: scale(1.04);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
 }
-:where(.storefront) .s-brand-wordmark-text {
-  font-family: var(--font-heading);
-  font-size: clamp(1.15rem, 1.4vw, 1.35rem);
-  font-weight: 550;
-  letter-spacing: 0.02em;
-  color: #ffffff !important;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  white-space: nowrap;
-}
 :where(.storefront) .s-header.is-scrolled .s-brand-medallion {
   border-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-}
-:where(.storefront) .s-brand-wordmark {
-  width: clamp(138px, 12vw, 168px);
-  height: auto;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45));
 }
 :where(.storefront) .s-footer-brand-logo .s-brand-logo-img {
   height: 44px;

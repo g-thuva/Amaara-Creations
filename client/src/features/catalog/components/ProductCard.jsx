@@ -1,3 +1,4 @@
+import '../catalog.css';
 import { useState } from 'react';
 import { useWishlist } from '@/features/wishlist/WishlistProvider.jsx';
 import { useCart } from '@/features/cart/CartProvider.jsx';
