@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import Icon from '@/shared/components/ui/Icon.jsx';
 
 /**
@@ -49,6 +49,12 @@ export function CustomDropdown({
     (opt) => String(opt.value) === String(currentValue),
   ) || normalizedOptions[0];
 
+  const handleSelect = useCallback((optionValue) => {
+    if (!isControlled) setInternalValue(optionValue);
+    onChange?.(optionValue);
+    setIsOpen(false);
+  }, [isControlled, onChange]);
+
   // Close when clicking outside or pressing Escape
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -89,15 +95,7 @@ export function CustomDropdown({
       document.removeEventListener('touchstart', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, highlightedIndex, normalizedOptions]);
-
-  const handleSelect = (optionValue) => {
-    if (!isControlled) {
-      setInternalValue(optionValue);
-    }
-    onChange?.(optionValue);
-    setIsOpen(false);
-  };
+  }, [isOpen, highlightedIndex, normalizedOptions, handleSelect]);
 
   const toggleDropdown = () => {
     setIsOpen((prev) => {

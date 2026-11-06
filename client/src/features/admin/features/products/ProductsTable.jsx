@@ -4,9 +4,10 @@ import { ConfirmAction } from '@/features/admin/shared/components/ConfirmAction.
 import { resolveMediaUrl } from '@/shared/api/requestConfig.js';
 import { formatIsoCurrency as money } from '@/features/admin/shared/utils/format.js';
 import AppIcon from '@/shared/components/ui/Icon.jsx';
+import { AdminThumbnail } from '@/features/admin/shared/components/AdminThumbnail.jsx';
 export function ProductsTable({ products, isLoading, startEdit, openProductTools, toggleArchive, pending }) {
   return <DataTable caption="Product catalog" rows={products} loading={isLoading} empty="No products found." emptyDescription="Choose New Product to add an item, or change your search and status filters." columns={[
-    { key: 'image', label: 'Image', render: product => <img className="product-thumbnail" src={resolveMediaUrl(product.imageUrl)} alt={product.name} /> },
+    { key: 'image', label: 'Image', render: product => <AdminThumbnail src={resolveMediaUrl(product.imageUrl)} alt={product.name} /> },
     { key: 'name', label: 'Name', render: product => <div className="product-name-cell"><strong>{product.name}</strong><small>{product.baseSku || product.slug}</small></div> },
     { key: 'category', label: 'Category', render: product => product.categoryName || product.category },
     { key: 'price', label: 'Price', render: product => money(product.basePrice, product.currency) },

@@ -18,7 +18,7 @@ export default function ContentPage() {
         <div className="header-content">
           <div>
             <h1>Content</h1>
-            <p>{feature.pages.length} pages</p>
+            <p>{feature.pages.length} {feature.pages.length === 1 ? 'page' : 'pages'}</p>
           </div>
           <button className="btn-add-product" type="button" onClick={create}><AppIcon name="plus" /> New Page</button>
         </div>

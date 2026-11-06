@@ -138,7 +138,7 @@ function GalleryCarousel() {
               aria-hidden={pageIndex !== current || undefined}
               aria-label={`Gallery page ${pageIndex + 1} of ${pages.length}`}
             >
-              {items.map((item, idx) => (
+              {items.map((item) => (
                 <GallerySlide
                   key={item.id}
                   item={item}

@@ -31,7 +31,7 @@ export function BuilderPricingEditor({ draft, change, testQuote }) {
         <div className="form-row">
           {numberFields.map((field) => (
             <label key={field}>
-              {field.replace(/([A-Z])/g, " $1")}
+              {field[0].toUpperCase() + field.slice(1).replace(/([A-Z])/g, letter => ' ' + letter.toLowerCase())}
               <input
                 className="form-control"
                 type="number"
