@@ -17,7 +17,7 @@ async function setup(page: Page, support = false) {
 
 async function openAction(page: Page, email: string, action: string) {
   const row = page.getByRole('row').filter({ hasText: email });
-  await row.getByRole('button', { name: 'Manage customer ' + email, exact: true }).click();
+  await row.getByRole('button', { name: 'Actions for customer ' + email, exact: true }).click();
   await row.getByRole('button', { name: action, exact: true }).click();
   const dialog = page.getByRole('dialog', { name: action, exact: true });
   await expect(dialog.getByLabel('Reason', { exact: true })).toBeFocused();
@@ -119,7 +119,7 @@ test('failed actions retain the form and cancellation leaves access unchanged', 
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(dialog).not.toBeVisible();
   const row = page.getByRole('row').filter({ hasText: fixture.basic.customerEmail });
-  await expect(row.getByRole('button', { name: 'Manage customer ' + fixture.basic.customerEmail, exact: true })).toBeFocused();
+  await expect(row.getByRole('button', { name: 'Actions for customer ' + fixture.basic.customerEmail, exact: true })).toBeFocused();
   await expect(row).toContainText('Active');
   dialog = await openAction(page, fixture.basic.customerEmail, 'Block customer');
   await dialog.getByLabel('Reason', { exact: true }).fill('Preserve this explanation after a failed request');

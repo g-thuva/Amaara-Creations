@@ -75,7 +75,6 @@ function VideoCard({ video }) {
       <Link
         to={video.to}
         className="s-video-link"
-        aria-label={`${video.title} — ${video.caption}`}
       >
         <div className="s-video-frame">
           <span className="s-video-overlay" aria-hidden="true" />

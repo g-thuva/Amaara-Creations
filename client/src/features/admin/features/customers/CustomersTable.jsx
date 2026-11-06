@@ -32,7 +32,7 @@ export function CustomersTable({ resource, onAction }) {
           key: 'actions', label: 'Account actions',
           render: customer => {
             const actions = availableCustomerActions(customer, user);
-            return actions.length ? <RowActions label={`Manage customer ${customer.email}`}>
+            return actions.length ? <RowActions label={`Actions for customer ${customer.email}`}>
               {actions.map(action => <Button key={action} variant={customerActions[action].variant}
                 disabled={resource.loading || Boolean(resource.error)} onClick={event => { event.currentTarget.closest('details')?.querySelector('summary')?.focus(); onAction(customer, action); }}>{customerActions[action].label}</Button>)}
             </RowActions> : <span className="admin-helper">No account actions</span>;
