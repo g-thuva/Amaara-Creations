@@ -1,4 +1,4 @@
-import { test, expect, acceptanceApi, localManagementNavigation } from '../fixtures';
+import { test, expect, acceptanceApi, managementUrl, localManagementNavigation, localStorefrontNavigation } from '../fixtures';
 import { readFile } from 'node:fs/promises';
 import { fillAuthenticator } from '../staffAuth';
 import { checkAccessibility } from '../accessibility';
@@ -51,14 +51,15 @@ test('customer quote and deletion-review requests receive protected staff replie
   await expect(page.getByText(/Your deletion review request was received/)).toBeVisible();
   const staffContext = await browser.newContext(); const staff = await staffContext.newPage();
   await localManagementNavigation(staffContext);
+  await localStorefrontNavigation(staffContext);
   try {
-    await staff.goto('http://127.0.0.1:5179/Amaara-Creations/login');
+    await staff.goto(managementUrl + 'login');
     await staff.getByLabel('Email Address', { exact: true }).fill(fixture.superAdminEmail);
     await staff.getByLabel('Password', { exact: true }).fill(fixture.basic.password);
     await fillAuthenticator(staff);
     await staff.getByRole('button', { name: /^(Sign In|Verify and sign in)$/ }).click();
     await expect(staff).toHaveURL(/\/admin\/dashboard$/);
-    await staff.goto('http://127.0.0.1:5179/Amaara-Creations/admin/quote-requests');
+    await staff.goto(managementUrl + 'admin/quote-requests');
     const quote = staff.getByRole('row').filter({ hasText: subject });
     await quote.getByRole('button', { name: 'Review request', exact: true }).click();
     const replyForm = staff.getByRole('region', { name: 'Review selected request', exact: true });
@@ -66,7 +67,7 @@ test('customer quote and deletion-review requests receive protected staff replie
     await replyForm.getByLabel('Customer-visible reply', { exact: true }).fill('We need to review the supplied artwork before quoting.');
     await replyForm.getByRole('button', { name: 'Save reply', exact: true }).click();
     await expect(staff.getByText('Customer-visible reply saved.', { exact: true })).toBeVisible();
-    await staff.goto('http://127.0.0.1:5179/Amaara-Creations/admin/privacy-requests');
+    await staff.goto(managementUrl + 'admin/privacy-requests');
     const privacy = staff.getByRole('row').filter({ hasText: `Privacy review ${subject}` });
     await privacy.getByRole('button', { name: 'Review request', exact: true }).click();
     await replyForm.getByRole('combobox', { name: 'Review status', exact: true }).selectOption('InReview');

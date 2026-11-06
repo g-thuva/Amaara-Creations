@@ -11,6 +11,12 @@ export async function localManagementNavigation(target: import('@playwright/test
     return route.fulfill({ status: 302, headers: { Location: new URL(managementUrl).origin + destination.pathname + destination.search } });
   });
 }
+export async function localStorefrontNavigation(target: import('@playwright/test').BrowserContext | import('@playwright/test').Page) {
+  await target.route('https://store.example.test/**', route => {
+    const destination = new URL(route.request().url());
+    return route.fulfill({ status: 302, headers: { Location: new URL(storefrontUrl).origin + destination.pathname + destination.search } });
+  });
+}
 export const test = base.extend<{ fixture: BrowserFixture }>({
   context: async ({ context }, use) => {
     // HTTPS deployment navigation is a local test stand-in. Operational pages
@@ -18,10 +24,7 @@ export const test = base.extend<{ fixture: BrowserFixture }>({
     await localManagementNavigation(context);
     // Production staff builds correctly reject an HTTP shared-login destination.
     // Represent the approved HTTPS store host with the real local storefront artifact.
-    await context.route('https://store.example.test/**', route => {
-      const destination = new URL(route.request().url());
-      return route.fulfill({ status: 302, headers: { Location: new URL(storefrontUrl).origin + destination.pathname + destination.search } });
-    });
+    await localStorefrontNavigation(context);
     await use(context);
   },
   fixture: async ({ request }, use) => {
