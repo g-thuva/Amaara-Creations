@@ -2,10 +2,14 @@
 
 This checks public configuration syntax only; it never authenticates or deploys.
 """
+import argparse
 import ipaddress
 import os
+from pathlib import Path
 import re
 from urllib.parse import urlsplit
+
+PUBLIC_URLS = ('VITE_API_BASE_URL', 'VITE_MEDIA_BASE_URL', 'VITE_PUBLIC_SITE_URL', 'VITE_MANAGEMENT_LOGIN_URL')
 
 
 def validate(values):
@@ -13,7 +17,7 @@ def validate(values):
     if not re.fullmatch(r'/(?:[A-Za-z0-9_-]+/)*', base) or values.get('VITE_ROUTER_MODE') != 'hash':
         raise ValueError('Pages requires an explicit safe base path and hash routing.')
     urls = {}
-    for key in ('VITE_API_BASE_URL', 'VITE_MEDIA_BASE_URL', 'VITE_PUBLIC_SITE_URL', 'VITE_MANAGEMENT_LOGIN_URL'):
+    for key in PUBLIC_URLS:
         value = values.get(key, '')
         url = urlsplit(value)
         host = (url.hostname or '').lower()
@@ -40,10 +44,32 @@ def validate(values):
         raise ValueError('Management sign-in must use a separate approved origin.')
 
 
-if __name__ == '__main__':
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--github-preflight', action='store_true', help='Report whether public deployment is configured; skip publishing when URLs are missing.')
+    args = parser.parse_args(argv)
     try:
+        if args.github_preflight:
+            missing = [key for key in PUBLIC_URLS if not os.environ.get(key, '').strip()]
+            if not missing:
+                validate(os.environ)
+            ready = not missing
+            message = ('Pages deployment skipped: public API, media and management hosting must be configured. Missing variables: ' + ', '.join(missing) + '.') if missing else 'Pages deployment enabled: all public URL settings passed validation.'
+            if os.environ.get('GITHUB_OUTPUT'):
+                with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as output:
+                    output.write(f'ready={str(ready).lower()}\n')
+            if os.environ.get('GITHUB_STEP_SUMMARY'):
+                with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a', encoding='utf-8') as summary:
+                    summary.write('## GitHub Pages deployment\n\n' + message + '\n')
+            print(message)
+            return 0
         validate(os.environ)
         print('Pages public configuration: PASS (syntax only; verify real API/CORS/cookies separately).')
+        return 0
     except ValueError as error:
         print('Pages public configuration: FAIL; ' + str(error))
-        raise SystemExit(2)
+        return 2
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
